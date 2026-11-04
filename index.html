@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Idle Town</title>
+  <link rel="stylesheet" href="./src/ui/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header id="topbar"></header>
+    <main id="stage"><canvas id="game"></canvas><div id="banner" hidden></div></main>
+    <aside id="side">
+      <section id="adventurers"><h2 data-i18n="ui.adventurers"></h2><ul></ul></section>
+      <section id="events"><h2 data-i18n="ui.events"></h2><ul></ul></section>
+      <section id="chronicle"><h2 data-i18n="ui.log"></h2><ul></ul></section>
+    </aside>
+    <footer id="controls"></footer>
+  </div>
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>

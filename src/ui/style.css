@@ -1,0 +1,58 @@
+:root {
+  --bg: #1b1a17;
+  --panel: #262420;
+  --panel2: #2f2c27;
+  --text: #e8e0d0;
+  --muted: #9a917f;
+  --accent: #e0b040;
+  --danger: #e05050;
+  --good: #7ad07a;
+  --adventure: #b08ae0;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, "Segoe UI", "Noto Sans TC", sans-serif; }
+#app { display: grid; height: 100vh; grid-template-columns: 1fr 300px; grid-template-rows: auto 1fr auto; grid-template-areas: "top top" "stage side" "ctl side"; }
+#topbar { grid-area: top; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; padding: 8px 14px; background: var(--panel); border-bottom: 1px solid #000; }
+#topbar .title { font-weight: 700; color: var(--accent); font-size: 15px; }
+#topbar .stat { display: flex; gap: 5px; align-items: center; color: var(--muted); }
+#topbar .stat b { color: var(--text); font-variant-numeric: tabular-nums; }
+#topbar .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+#topbar .next { margin-left: auto; color: var(--muted); font-style: italic; }
+#stage { grid-area: stage; position: relative; display: flex; align-items: center; justify-content: center; background: #0f1a0c; overflow: hidden; }
+#game { max-width: 100%; max-height: 100%; aspect-ratio: 40 / 26; width: auto; height: auto; image-rendering: auto; }
+#stage > canvas { width: min(100%, calc(100vh - 110px) * 40 / 26); }
+#banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: rgba(0,0,0,0.75); color: var(--accent); padding: 8px 16px; border: 1px solid var(--accent); border-radius: 6px; font-weight: 700; pointer-events: none; }
+#banner.danger { color: var(--danger); border-color: var(--danger); }
+#side { grid-area: side; display: flex; flex-direction: column; background: var(--panel); border-left: 1px solid #000; overflow: hidden; }
+#side section { display: flex; flex-direction: column; min-height: 0; border-bottom: 1px solid #000; }
+#adventurers { flex: 0 0 auto; max-height: 36%; }
+#events { flex: 1 1 0; }
+#chronicle { flex: 0 0 auto; max-height: 28%; }
+#side h2 { margin: 0; padding: 6px 10px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); background: var(--panel2); }
+#side ul { margin: 0; padding: 6px 10px; list-style: none; overflow-y: auto; }
+#side li { padding: 2px 0; color: var(--text); }
+#events li, #chronicle li { border-bottom: 1px dotted #3a3630; }
+#events li .day, #chronicle li .day { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 6px; }
+li.kind-build { color: #d8c8a0; }
+li.kind-people { color: #c8d8c0; }
+li.kind-adventure { color: var(--adventure); }
+li.kind-danger { color: var(--danger); }
+li.kind-victory { color: var(--accent); font-weight: 700; }
+.adv { display: grid; grid-template-columns: 10px 1fr auto; gap: 6px; align-items: center; }
+.adv .cls { width: 10px; height: 10px; border-radius: 50%; }
+.adv .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adv .name small { color: var(--muted); margin-left: 4px; }
+.adv .status { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.adv .hp { grid-column: 2 / 4; height: 3px; background: #3a1a1a; border-radius: 2px; }
+.adv .hp i { display: block; height: 100%; background: var(--good); border-radius: 2px; }
+.adv.dead { opacity: 0.45; }
+#controls { grid-area: ctl; display: flex; gap: 8px; align-items: center; padding: 6px 14px; background: var(--panel); border-top: 1px solid #000; }
+#controls button, #controls select { background: var(--panel2); color: var(--text); border: 1px solid #000; border-radius: 4px; padding: 4px 10px; font: inherit; cursor: pointer; }
+#controls button.active { background: var(--accent); color: #221; font-weight: 700; }
+#controls .spacer { flex: 1; }
+#controls .stats { color: var(--muted); font-size: 12px; }
+@media (max-width: 900px) {
+  #app { grid-template-columns: 1fr; grid-template-rows: auto auto auto 1fr; grid-template-areas: "top" "stage" "ctl" "side"; }
+  #side { border-left: 0; border-top: 1px solid #000; }
+  #stage > canvas { width: 100%; }
+}
