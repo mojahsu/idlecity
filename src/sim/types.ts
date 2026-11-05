@@ -99,6 +99,12 @@ export interface Party {
   x: number;
   y: number;
   path: Point[];
+  /** Fight rounds so far this run (drives volley / fireball cadence). Optional for old saves. */
+  rounds?: number;
+  /** The priest's once-per-run revive has been spent. */
+  reviveUsed?: boolean;
+  /** Monster is frozen and skips its next attack. */
+  frozen?: boolean;
 }
 
 export interface Dungeon {
@@ -139,7 +145,9 @@ export type TierId = 'camp' | 'hamlet' | 'village' | 'town' | 'city';
 /** Transient visual effects produced by one tick. Not saved. */
 export type Fx =
   | { kind: 'float'; x: number; y: number; text: string; color?: string }
-  | { kind: 'hit'; x: number; y: number };
+  | { kind: 'hit'; x: number; y: number }
+  /** A class skill fired inside a dungeon; the renderer animates it. */
+  | { kind: 'skill'; partyId: number; actorId: number; skill: string; targetId?: number; amount?: number };
 
 export interface GameState {
   version: number;

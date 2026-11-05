@@ -2,6 +2,7 @@
 import type { Adventurer, Encounter, GameState, Party } from './types';
 import { DUNGEONS, FINAL_DUNGEON, MONSTERS } from '../data/dungeons';
 import { CLASSES } from '../data/adventurers';
+import { SKILL_TUNING as T, hasSkill } from '../data/skills';
 import { chance, pick, random } from './rng';
 import { findBuildSpot, findPath, moveAlong } from './world';
 import { countBuildings, placeBuilding } from './buildings';
@@ -58,28 +59,52 @@ function makeEncounter(s: GameState, p: Party): Encounter {
   const def = DUNGEONS.find((d) => d.id === p.dungeon)!;
   const boss = p.floor === def.floors && !(p.dungeon === FINAL_DUNGEON && s.victory);
   const m = MONSTERS[boss ? def.boss : pick(s, def.monsters)];
-  const scale = 1 + 0.15 * (p.floor - 1);
-  return { monster: m.id, hp: Math.round(m.hp * scale), maxHp: Math.round(m.hp * scale), atk: Math.round(m.atk * (1 + 0.08 * (p.floor - 1))), boss };
+  const scale = 1 + 0.3 * (p.floor - 1);
+  return { monster: m.id, hp: Math.round(m.hp * scale), maxHp: Math.round(m.hp * scale), atk: Math.round(m.atk * (1 + 0.1 * (p.floor - 1))), boss };
 }
 
 function fightRound(s: GameState, p: Party): void {
   const team = members(s, p);
   const e = p.encounter!;
   const eq = 1 + 0.1 * s.equipment;
-  // Party attacks.
+  const round = (p.rounds = (p.rounds ?? 0) + 1);
+  const fx = (actor: Adventurer, skill: string, targetId?: number, amount?: number) => s.fx.push({ kind: 'skill', partyId: p.id, actorId: actor.id, skill, targetId, amount });
+
+  // Party attacks; archers and mages have rhythm skills on top of the base hit.
   let dmg = 0;
-  for (const a of team) dmg += a.atk * eq * (0.7 + random(s) * 0.6);
+  for (const a of team) {
+    let hit = a.atk * eq * (0.7 + random(s) * 0.6);
+    if (a.cls === 'archer') {
+      const crit = chance(s, hasSkill(a.cls, a.level, 'eagleEye') ? T.eagleEyeCritChance : T.critChance);
+      if (round % T.volleyEvery === 0) { hit *= T.volleyMultiplier; fx(a, 'volley'); }
+      if (crit) { hit *= T.critMultiplier; fx(a, 'crit', undefined, Math.round(hit)); }
+    } else if (a.cls === 'mage' && round % T.fireballEvery === 0) {
+      hit *= T.fireballMultiplier; fx(a, 'fireball', undefined, Math.round(hit));
+      if (hasSkill(a.cls, a.level, 'frost') && chance(s, T.frostChance)) { p.frozen = true; fx(a, 'frost'); }
+    }
+    dmg += hit;
+  }
   e.hp -= dmg;
   s.fx.push({ kind: 'hit', x: p.x, y: p.y });
   if (e.hp <= 0) { onMonsterSlain(s, p); return; }
-  // Priests heal.
+
+  // Priests heal: Holy Light on whoever is in danger, otherwise a trickle for everyone.
   for (const a of team) {
     const heal = CLASSES[a.cls].heal;
-    if (heal) for (const b of team) b.hp = Math.min(b.maxHp, b.hp + heal * (1 + a.level * 0.2) / team.length);
+    if (!heal) continue;
+    const power = heal * (1 + a.level * 0.2);
+    const hurt = team.filter((b) => b.hp / b.maxHp < T.holyLightBelow).sort((x, y) => x.hp / x.maxHp - y.hp / y.maxHp)[0];
+    if (hurt) { const amt = Math.min(hurt.maxHp - hurt.hp, power * T.holyLightMultiplier); hurt.hp += amt; fx(a, 'holyLight', hurt.id, Math.round(amt)); }
+    else for (const b of team) b.hp = Math.min(b.maxHp, b.hp + power / team.length);
   }
-  // Monster strikes someone.
-  const target = pick(s, team);
-  const taken = Math.max(1, e.atk * (0.6 + random(s) * 0.8) - target.def - s.equipment * 0.5);
+
+  // Monster strikes someone, unless frozen. Warriors draw its attention.
+  if (p.frozen) { p.frozen = false; return; }
+  const warrior = team.find((a) => a.cls === 'warrior');
+  let target = pick(s, team);
+  if (warrior && target !== warrior && chance(s, T.tauntChance)) { target = warrior; fx(warrior, 'taunt'); }
+  let taken = Math.max(1, e.atk * (0.6 + random(s) * 0.8) - target.def - s.equipment * 0.5);
+  if (hasSkill(target.cls, target.level, 'ironWall') && chance(s, T.blockChance)) { taken *= T.blockMultiplier; fx(target, 'block'); }
   target.hp -= taken;
   if (target.hp <= 0) onMemberDown(s, p, target);
 }
@@ -125,6 +150,16 @@ function onMonsterSlain(s: GameState, p: Party): void {
 
 function onMemberDown(s: GameState, p: Party, a: Adventurer): void {
   const e = p.encounter!;
+  // A seasoned priest can pull one fallen companion back, once per run.
+  const priest = members(s, p).find((b) => b !== a && b.hp > 0 && hasSkill(b.cls, b.level, 'revive'));
+  if (priest && !p.reviveUsed) {
+    p.reviveUsed = true;
+    a.hp = 1;
+    s.fx.push({ kind: 'skill', partyId: p.id, actorId: priest.id, skill: 'revive', targetId: a.id });
+    log(s, 'adventure', 'log.revive', { priest: priest.name, name: a.name });
+    startReturn(s, p);
+    return;
+  }
   if (chance(s, 0.3)) {
     a.hp = 0;
     a.status = 'dead';

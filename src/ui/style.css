@@ -42,6 +42,7 @@ li.kind-victory { color: var(--accent); font-weight: 700; }
 .adv .cls { width: 10px; height: 10px; border-radius: 50%; }
 .adv .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .adv .name small { color: var(--muted); margin-left: 4px; }
+.adv .sk { font-size: 9px; margin-left: 3px; cursor: help; }
 .adv .status { color: var(--muted); font-size: 11px; white-space: nowrap; }
 .adv .hp { grid-column: 2 / 4; height: 3px; background: #3a1a1a; border-radius: 2px; }
 .adv .hp i { display: block; height: 100%; background: var(--good); border-radius: 2px; }

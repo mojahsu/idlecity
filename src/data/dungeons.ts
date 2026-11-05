@@ -19,7 +19,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
   imp:        { id: 'imp', hp: 60, atk: 12, xp: 26, gold: 9, iron: 2 },
   demon:      { id: 'demon', hp: 140, atk: 18, xp: 50, gold: 18, iron: 3 },
   dragon:     { id: 'dragon', hp: 350, atk: 22, xp: 160, gold: 120, iron: 10 },
-  demonLord:  { id: 'demonLord', hp: 1400, atk: 26, xp: 800, gold: 1500, iron: 60 },
+  demonLord:  { id: 'demonLord', hp: 1800, atk: 28, xp: 800, gold: 1500, iron: 60 },
   wolf:       { id: 'wolf', hp: 25, atk: 5, xp: 10, gold: 0 },
   bandit:     { id: 'bandit', hp: 30, atk: 5, xp: 12, gold: 6 },
   orc:        { id: 'orc', hp: 55, atk: 9, xp: 25, gold: 10, iron: 1 },
@@ -41,7 +41,7 @@ export interface DungeonDef {
 export const DUNGEONS: DungeonDef[] = [
   { id: 'goblinCave', floors: 5, level: 1, tier: 'town', monsters: ['rat', 'goblin', 'wolf'], boss: 'goblinChief', corner: 'ne', color: '#4a3a2a' },
   { id: 'ancientRuins', floors: 8, level: 5, tier: 'town', monsters: ['skeleton', 'ghoul', 'bandit'], boss: 'lich', corner: 'sw', color: '#5a5a6a' },
-  { id: 'darkTower', floors: 12, level: 16, tier: 'city', monsters: ['imp', 'demon', 'orc', 'dragon'], boss: 'demonLord', corner: 'se', color: '#2a1a3a' },
+  { id: 'darkTower', floors: 12, level: 20, tier: 'city', monsters: ['imp', 'demon', 'orc', 'dragon'], boss: 'demonLord', corner: 'se', color: '#2a1a3a' },
 ];
 
 /** The dungeon whose boss ends the game. */

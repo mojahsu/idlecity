@@ -6,6 +6,7 @@ import { MONSTERS, DUNGEONS } from '../src/data/dungeons';
 import { CLASSES } from '../src/data/adventurers';
 import { JOBS } from '../src/data/jobs';
 import { TIERS } from '../src/data/tiers';
+import { SKILLS } from '../src/data/skills';
 
 describe('locales', () => {
   test('every English key exists in zh-TW and vice versa', () => {
@@ -21,6 +22,7 @@ describe('locales', () => {
     for (const id in CLASSES) expect(keys.has(`class.${id}`)).toBe(true);
     for (const id in JOBS) expect(keys.has(`job.${id}`)).toBe(true);
     for (const tier of TIERS) expect(keys.has(`tier.${tier.id}`)).toBe(true);
+    for (const id in SKILLS) expect(keys.has(`skill.${id}`)).toBe(true);
   });
 
   test('placeholders match between languages', () => {

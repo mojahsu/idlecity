@@ -16,7 +16,7 @@ export interface ClassDef {
 export const CLASSES: Record<AdventurerClass, ClassDef> = {
   warrior: { id: 'warrior', hp: 40, atk: 6, def: 3, hpUp: 8, atkUp: 1.5, color: '#d04a3a' },
   archer:  { id: 'archer',  hp: 28, atk: 7, def: 1, hpUp: 5, atkUp: 1.8, color: '#4a9a3a' },
-  mage:    { id: 'mage',    hp: 22, atk: 9, def: 0, hpUp: 4, atkUp: 2.2, color: '#4a5ad0' },
+  mage:    { id: 'mage',    hp: 22, atk: 8, def: 0, hpUp: 4, atkUp: 2.2, color: '#4a5ad0' },
   priest:  { id: 'priest',  hp: 26, atk: 3, def: 1, hpUp: 5, atkUp: 0.8, color: '#e0d060', heal: 2 },
 };
 

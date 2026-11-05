@@ -3,6 +3,7 @@ import type { GameState } from '../sim/types';
 import { RESOURCE_IDS } from '../sim/types';
 import { BUILDINGS } from '../data/buildings';
 import { CLASSES } from '../data/adventurers';
+import { skillsFor } from '../data/skills';
 import { currentDay, season, year } from '../sim/time';
 import { resourceColor } from '../sim/workers';
 import { alive } from '../sim/adventurers';
@@ -142,7 +143,7 @@ export class Hud {
       }
       return `<li class="adv ${a.status === 'dead' ? 'dead' : ''}">
         <i class="cls" style="background:${CLASSES[a.cls].color}"></i>
-        <span class="name">${esc(a.name)}<small>${esc(t(`class.${a.cls}`))} ${esc(t('ui.level', { level: a.level }))}</small></span>
+        <span class="name">${esc(a.name)}<small>${esc(t(`class.${a.cls}`))} ${esc(t('ui.level', { level: a.level }))}</small>${skillsFor(a.cls, a.level).map((sk) => `<b class="sk ${sk.level > 1 ? 'adv' : ''}" style="color:${sk.level > 1 ? '#f0d050' : CLASSES[a.cls].color}" title="${esc(t(`skill.${sk.id}`))}">${sk.level > 1 ? '★' : '◆'}</b>`).join('')}</span>
         <span class="status">${esc(status)}</span>
         <span class="hp"><i style="width:${Math.max(0, Math.min(100, (a.hp / a.maxHp) * 100)).toFixed(0)}%"></i></span>
       </li>`;

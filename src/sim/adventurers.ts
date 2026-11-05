@@ -129,6 +129,7 @@ function tryFormParty(s: GameState): void {
     encounter: null,
     loot: emptyResources(),
     timer: 0,
+    rounds: 0, reviveUsed: false, frozen: false,
     x: from.x, y: from.y,
     path: findPath(s, from, target),
   };

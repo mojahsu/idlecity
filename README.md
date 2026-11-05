@@ -93,10 +93,17 @@ tests/        bun tests
 4. Population tiers (camp → hamlet → village → town → city) unlock buildings.
 5. Tavern brings adventurers; Guild unlocks dungeons; Keep unlocks the Dark Tower.
 6. Adventurers permanently die (30% chance when they drop to 0 HP). A grave appears.
+7. Each class has an automatic skill, plus a second one from level 10
+   (`data/skills.ts`): warriors taunt (then block), archers volley every third
+   round (then crit more), mages hurl a fireball every third round (then
+   freeze), priests cast Holy Light on anyone under 30% HP (then revive one
+   fallen companion per run). Fights run once per second in `sim/parties.ts`;
+   every skill emits a `skill` fx the dungeon view animates.
 
 Rough pacing at 1x: hamlet in minutes, village ~15 min, town ~40 min, city ~2 h,
-first dungeon ~45 min, Dark Tower after the Keep (~3 h), Demon Lord typically
-falls after several hours of attempts.
+first dungeon ~45 min, Dark Tower after the Keep (~3 h), Demon Lord falls
+around hour 4–5 with a handful of deaths. Check with a headless run of
+`advance()` over several seeds before and after touching any numbers.
 
 ## Steam / desktop port
 
