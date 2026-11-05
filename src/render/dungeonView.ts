@@ -174,7 +174,8 @@ export class DungeonView {
       // HP bar + name.
       const w = 24, hp = Math.max(0, a.hp / a.maxHp);
       rect(ctx, hx - w / 2, floorY + 6, w, 3, 'rgba(0,0,0,0.6)'); rect(ctx, hx - w / 2, floorY + 6, w * hp, 3, hp > 0.5 ? '#7ad07a' : hp > 0.25 ? '#e0b040' : '#e05050');
-      ctx.font = '8px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = CLASSES[a.cls].color; ctx.fillText(a.name.length > 8 ? a.name.slice(0, 7) + '…' : a.name, hx, floorY + 17);
+      ctx.textAlign = 'center'; ctx.fillStyle = CLASSES[a.cls].color;
+      fitText(ctx, a.name, hx, floorY + 17, HERO_GAP - 4);
     });
     // Monster.
     const mx = PANEL_W * 0.74;
@@ -264,4 +265,17 @@ function members(s: GameState, p: Party): Adventurer[] {
   return p.memberIds.map((id) => s.adventurers.find((a) => a.id === id)!).filter((a) => a && a.status === 'questing');
 }
 
-function heroX(i: number): number { return 30 + i * 30; }
+/** Horizontal room per hero; names are shrunk and then clipped to fit inside it. */
+const HERO_GAP = 40;
+function heroX(i: number): number { return 24 + i * HERO_GAP; }
+
+/** Draw a label centred at (x, y), stepping the font down and finally clipping so it never spills past `maxW`. */
+function fitText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number): void {
+  for (const size of [8, 7.5, 7, 6.5]) {
+    ctx.font = `${size}px system-ui, sans-serif`;
+    if (ctx.measureText(text).width <= maxW) { ctx.fillText(text, x, y); return; }
+  }
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+  ctx.fillText(t + '…', x, y);
+}
