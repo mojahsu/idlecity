@@ -2,6 +2,16 @@
 export const TICK = 0.1;              // seconds of game time per tick
 export const DAY_LENGTH = 60;         // game seconds per day (= real seconds at 1x)
 export const DAYS_PER_SEASON = 10;
+
+// Lives run faster than the calendar: a year of a person's life is one season
+// (10 days, 10 minutes at 1x), so a newcomer of 20 grows old over an evening.
+export const LIFE_YEAR_DAYS = 10;
+export const ARRIVAL_AGE: [number, number] = [16, 26];
+export const ADULT_AGE = 14;           // children join the workforce (about 2.3 hours after birth)
+export const ELDER_AGE = 60;           // grey hair and a slower step
+export const LIFESPAN: [number, number] = [58, 76];
+export const WEDDING_INTERVAL: [number, number] = [240, 480];
+export const BIRTH_INTERVAL: [number, number] = [300, 600];
 export const SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
 
 export const WORKER_SPEED = 2.2;      // tiles per second

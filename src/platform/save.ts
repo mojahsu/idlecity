@@ -16,6 +16,7 @@ export interface SaveFile {
 export interface Settings {
   locale?: string;
   speed?: number;
+  muted?: boolean;
 }
 
 export function saveGame(storage: SaveStorage, s: GameState): void {

@@ -103,6 +103,13 @@ export class Renderer {
     drawVignette(ctx, W, H);
   }
 
+  /** Render-side happenings since the last call (lightning, fireworks), for the soundtrack. */
+  drainEvents(): string[] {
+    const ev = this.effects.events;
+    this.effects.events = [];
+    return ev;
+  }
+
   /** The newest event as a caption in the bottom right corner, so you never miss what just happened. */
   private drawCaption(ctx: CanvasRenderingContext2D, s: GameState, dt: number, W: number, H: number): void {
     const last = s.log[s.log.length - 1] ?? null;

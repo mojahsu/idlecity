@@ -48,7 +48,8 @@ src/
     workers.ts    gather / carry / build / farm / sleep / bucket-brigade behaviour
     leisure.ts    breaks (chat, drink, fish, nap, feed hens, pray), lunch, the holiday
     mayor.ts      the AI that chooses buildings and assigns jobs
-    population.ts immigration, food, tier progression
+    population.ts immigration, food, tier progression, ages, weddings, births,
+                  children growing up, old age
     adventurers.ts arrivals, resting, party formation, dungeon unlocks
     parties.ts    dungeon runs, combat, loot, death, the final boss
     raids.ts      monster attacks on the town
@@ -76,7 +77,9 @@ src/
     dungeonView.ts  Inset panel showing a party fighting floor by floor: parallax
                     backdrops per dungeon, floor reflections, banners, chests
   ui/         HUD (DOM), stylesheet
-  platform/   Save storage interface + localStorage impl, save/load, offline progress
+  platform/   Save storage interface + localStorage impl, save/load, offline progress,
+              fullscreen, the synthesised audio engine (audio.ts) and the soundtrack
+              that reads game state and decides what is heard (soundtrack.ts)
   main.ts     Browser entry: game loop, autosave, hotkeys
 tests/        bun tests
 ```
@@ -108,7 +111,9 @@ tests/        bun tests
    round (then crit more), mages hurl a fireball every third round (then
    freeze), priests cast Holy Light on anyone under 30% HP (then revive one
    fallen companion per run). Fights run once per second in `sim/parties.ts`;
-   every skill emits a `skill` fx the dungeon view animates.
+   every skill emits a `skill` fx the dungeon view animates. A party whose
+   average level is under the dungeon's level + 2 turns back at the boss's
+   door; without that gate one unlucky early wipe starts a death spiral.
 
 8. Nobody works all day. After a delivery a worker may take a break
    (`sim/leisure.ts`): chat at the well, a drink at the tavern (then a wobbly
@@ -141,9 +146,22 @@ tests/        bun tests
     floors and bosses with a banner, pops chests open, and shows floor
     progress as dots.
 
+12. Lives (`population.ts`): everyone has an age; a life-year is one season
+    (`LIFE_YEAR_DAYS`). Newcomers arrive at 16–26, marry in the chapel, have
+    children (tracked in `state.children`, no job and no food cost) who come of
+    age at `ADULT_AGE` and pick up a job under their own name, turn grey and
+    slow at `ELDER_AGE`, and pass away between `LIFESPAN` years, leaving a
+    grave. Over an evening a town turns over a whole generation.
+13. Sound: `platform/audio.ts` synthesises everything on Web Audio (no files):
+    wind, rain, river and fire beds; birds, crickets, owls, wolves; axes, picks
+    and hammers; hits, skills, roars, thunder, bells, fanfares, a tavern tune.
+    `platform/soundtrack.ts` reads the state each frame and plays them. `M` or
+    the speaker button mutes; the choice is saved. Sound starts on the first
+    click or key press, as browsers require.
+
 Rough pacing at 1x: hamlet in minutes, village ~15 min, town ~40 min, city ~2 h,
 first dungeon ~45 min, Dark Tower after the Keep (~3 h), Demon Lord falls
-around hour 4–5 with a handful of deaths. Check with a headless run of
+around hour 4.5–5 with a handful of deaths (0–3 over 10 h on eight seeds). Check with a headless run of
 `advance()` over several seeds before and after touching any numbers.
 
 ## Steam / desktop port

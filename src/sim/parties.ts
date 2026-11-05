@@ -52,7 +52,9 @@ function daresBossFloor(s: GameState, p: Party): boolean {
   if (p.floor !== def.floors) return true;
   const team = members(s, p);
   const avgHp = team.reduce((n, a) => n + a.hp / a.maxHp, 0) / team.length;
-  return team.length >= 3 && avgHp >= 0.7;
+  // A party well under the dungeon's level turns back at the boss's door instead of feeding it.
+  const avgLevel = team.reduce((n, a) => n + a.level, 0) / team.length;
+  return team.length >= 3 && avgHp >= 0.7 && avgLevel >= def.level + 2;
 }
 
 function makeEncounter(s: GameState, p: Party): Encounter {

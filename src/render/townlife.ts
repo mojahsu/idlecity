@@ -51,7 +51,7 @@ export class TownLife {
   private equipment = -1;
   private forge = 0;
   private wedding: Walker[] = [];
-  private weddingTimer = 200;
+  private weddingTimer = 600;
   private wolves: Wolf[] = [];
   private wolfDen: Point | null = null;
   private deer: Deer | null = null;
@@ -61,6 +61,8 @@ export class TownLife {
   private fish: Fish[] = [];
   private fishTimer = 8;
   private statueSpot: Point | null = null;
+  private kidsById = new Map<number, Walker>();
+  private weddingsSeen = 0;
 
   update(s: GameState, env: Env, dt: number): void {
     this.refreshRoads(s);
@@ -147,10 +149,14 @@ export class TownLife {
   /** Bride and groom stroll from the chapel with petals in the air. */
   private updateWedding(s: GameState, env: Env, dt: number): void {
     const chapel = s.buildings.find((b) => b.built && b.type === 'chapel');
+    const weddings = s.log.filter((e) => e.key === 'log.wedding').length;
+    if (this.weddingsSeen < 0 || weddings < this.weddingsSeen) this.weddingsSeen = weddings;
     if (!this.wedding.length) {
       this.weddingTimer -= dt;
-      if (chapel && this.weddingTimer <= 0 && env.dark < 0.3 && !env.rainy && !env.snowy) {
-        this.weddingTimer = 400 + Math.random() * 400;
+      const announced = weddings > this.weddingsSeen;
+      if (announced) this.weddingsSeen = weddings;
+      if (chapel && (announced || this.weddingTimer <= 0) && env.dark < 0.3 && !env.rainy && !env.snowy) {
+        this.weddingTimer = 900 + Math.random() * 600;
         const a = this.spawnWalker(s, false, 0.8, chapel);
         if (a) { a.ttl = 30; a.basket = false; a.opts = { bride: true, tunic: '#f8f4ec' }; const b = { ...a, seed: a.seed + 3, opts: { tunic: '#2a2a3a' } }; this.wedding = [a, b]; this.notes.push({ x: a.x * TILE + TILE / 2, y: a.y * TILE, ttl: 2.2, glyph: '♥', color: '#ff80a0' }); }
       }
@@ -293,6 +299,17 @@ export class TownLife {
 
   private updateKids(s: GameState, env: Env, dt: number): void {
     const playtime = env.dark < 0.4 && !env.night && !env.rainy && s.workers.length >= 6;
+    // The town's real children wander the streets by day, each with a name in the sim.
+    const real = s.children ?? [];
+    for (const c of real) {
+      let w = this.kidsById.get(c.id);
+      if (!w) { const nw = this.spawnWalker(s, true, 1.3, s.buildings.find((b) => b.built && (b.type === 'house' || b.type === 'hut')) ?? s.center); if (!nw) continue; w = nw; w.seed = c.id * 31; w.basket = false; this.kidsById.set(c.id, w); }
+      w.ttl = 99;
+      w.fade = playtime ? Math.min(1, w.fade + dt * 1.5) : Math.max(0, w.fade - dt * 2);
+      if (w.fade > 0 && !this.stepRoad(s, w, dt)) { const nw = this.spawnWalker(s, true, 1.3); if (nw) { nw.seed = w.seed; this.kidsById.set(c.id, nw); } }
+    }
+    for (const id of [...this.kidsById.keys()]) if (!real.some((c) => c.id === id)) this.kidsById.delete(id);
+    if (real.length) { this.kids = []; return; }
     if (!this.kids.length) {
       this.kidTimer -= dt;
       if (playtime && this.kidTimer <= 0) {
@@ -379,7 +396,7 @@ export class TownLife {
   /** Things standing on the ground, sorted with units by the renderer. */
   groundActors(s: GameState, env0: Env): Drawable[] {
     const out: Drawable[] = [];
-    for (const w of [...this.walkers, ...this.kids]) out.push({ y: w.y + 0.8, draw: (ctx, env) => { ctx.globalAlpha = w.fade; drawTownsfolk(ctx, w.x, w.y, w.tx >= w.x ? 1 : -1, Math.hypot(w.tx - w.x, w.ty - w.y) > 0.02, env, w.seed, { child: w.child, basket: w.basket }); ctx.globalAlpha = 1; } });
+    for (const w of [...this.walkers, ...this.kids, ...this.kidsById.values()]) out.push({ y: w.y + 0.8, draw: (ctx, env) => { ctx.globalAlpha = w.fade; drawTownsfolk(ctx, w.x, w.y, w.tx >= w.x ? 1 : -1, Math.hypot(w.tx - w.x, w.ty - w.y) > 0.02, env, w.seed, { child: w.child, basket: w.basket }); ctx.globalAlpha = 1; } });
     if (this.dog) { const d = this.dog; out.push({ y: d.y + 0.8, draw: (ctx, env) => drawDog(ctx, d, env) }); }
     for (const c of this.cats) {
       const b = s.buildings.find((x) => x.id === c.house);

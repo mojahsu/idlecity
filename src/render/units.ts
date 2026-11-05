@@ -5,6 +5,7 @@ import { CLASSES } from '../data/adventurers';
 import { TILE } from './constants';
 import { circle, ellipse, poly, rect, line, groundShadow, shade, rgba, hash, type Env } from './palette';
 import { drawMonster } from './monsters';
+import { isElder } from '../sim/population';
 
 /** People are drawn small relative to buildings; adventurers a touch larger than townsfolk. */
 export const WORKER_SCALE = 0.6;
@@ -130,9 +131,11 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
   const rest = w.task?.kind === 'rest' && w.task.phase === 'do' ? w.task : null;
   const p = pose(moving, working || rest?.activity === 'feed', env.clock, w.id);
   let dir = rest ? rest.dir : facing(w.x, w.path, w.id);
-  const skin = SKIN[Math.floor(hash(w.id, 1) * SKIN.length)], hair = HAIR[Math.floor(hash(w.id, 2) * HAIR.length)];
+  const elder = isElder(w);
+  const skin = SKIN[Math.floor(hash(w.id, 1) * SKIN.length)], hair = elder ? '#d8d8d8' : HAIR[Math.floor(hash(w.id, 2) * HAIR.length)];
   const tunic = JOBS[w.job].color;
   const px = w.x * TILE + TILE / 2, py = w.y * TILE + TILE / 2;
+  if (elder) p.bob += 1.2; // a slight stoop
   const sit = { walk: 0, bob: 0, swing: 0 };
   if (sleeping || rest?.activity === 'nap') {
     // Dozing: sat down, head nodding, the odd "z".
@@ -162,6 +165,7 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
     body(ctx, tunic, skin, hair, p);
     hat(ctx, w.job);
     if (tipsy) { circle(ctx, 1.2, -12, 1.1, 'rgba(240,80,80,0.55)'); circle(ctx, -1.6, -12, 1.1, 'rgba(240,80,80,0.55)'); }
+    if (elder && !dousing && !rest) line(ctx, -4.5, 0, -4, -8, '#6b4a2b', 1.2);
     if (dousing) bucket(ctx, env, (w.task as { phase: 'fetch' | 'carry' | 'throw' }).phase, w.id);
     else if (rest?.activity === 'feed') { ellipse(ctx, -4.5, -6, 2.6, 1.8, '#b08a52'); }
     else if (!rest && (working || !w.carrying)) tool(ctx, w, p);

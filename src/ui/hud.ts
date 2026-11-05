@@ -14,6 +14,7 @@ export interface HudCallbacks {
   onLocale(locale: Locale): void;
   onReset(): void;
   onFullscreen(): void;
+  onMute(): void;
 }
 
 const SPEEDS = [0, 1, 2, 4];
@@ -27,6 +28,7 @@ export class Hud {
   private banner = document.getElementById('banner')!;
   private speed = 1;
   private fullscreen = false;
+  private muted = false;
   private lastLogLen = -1;
   private lastChronLen = -1;
   private lastLocale = '';
@@ -41,6 +43,13 @@ export class Hud {
     this.fullscreen = on;
     const b = document.getElementById('fullscreen');
     if (b) { b.textContent = t(on ? 'ui.exitFullscreen' : 'ui.fullscreen'); b.title = t('ui.fullscreenHint'); }
+  }
+
+  /** Relabel the sound button. */
+  setMuted(on: boolean): void {
+    this.muted = on;
+    const b = document.getElementById('mute');
+    if (b) { b.textContent = on ? '🔇' : '🔊'; b.title = t(on ? 'ui.unmute' : 'ui.mute'); }
   }
 
   setSpeed(speed: number): void {
@@ -87,6 +96,11 @@ export class Hud {
     fs.id = 'fullscreen';
     fs.onclick = () => this.cb.onFullscreen();
     c.appendChild(fs);
+    const mu = document.createElement('button');
+    mu.id = 'mute';
+    mu.onclick = () => this.cb.onMute();
+    c.appendChild(mu);
+    this.setMuted(this.muted);
     this.setSpeed(this.speed);
   }
 
@@ -99,6 +113,7 @@ export class Hud {
       document.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n!); });
       document.getElementById('reset')!.textContent = t('ui.newGame');
       this.setFullscreen(this.fullscreen);
+      this.setMuted(this.muted);
       this.lastLogLen = -1; this.lastChronLen = -1;
     }
     this.updateTop(s);
@@ -120,7 +135,8 @@ export class Hud {
     const parts: string[] = [];
     parts.push(`<span class="title">${esc(t('app.title'))} · ${esc(t(`tier.${s.tier}`))}</span>`);
     parts.push(`<span class="stat">${esc(t('ui.year', { year: year(s) }))} · ${esc(t('ui.day', { day: currentDay(s) }))} · ${esc(t(`season.${season(s)}`))}</span>`);
-    parts.push(`<span class="stat">${esc(t('ui.population'))} <b>${s.workers.length}</b></span>`);
+    const kids = s.children?.length ?? 0;
+    parts.push(`<span class="stat">${esc(t('ui.population'))} <b>${s.workers.length}</b>${kids ? ` <small>+${kids} ${esc(t('ui.children'))}</small>` : ''}</span>`);
     for (const r of RESOURCE_IDS) {
       parts.push(`<span class="stat"><i class="dot" style="background:${resourceColor(r)}"></i>${esc(t(`res.${r}`))} <b>${Math.floor(s.resources[r])}</b></span>`);
     }

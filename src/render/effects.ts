@@ -40,6 +40,8 @@ export class Effects {
   private flash = 0;
   private meteorTimer = 20;
   private fireAcc = 0;
+  /** Things that happened this frame that the soundtrack wants to know about. */
+  events: string[] = [];
 
   // ---- update -----------------------------------------------------------------
 
@@ -60,7 +62,7 @@ export class Effects {
     const keep: Particle[] = [];
     for (const p of this.particles) {
       p.ttl -= dt;
-      if (p.ttl <= 0) { if (p.kind === 'rain') this.spawn('splash', p.x, p.y, 0, 0, 0.25, 1.5, 'rgba(220,235,255,0.7)'); else if (p.kind === 'rocket') this.burst(p.x, p.y, p.color); continue; }
+      if (p.ttl <= 0) { if (p.kind === 'rain') this.spawn('splash', p.x, p.y, 0, 0, 0.25, 1.5, 'rgba(220,235,255,0.7)'); else if (p.kind === 'rocket') { this.burst(p.x, p.y, p.color); this.events.push('burst'); } continue; }
       switch (p.kind) {
         case 'smoke': p.vx += Math.sin(env.clock * 1.5 + p.spin) * 1.5 * dt; p.vy *= 0.995; p.size += 2.4 * dt; break;
         case 'ember': p.vy -= 10 * dt; p.vx += Math.sin(env.clock * 20 + p.spin) * 8 * dt; break;
@@ -254,6 +256,7 @@ export class Effects {
     const ox = (keep ? keep.x : s.center.x) * TILE + TILE / 2 + (Math.random() - 0.5) * 120, oy = (keep ? keep.y : s.center.y) * TILE;
     const colors = ['#ff6060', '#ffd040', '#60c0ff', '#c080ff', '#80ff90', '#ffffff'];
     this.spawn('rocket', ox, oy + 10, (Math.random() - 0.5) * 10, -120 - Math.random() * 40, 0.7 + Math.random() * 0.4, 1.5, colors[Math.floor(Math.random() * colors.length)]);
+    this.events.push('rocket');
   }
 
   /** Embers and black smoke pour out of a burning building. */
@@ -280,6 +283,7 @@ export class Effects {
       if (this.boltTimer <= 0) {
         this.boltTimer = 6 + Math.random() * 18;
         this.flash = 1;
+        this.events.push('lightning');
         const pts: number[] = [];
         let x = 60 + Math.random() * (W - 120), y = -10;
         const endY = H * (0.25 + Math.random() * 0.5);

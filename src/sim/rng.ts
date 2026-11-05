@@ -29,3 +29,11 @@ export function uniqueName(s: Seeded, pool: readonly string[], used: string[]): 
 export function pick<T>(s: Seeded, arr: readonly T[]): T {
   return arr[Math.floor(random(s) * arr.length)];
 }
+
+/** Deterministic 0..1 value from two integers; for per-entity traits that must not touch the seed. */
+export function hash(a: number, b: number): number {
+  let h = (a * 374761393 + b * 668265263) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}

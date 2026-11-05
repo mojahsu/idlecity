@@ -30,6 +30,7 @@ export function newGame(seed = Date.now() % 2147483647): GameState {
     raid: null,
     caravan: null,
     fire: null,
+    children: [],
     nextId: 1,
     log: [],
     chronicle: [],

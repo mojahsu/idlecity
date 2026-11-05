@@ -6,9 +6,10 @@ import { GATHER_TERRAIN, JOBS } from '../data/jobs';
 import { findNearestTile, findPath, isReachable, moveAlong, tileAt } from './world';
 import { completeBuilding, constructionSite, gatherBonus } from './buildings';
 import { pick } from './rng';
-import { DAY_WORK_BONUS, FARM_AMOUNT, FARM_TIME, FIRE_BRIGADE, FIRE_BUCKET, GATHER_AMOUNT, GATHER_TIME, WORKER_SPEED, TILE_REGEN_PER_SEC } from './constants';
+import { DAY_WORK_BONUS, FARM_AMOUNT, FARM_TIME, FIRE_BRIGADE, FIRE_BUCKET, GATHER_AMOUNT, GATHER_TIME, WORKER_SPEED as BASE_SPEED, TILE_REGEN_PER_SEC } from './constants';
 import { dayFraction, isLunch, isNight } from './time';
 import { fireSeat, maybeRest, updateRest } from './leisure';
+import { isElder } from './population';
 
 
 export function updateWorkers(s: GameState, dt: number): void {
@@ -17,6 +18,7 @@ export function updateWorkers(s: GameState, dt: number): void {
 
 function updateWorker(s: GameState, w: Worker, dt: number): void {
   if (w.tipsy) w.tipsy = Math.max(0, w.tipsy - dt);
+  const WORKER_SPEED = isElder(w) ? BASE_SPEED * 0.85 : BASE_SPEED;
   if (!w.task) assignTask(s, w);
   const t = w.task;
   if (!t) { w.timer -= dt; return; }

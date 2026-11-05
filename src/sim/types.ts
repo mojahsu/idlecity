@@ -65,6 +65,18 @@ export interface Worker {
   lazy?: boolean;
   /** Seconds of wobbly walking left after a drink. */
   tipsy?: number;
+  /** Age in years (a year is DAYS_PER_YEAR days). Optional for old saves. */
+  age?: number;
+  /** Id of the spouse, if married. */
+  spouse?: number;
+}
+
+/** A child growing up in town; becomes a worker at ADULT_AGE. Not a worker: no job, no food maths. */
+export interface Child {
+  id: number;
+  name: string;
+  age: number;
+  parentId: number;
 }
 
 export type AdventurerClass = 'warrior' | 'archer' | 'mage' | 'priest';
@@ -209,6 +221,7 @@ export interface GameState {
   /** Optional for saves from before these events existed. */
   caravan?: Caravan | null;
   fire?: Fire | null;
+  children?: Child[];
   nextId: number;
   log: LogEntry[];
   chronicle: LogEntry[];
@@ -218,8 +231,8 @@ export interface GameState {
   ironForged: number;
   victory: boolean;
   mayor: { want: BuildingTypeId | null; jobTimer: number; buildTimer: number };
-  timers: { immigrant: number; adventurer: number; raid: number; chapel: number; caravan?: number; fire?: number };
-  stats: { built: number; monstersSlain: number; dungeonRuns: number; deaths: number; immigrants: number };
+  timers: { immigrant: number; adventurer: number; raid: number; chapel: number; caravan?: number; fire?: number; wedding?: number; birth?: number };
+  stats: { built: number; monstersSlain: number; dungeonRuns: number; deaths: number; immigrants: number; births?: number; passed?: number };
   /** Transient, cleared each tick. Not saved. */
   fx: Fx[];
 }
