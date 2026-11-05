@@ -111,21 +111,29 @@ tests/        bun tests
    freeze), priests cast Holy Light on anyone under 30% HP (then revive one
    fallen companion per run). Fights run once per second in `sim/parties.ts`;
    every skill emits a `skill` fx the dungeon view animates. A party whose
-   average level is under the dungeon's level + 2 turns back at the boss's
-   door; without that gate one unlucky early wipe starts a death spiral.
+   average level is under the dungeon's level + 2 (+3 at the Dark Tower) turns
+   back at the boss's door.
 
 8. Nobody works all day. After a delivery a worker may take a break
    (`sim/leisure.ts`): chat at the well, a drink at the tavern (then a wobbly
    walk home), fishing on the river bank (sometimes +1 food), a nap under a
-   tree, feeding the hens, a prayer in the chapel, or gawping at the caravan.
-   Around noon everyone near the square sits down at the campfire to eat, and
-   on the festival day (fifth day of autumn) nobody works at all. About one in
-   eight people is born lazy and takes three times as many breaks.
+   tree, feeding the hens, a prayer in the chapel, gawping at the caravan, a
+   game of chess beside the tavern, listening to the bard (who plays whenever
+   there is an audience) and dancing, archery at the straw target below the
+   walls, calling on a neighbour, a picnic with their spouse, a swim in summer,
+   a snowman or a snowball fight in winter. Around noon everyone near the
+   square sits down at the campfire to eat; every evening the whole town downs
+   tools (`EVENING_FROM`) for one long pastime, sunsets on the river bank
+   included, before bed; and on the festival day (fifth day of autumn) nobody
+   works at all. About one in eight people is born lazy and takes three times
+   as many breaks. The render side (`render/townlife/pastimes.ts`) adds the
+   scenery: the bard, the target and its arrows, the host at the door, the
+   chess table, snowmen that last the day, snowballs in flight.
    Townsfolk sleep: at sunset workers finish their trip and go home (a bed in a
    hut or house, otherwise the campfire); windows light up as they arrive and go
    dark one by one late at night; everyone is back out a little after sunrise.
    Daytime work yields `DAY_WORK_BONUS` more to make up for all the time off;
-   workers are busy about 60% of daylight.
+   workers are busy about 40% of the day.
 9. Events (`sim/events.ts`): once the market stands, a merchant caravan visits
    every 5–10 minutes and pays gold at the stalls. Once six flammable buildings
    stand, a fire breaks out every so often; the nearest workers form a bucket
@@ -160,7 +168,11 @@ tests/        bun tests
 
 Rough pacing at 1x: hamlet in minutes, village ~15 min, town ~40 min, city ~2 h,
 first dungeon ~45 min, Dark Tower after the Keep (~3 h), Demon Lord falls
-around hour 4.5–5 with a handful of deaths (0–3 over 10 h on eight seeds). Check with a headless run of
+around hour 5–8 with a handful of deaths (0–7 over 10 h on eight seeds).
+Parties never randomly revisit a dungeon above their level, turn back at a
+boss's door when under-levelled (`daresBossFloor`), and break off a boss
+fight that is going badly; without those three rules one unlucky wipe starts
+a death spiral. Check with a headless run of
 `advance()` over several seeds before and after touching any numbers.
 
 ## Steam / desktop port

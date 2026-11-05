@@ -5,7 +5,7 @@ import type { GameState, Point, RestActivity, Worker, WorkerTask } from './types
 import { FISH_CATCH_CHANCE, LAZY_REST_CHANCE, REST_CHANCE, REST_TIME } from './constants';
 import { chance, pick, randInt } from './rng';
 import { findPath, isPassable, isReachable } from './world';
-import { LUNCH_TO, dayFraction, isHoliday, isLunch } from './time';
+import { LUNCH_TO, dayFraction, isEvening, isHoliday, isLunch, isRaining, season } from './time';
 
 type RestTask = Extract<WorkerTask, { kind: 'rest' }>;
 
@@ -27,6 +27,11 @@ function spotNear(s: GameState, target: Point, activity: RestActivity, buildingI
   if (!ring.length) return null;
   const p = pick(s, ring);
   return { kind: 'rest', activity, x: p.x, y: p.y, dir: facing(p, target), phase: 'go', buildingId };
+}
+
+/** The oldest built building of a type: a fixed landmark, unlike the random pick in building(). */
+function firstBuilding(s: GameState, type: string) {
+  return s.buildings.find((b) => b.built && b.type === type) ?? null;
 }
 
 function building(s: GameState, type: string) {
@@ -66,15 +71,87 @@ export function fireSeat(s: GameState, w: Worker): Point {
   return open.length ? open[w.id % open.length] : s.center;
 }
 
+/** The chess table: a free tile beside the tavern (or the well), with the second seat to its right. */
+export function chessSeats(s: GameState): [Point, Point] | null {
+  const b = firstBuilding(s, 'tavern') ?? firstBuilding(s, 'well');
+  if (!b) return null;
+  for (const p of around(s, b, 1)) {
+    const q = { x: p.x + 1, y: p.y };
+    if (isPassable(s, q.x, q.y) && isReachable(s, q.x, q.y) && s.tiles[q.y * s.width + q.x].terrain !== 'water') return [p, q];
+  }
+  return null;
+}
+
+function chessSpot(s: GameState, w: Worker): RestTask | null {
+  const seats = chessSeats(s);
+  if (!seats) return null;
+  const taken = (p: Point) => s.workers.some((o) => o !== w && o.task?.kind === 'rest' && o.task.activity === 'chess' && o.task.x === p.x && o.task.y === p.y);
+  if (!taken(seats[0])) return { kind: 'rest', activity: 'chess', x: seats[0].x, y: seats[0].y, dir: 1, phase: 'go' };
+  if (!taken(seats[1])) return { kind: 'rest', activity: 'chess', x: seats[1].x, y: seats[1].y, dir: -1, phase: 'go' };
+  return null;
+}
+
+/** Where the bard plays: just north of the campfire. Listeners gather in a ring around it. */
+export function bardSpot(s: GameState): Point { return { x: s.center.x, y: s.center.y - 1 }; }
+
+/** The straw target stands two tiles below the first wall (or the guild hall); shooters line up to its left. */
+export function archeryTarget(s: GameState): Point | null {
+  const b = firstBuilding(s, 'walls') ?? firstBuilding(s, 'guildHall');
+  if (!b) return null;
+  for (const dy of [2, 3]) for (const dx of [0, 1, -1]) {
+    const t = { x: b.x + dx, y: b.y + dy };
+    if (!isPassable(s, t.x, t.y) || !isReachable(s, t.x, t.y) || s.tiles[t.y * s.width + t.x].terrain !== 'grass') continue;
+    if (isPassable(s, t.x - 2, t.y) && isReachable(s, t.x - 2, t.y)) return t;
+  }
+  return null;
+}
+
+/** A spot on the river bank (land tile right of water) within reach, facing the water. */
+function bankSpot(s: GameState, w: Worker, activity: RestActivity, maxDist = 16): RestTask | null {
+  const banks: Point[] = [];
+  for (let y = 0; y < s.height; y++) for (let x = 0; x < s.width - 1; x++) {
+    const t = s.tiles[y * s.width + x];
+    if (t.terrain !== 'water' || s.tiles[y * s.width + x + 1].terrain === 'water') continue;
+    if (Math.hypot(x - w.x, y - w.y) > maxDist) continue;
+    if (isPassable(s, x + 1, y) && isReachable(s, x + 1, y)) banks.push({ x: x + 1, y });
+  }
+  if (!banks.length) return null;
+  const b = pick(s, banks);
+  return { kind: 'rest', activity, x: b.x, y: b.y, dir: -1, phase: 'go' };
+}
+
+/** A free grass tile a few rings out from the square. */
+function meadowSpot(s: GameState, activity: RestActivity, dir: number, minR = 2, maxR = 5): RestTask | null {
+  const ring = around(s, s.center, randInt(s, minR, maxR)).filter((p) => s.tiles[p.y * s.width + p.x].terrain === 'grass');
+  if (!ring.length) return null;
+  const p = pick(s, ring);
+  return { kind: 'rest', activity, x: p.x, y: p.y, dir, phase: 'go' };
+}
+
 /** Pick something to do with a break. Returns null when there is nothing to do nearby. */
 export function chooseRest(s: GameState, w: Worker): RestTask | null {
-  const options: RestActivity[] = ['chat', 'nap', 'fish'];
-  if (s.buildings.some((b) => b.built && b.type === 'tavern')) options.push('drink', 'drink');
+  const sea = season(s), evening = isEvening(s), wet = isRaining(s);
+  const options: RestActivity[] = ['chat', 'nap', 'fish', 'chess', 'visit'];
+  if (s.buildings.some((b) => b.built && b.type === 'tavern')) options.push('drink', 'drink', 'listen', 'listen');
   if (s.buildings.some((b) => b.built && b.type === 'farm')) options.push('feed');
   if (s.buildings.some((b) => b.built && b.type === 'chapel')) options.push('pray');
+  if (archeryTarget(s)) options.push('archery', 'archery');
   if (s.caravan && s.caravan.phase === 'trade') options.push('watch', 'watch');
-  if (isHoliday(s)) options.push('stroll', 'stroll', 'chat');
+  if (isHoliday(s)) options.push('stroll', 'stroll', 'chat', 'listen');
+  if (evening) options.push('sunset', 'sunset', 'drink', 'listen');
+  if (sea === 'summer' && !evening && !wet) options.push('swim', 'swim');
+  if (sea === 'winter') options.push('snowman', 'snowball', 'snowball');
+  if (sea !== 'winter' && !wet && !evening && w.spouse !== undefined) options.push('picnic');
   switch (pick(s, options)) {
+    case 'chess': return chessSpot(s, w);
+    case 'listen': { const ring = around(s, bardSpot(s), 2).filter((p) => p.y >= s.center.y - 1); if (!ring.length) return null; const p = pick(s, ring); return { kind: 'rest', activity: 'listen', x: p.x, y: p.y, dir: facing(p, bardSpot(s)), phase: 'go' }; }
+    case 'archery': { const t = archeryTarget(s); if (!t) return null; const lane = pick(s, [2, 3].filter((d) => isPassable(s, t.x - d, t.y) && isReachable(s, t.x - d, t.y))); return lane ? { kind: 'rest', activity: 'archery', x: t.x - lane, y: t.y, dir: 1, phase: 'go' } : null; }
+    case 'visit': { const homes = s.buildings.filter((b) => b.built && (b.type === 'house' || b.type === 'hut') && isPassable(s, b.x, b.y + 1) && isReachable(s, b.x, b.y + 1)); if (!homes.length) return null; const h = pick(s, homes); return { kind: 'rest', activity: 'visit', x: h.x, y: h.y + 1, dir: (w.id % 2) ? 1 : -1, phase: 'go', buildingId: h.id }; }
+    case 'sunset': return bankSpot(s, w, 'sunset', 22);
+    case 'picnic': return meadowSpot(s, 'picnic', 1, 3, 6);
+    case 'swim': return bankSpot(s, w, 'swim', 14);
+    case 'snowman': return meadowSpot(s, 'snowman', 1, 2, 5);
+    case 'snowball': return meadowSpot(s, 'snowball', chance(s, 0.5) ? 1 : -1, 1, 3);
     case 'chat': { const b = building(s, 'well') ?? building(s, 'campfire'); return b ? spotNear(s, b, 'chat', b.id) : null; }
     case 'drink': { const b = building(s, 'tavern'); return b ? spotNear(s, b, 'drink', b.id) : null; }
     case 'fish': return fishingSpot(s, w);
@@ -100,6 +177,10 @@ export function maybeRest(s: GameState, w: Worker): boolean {
     const seat = fireSeat(s, w);
     task = { kind: 'rest', activity: 'lunch', x: seat.x, y: seat.y, dir: seat.x <= s.center.x ? 1 : -1, phase: 'go' };
     duration = Math.max(3, (LUNCH_TO - dayFraction(s)) * 60);
+  } else if (isEvening(s)) {
+    // The evening is one long activity that ends at bedtime.
+    task = chooseRest(s, w);
+    duration = Math.max(4, (0.8 - dayFraction(s)) * 60);
   } else if (isHoliday(s)) {
     task = chooseRest(s, w);
     duration = randInt(s, 12, 28);
@@ -113,6 +194,11 @@ export function maybeRest(s: GameState, w: Worker): boolean {
   w.task = task;
   w.path = path;
   w.timer = duration;
+  // A picnic is for two: the spouse comes along if they are free.
+  if (task.activity === 'picnic') {
+    const sp = s.workers.find((o) => o.id === w.spouse && !o.task);
+    if (sp) { const t2: RestTask = { ...task, x: task.x, y: task.y, dir: -1 }; sp.task = t2; sp.path = findPath(s, sp, t2); sp.timer = duration; }
+  }
   return true;
 }
 
@@ -127,5 +213,6 @@ export function updateRest(s: GameState, w: Worker, t: RestTask, dt: number, mov
   if (w.timer > 0) return;
   if (t.activity === 'fish' && chance(s, FISH_CATCH_CHANCE)) { s.resources.food += 1; s.fx.push({ kind: 'float', x: w.x, y: w.y, text: '+1', color: '#7ad07a' }); }
   if (t.activity === 'drink') w.tipsy = 12;
+  if (t.activity === 'swim' && w.carrying) { w.carrying = null; w.carryAmount = 0; }
   w.task = null;
 }

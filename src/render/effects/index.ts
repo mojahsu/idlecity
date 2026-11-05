@@ -31,6 +31,8 @@ export class Effects {
   private chickens = new Chickens();
   private cart = new MarketCart();
   private floats = new Floats();
+  /** Points the hens run from (the children), set by the renderer each frame. */
+  scare: { x: number; y: number }[] = [];
 
   /** Things that happened this frame that the soundtrack wants to know about. */
   get events(): string[] { return this.P.events; }
@@ -45,7 +47,7 @@ export class Effects {
     this.ambient.emitAmbient(s, env, dt, P);
     this.work.emitWork(s, env, dt, P);
     this.birds.update(env, dt, W, H);
-    this.chickens.update(s, env, dt);
+    this.chickens.update(s, env, dt, this.scare);
     this.cart.update(s, env, dt);
     this.fireworks.updateFireworks(s, env, dt, P);
     this.sky.updateSky(env, dt, W, H, P);

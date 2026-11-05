@@ -48,7 +48,8 @@ export type WorkerTask =
   /** Time off: walk to a spot and do something that is not work. `dir` is which way to face there. */
   | { kind: 'rest'; activity: RestActivity; x: number; y: number; dir: number; phase: 'go' | 'do'; buildingId?: number };
 
-export type RestActivity = 'chat' | 'drink' | 'fish' | 'nap' | 'feed' | 'pray' | 'lunch' | 'stroll' | 'watch';
+export type RestActivity = 'chat' | 'drink' | 'fish' | 'nap' | 'feed' | 'pray' | 'lunch' | 'stroll' | 'watch'
+  | 'chess' | 'listen' | 'archery' | 'visit' | 'sunset' | 'picnic' | 'swim' | 'snowman' | 'snowball';
 
 export interface Worker {
   id: number;

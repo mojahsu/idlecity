@@ -54,7 +54,8 @@ function daresBossFloor(s: GameState, p: Party): boolean {
   const avgHp = team.reduce((n, a) => n + a.hp / a.maxHp, 0) / team.length;
   // A party well under the dungeon's level turns back at the boss's door instead of feeding it.
   const avgLevel = team.reduce((n, a) => n + a.level, 0) / team.length;
-  return team.length >= 3 && avgHp >= 0.7 && avgLevel >= def.level + 2;
+  const margin = def.id === 'darkTower' ? 3 : 2; // the Demon Lord punishes a thin margin
+  return team.length >= 3 && avgHp >= 0.7 && avgLevel >= def.level + margin;
 }
 
 function makeEncounter(s: GameState, p: Party): Encounter {
@@ -68,6 +69,12 @@ function makeEncounter(s: GameState, p: Party): Encounter {
 function fightRound(s: GameState, p: Party): void {
   const team = members(s, p);
   const e = p.encounter!;
+  // A boss fight going badly ends in a retreat, not a wipe: two members under a third and the boss far from dead.
+  if (e.boss && team.length >= 3 && team.filter((a) => a.hp < a.maxHp * 0.35).length >= 2 && e.hp > e.maxHp * 0.25) {
+    log(s, 'adventure', 'log.bossRetreat', { leader: team[0].name, dungeon: `dungeon.${p.dungeon}` });
+    startReturn(s, p);
+    return;
+  }
   const eq = 1 + 0.1 * s.equipment;
   const round = (p.rounds = (p.rounds ?? 0) + 1);
   const fx = (actor: Adventurer, skill: string, targetId?: number, amount?: number) => s.fx.push({ kind: 'skill', partyId: p.id, actorId: actor.id, skill, targetId, amount });

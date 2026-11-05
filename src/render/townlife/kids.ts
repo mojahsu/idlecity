@@ -1,6 +1,7 @@
 // Children: the town's real children by name, or a pair of playmates chasing each other before any are born.
-import type { GameState } from '../../sim/types';
-import type { Env } from '../palette';
+import type { GameState, Point } from '../../sim/types';
+import { TILE } from '../constants';
+import { circle, type Env } from '../palette';
 import { walkerActor, type Actor, type Roads, type Walker } from './shared';
 
 export class Kids {
@@ -41,5 +42,27 @@ export class Kids {
     if (lead.ttl <= 0 || (lead.fade <= 0 && !playtime)) { this.kids = []; this.kidTimer = 20 + Math.random() * 30; }
   }
 
-  actors(): Actor[] { return [...this.kids, ...this.kidsById.values()].map(walkerActor); }
+  actors(env: Env): Actor[] {
+    const out = [...this.kids, ...this.kidsById.values()].map(walkerActor);
+    // Two children close together toss a ball back and forth.
+    const near = [...this.kidsById.values(), ...this.kids].filter((w) => w.fade > 0.9);
+    const paired = new Set<Walker>();
+    for (let i = 0; i < near.length; i++) {
+      const a = near[i];
+      if (paired.has(a)) continue;
+      const b = near.find((o) => o !== a && !paired.has(o) && Math.hypot(a.x - o.x, a.y - o.y) <= 4);
+      if (!b) continue;
+      paired.add(a); paired.add(b);
+      out.push({ y: Math.max(a.y, b.y) + 0.9, draw: (ctx, e) => {
+        const k = (e.clock * 0.9 + i) % 1, q = k < 0.5 ? k * 2 : (1 - k) * 2;
+        const x = (a.x + (b.x - a.x) * q) * TILE + TILE / 2, y = (a.y + (b.y - a.y) * q) * TILE + TILE / 2 - 4 - Math.sin(q * Math.PI) * 9;
+        circle(ctx, x, y, 2.2, '#d84a4a'); circle(ctx, x - 0.6, y - 0.7, 1, '#f08080');
+      } });
+    }
+    void env;
+    return out;
+  }
+
+  /** Where the children are, so the hens can scatter. */
+  spots(): Point[] { return [...this.kidsById.values(), ...this.kids].filter((w) => w.fade > 0.5).map((w) => ({ x: w.x, y: w.y })); }
 }

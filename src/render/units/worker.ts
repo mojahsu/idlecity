@@ -1,6 +1,6 @@
 // Workers: job tools, hats, loads, buckets, rest poses, elders.
 import { TILE } from '../constants';
-import { circle, ellipse, poly, rect, line, rgba, hash, type Env } from '../palette';
+import { circle, ellipse, poly, rect, line, rgba, hash, shade, type Env } from '../palette';
 import { SKIN, HAIR, facing, Pose, pose, body, withUnit, bubble } from './shared';
 import type { Worker } from '../../sim/types';
 import { JOBS } from '../../data/jobs';
@@ -91,21 +91,78 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
     });
     return;
   }
+  if (rest?.activity === 'sunset') {
+    // Sat on the bank, knees up, watching the river and the sky.
+    withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true); hat(ctx, w.job); rect(ctx, 1, -5, 4, 1.4, shade(tunic, -0.2)); });
+    return;
+  }
+  if (rest?.activity === 'chess') {
+    // Two seats face each other over a board; the left seat draws the board. Hands reach out in turn.
+    if (dir === 1) {
+      const bx = px + 12, by = py + 1;
+      rect(ctx, bx - 6, by + 2, 12, 3, '#6b4a2b');
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) rect(ctx, bx - 6 + c * 3, by - 5 + r * 1.8, 3, 1.8, (r + c) % 2 ? '#e8dcc0' : '#4a3a2a');
+      const turn = Math.floor(env.clock * 0.5) % 2, mv = (env.clock * 0.5) % 1;
+      for (let i = 0; i < 4; i++) circle(ctx, bx - 4.5 + i * 3 + (i === 1 && turn === 0 ? mv * 3 : 0), by - 4.5 + (i % 2) * 1.8, 0.9, '#f4f0e6');
+      for (let i = 0; i < 4; i++) circle(ctx, bx - 4.5 + i * 3 - (i === 2 && turn === 1 ? mv * 3 : 0), by - 0.5 - (i % 2) * 1.8, 0.9, '#2a1a1a');
+    }
+    const myTurn = (Math.floor(env.clock * 0.5) % 2 === 0) === (dir === 1);
+    const reach = myTurn ? Math.max(0, Math.sin(((env.clock * 0.5) % 1) * Math.PI)) * 3 : 0;
+    withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true); hat(ctx, w.job); rect(ctx, 2.8 + reach, -7.5 + reach * 0.3, 1.6, 4, tunic); circle(ctx, 3.6 + reach, -3.5 + reach * 0.3, 1.1, skin); });
+    return;
+  }
+  if (rest?.activity === 'picnic') {
+    // A checked blanket, a basket, and the couple sat on it.
+    if (dir === 1) {
+      const bx = px + 10, by = py + 6;
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 6; c++) rect(ctx, bx - 15 + c * 5, by - 3 + r * 3, 5, 3, (r + c) % 2 ? '#d84a4a' : '#f0e0d0');
+      ellipse(ctx, bx, by - 6, 3.4, 2.4, '#b08a52'); rect(ctx, bx - 3.4, by - 8, 6.8, 1.2, '#8a6a3a'); circle(ctx, bx - 1, by - 7.5, 1, '#d83a4a'); circle(ctx, bx + 1.5, by - 7.8, 1, '#f7d94c');
+    }
+    withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true); hat(ctx, w.job); if (Math.sin(env.clock * 2 + w.id) > 0.4) { circle(ctx, 4, -8, 1.2, '#f06a4f'); } });
+    return;
+  }
+  if (rest?.activity === 'swim') {
+    // In the water one tile to the left: head and arms above the surface, ripples around.
+    const sx = px - TILE, sy = py + 2 + Math.sin(env.clock * 2 + w.id) * 1;
+    const rip = (env.clock * 0.6 + w.id * 0.3) % 1;
+    ctx.strokeStyle = `rgba(230,240,255,${0.5 * (1 - rip)})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(sx, sy + 2, 5 + rip * 9, 2 + rip * 4, 0, 0, Math.PI * 2); ctx.stroke();
+    const stroke = Math.sin(env.clock * 4 + w.id);
+    circle(ctx, sx, sy - 2, 3.2, skin); ctx.fillStyle = hair; ctx.beginPath(); ctx.arc(sx, sy - 2.6, 3.2, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
+    rect(ctx, sx - 7 + stroke * 2, sy - 1 - Math.max(0, stroke) * 3, 2, 4, skin); rect(ctx, sx + 5 - stroke * 2, sy - 1 - Math.max(0, -stroke) * 3, 2, 4, skin);
+    for (let i = 0; i < 3; i++) { const t = (env.clock * 1.5 + i * 0.33 + w.id) % 1; circle(ctx, sx - 6 + i * 6 + Math.sin(t * 6) * 2, sy + 1 - t * 6, 1.2 * (1 - t) + 0.3, `rgba(230,240,255,${0.8 * (1 - t)})`); }
+    return;
+  }
+  if (rest?.activity === 'snowman') {
+    // Rolling a ball that grows as the break goes on; the finished snowman is kept by the town-life layer.
+    const k = Math.min(1, 1 - w.timer / 20);
+    const bx = px + dir * 10, by = py + 6;
+    circle(ctx, bx, by - 3 * k, 3 + 4 * k, '#f4f7f9'); circle(ctx, bx - 1, by - 4 * k, 2 + 3 * k, '#ffffff');
+    withUnit(ctx, w.x, w.y, dir, p.bob, () => { body(ctx, tunic, skin, hair, { walk: 0, bob: 0, swing: 0 }); hat(ctx, w.job); rect(ctx, 2.8, -8, 4.5, 1.5, tunic); circle(ctx, 7.5, -7.5, 1.1, skin); });
+    return;
+  }
   // Standing about: chatting, strolling, feeding the hens, watching something.
   const tipsy = (w.tipsy ?? 0) > 0;
   const wobble = tipsy && moving ? Math.sin(env.clock * 5 + w.id) * 2.2 : 0;
   if (tipsy && moving) dir = Math.sin(env.clock * 2.5 + w.id) > -0.6 ? dir : -dir;
-  withUnit(ctx, w.x + wobble / TILE, w.y, dir, p.bob + (tipsy ? Math.sin(env.clock * 5 + w.id) : 0), () => {
+  const listening = rest?.activity === 'listen', dancing = listening && w.id % 3 === 0;
+  const sway = listening ? (dancing ? Math.abs(Math.sin(env.clock * 6 + w.id)) * -3 : Math.sin(env.clock * 3 + w.id) * 0.8) : 0;
+  if (dancing) dir = Math.sin(env.clock * 3 + w.id) > 0 ? 1 : -1;
+  const throwing = rest?.activity === 'snowball' ? Math.max(0, Math.sin(env.clock * 2.5 + w.id * 1.7)) : 0;
+  withUnit(ctx, w.x + wobble / TILE, w.y, dir, p.bob + (tipsy ? Math.sin(env.clock * 5 + w.id) : 0) + sway, () => {
     load(ctx, w);
     body(ctx, tunic, skin, hair, p);
     hat(ctx, w.job);
+    if (dancing) { rect(ctx, -5.2, -15, 1.6, 6, tunic); rect(ctx, 3.6, -15, 1.6, 6, tunic); circle(ctx, -4.4, -15.5, 1.1, skin); circle(ctx, 4.4, -15.5, 1.1, skin); }
+    if (rest?.activity === 'archery') { ctx.strokeStyle = '#6a4a2a'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(4, -8, 6, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke(); const draw = Math.max(0, Math.sin(env.clock * 1.5 + w.id)) * 3; line(ctx, 4, -14, 4 - draw, -8, '#e0e0e0', 0.5); line(ctx, 4 - draw, -8, 4, -2, '#e0e0e0', 0.5); }
+    if (throwing > 0) { ctx.save(); ctx.translate(3.6, -9); ctx.rotate(-1.2 * throwing); rect(ctx, -0.8, -4, 1.6, 4, tunic); circle(ctx, 0, -4.5, 1.1, skin); circle(ctx, 0, -6.5, 1.6, '#f4f7f9'); ctx.restore(); }
     if (tipsy) { circle(ctx, 1.2, -12, 1.1, 'rgba(240,80,80,0.55)'); circle(ctx, -1.6, -12, 1.1, 'rgba(240,80,80,0.55)'); }
     if (elder && !dousing && !rest) line(ctx, -4.5, 0, -4, -8, '#6b4a2b', 1.2);
     if (dousing) bucket(ctx, env, (w.task as { phase: 'fetch' | 'carry' | 'throw' }).phase, w.id);
     else if (rest?.activity === 'feed') { ellipse(ctx, -4.5, -6, 2.6, 1.8, '#b08a52'); }
     else if (!rest && (working || !w.carrying)) tool(ctx, w, p);
   });
-  if (rest?.activity === 'chat') { const k = (env.clock * 0.5 + (w.id % 2) * 0.5) % 1; bubble(ctx, px + dir * 2, py - 20, '…', k < 0.45 ? 1 : 0); }
+  if (rest?.activity === 'chat' || rest?.activity === 'visit') { const k = (env.clock * 0.5 + (w.id % 2) * 0.5) % 1; bubble(ctx, px + dir * 2, py - 20, '…', k < 0.45 ? 1 : 0); }
+  else if (listening && !dancing) { const k = (env.clock * 0.35 + w.id * 0.17) % 1; bubble(ctx, px + dir * 2, py - 20, '♪', k < 0.3 ? 1 : 0); }
   else if (rest?.activity === 'watch') { const k = (env.clock * 0.3 + w.id * 0.13) % 1; bubble(ctx, px + dir * 2, py - 20, '!', k < 0.25 ? 1 : 0); }
   else if (tipsy) { const k = (env.clock * 0.4 + w.id * 0.21) % 1; bubble(ctx, px + dir * 2, py - 20, '~', k < 0.35 ? 1 : 0); }
 }

@@ -61,9 +61,16 @@ export function isHoliday(s: GameState): boolean {
 }
 
 /** Midday break: everyone who is near the square sits down to eat. */
-export const LUNCH_FROM = 0.47;
-export const LUNCH_TO = 0.55;
+export const LUNCH_FROM = 0.45;
+export const LUNCH_TO = 0.57;
 export function isLunch(s: GameState): boolean {
   const f = dayFraction(s);
   return f >= LUNCH_FROM && f < LUNCH_TO;
+}
+
+/** Tools down: the stretch between the end of the working day and bedtime, spent at leisure. */
+export const EVENING_FROM = 0.68;
+export function isEvening(s: GameState): boolean {
+  const f = dayFraction(s);
+  return f >= EVENING_FROM && f < 0.8;
 }

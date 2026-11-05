@@ -22,6 +22,7 @@ import { DeerVisits } from './deer';
 import { River } from './river';
 import { Festival } from './festival';
 import { Statue } from './statue';
+import { Pastimes } from './pastimes';
 
 export class TownLife {
   private roads = new Roads();
@@ -41,6 +42,7 @@ export class TownLife {
   private river = new River();
   private festival = new Festival();
   private statue = new Statue();
+  private pastimes = new Pastimes();
 
   update(s: GameState, env: Env, dt: number): void {
     this.roads.refresh(s);
@@ -57,17 +59,21 @@ export class TownLife {
     this.wolves.update(s, env, dt);
     this.deer.update(s, env, dt);
     this.river.update(s, env, dt);
+    this.pastimes.update(s, env, dt, this.music);
     this.bits.update(dt);
   }
 
   /** Things standing on the ground, sorted with units by the renderer. */
   groundActors(s: GameState, env: Env): Actor[] {
     return [
-      ...this.walkers.actors(), ...this.kids.actors(), ...this.dog.actors(), ...this.cats.actors(s), ...this.guards.actors(s),
+      ...this.walkers.actors(), ...this.kids.actors(env), ...this.dog.actors(), ...this.cats.actors(s), ...this.guards.actors(s),
       ...this.cheers.actors(), ...this.wedding.actors(), ...this.processions.actors(), ...this.festival.actors(s, env),
-      ...this.wolves.actors(), ...this.deer.actors(), ...this.river.actors(), ...this.statue.actors(s, this.roads),
+      ...this.wolves.actors(), ...this.deer.actors(), ...this.river.actors(), ...this.statue.actors(s, this.roads), ...this.pastimes.actors(s, env),
     ];
   }
+
+  /** Where the children are this frame. */
+  kidSpots(): { x: number; y: number }[] { return this.kids.spots(); }
 
   /** Confetti, stars, lanterns, notes and bell rings, drawn above the lighting so they read at night. */
   drawOverlay(ctx: CanvasRenderingContext2D, env: Env, s: GameState): void {

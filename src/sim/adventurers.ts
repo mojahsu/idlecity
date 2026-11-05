@@ -116,8 +116,9 @@ function tryFormParty(s: GameState): void {
     const def = DUNGEONS.find((x) => x.id === d.id)!;
     if (avgLevel >= def.level) target = d;
   }
-  // Sometimes revisit an easier dungeon for variety.
-  if (unlockedDungeons.length > 1 && chance(s, 0.25)) target = pick(s, unlockedDungeons);
+  // Sometimes revisit an easier dungeon for variety, never one above the party's level.
+  const easier = unlockedDungeons.filter((d) => DUNGEONS.find((x) => x.id === d.id)!.level <= avgLevel);
+  if (easier.length > 1 && chance(s, 0.25)) target = pick(s, easier);
 
   const from = tavernPos(s);
   const party = {

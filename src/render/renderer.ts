@@ -59,6 +59,7 @@ export class Renderer {
     const W = s.width * TILE, H = s.height * TILE;
     const env = makeEnv(s, this.clock);
 
+    this.effects.scare = this.townLife.kidSpots();
     this.effects.update(s, env, dt);
     this.townLife.update(s, env, dt);
     this.dungeonView.update(s, env, dt);
