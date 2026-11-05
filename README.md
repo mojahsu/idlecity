@@ -54,6 +54,17 @@ src/
   data/       Content as plain data: buildings, tiers, jobs, classes, monsters, dungeons, names
   i18n/       t() + one JSON per language (en, zh-TW)
   render/     Canvas renderer. Reads state, never writes it.
+    renderer.ts     Orchestrates the passes; depth-sorts everything on the ground
+    palette.ts      Season palettes, time-of-day tint, noise + shape helpers
+    terrain.ts      Cached static ground layer, animated water and trees
+    buildings.ts    One drawing per building type, build reveal, dungeon entrances,
+                    light + smoke sources
+    units.ts        Workers (tools, loads), adventurer classes, parties, raiders
+    monsters.ts     Monster art shared by raids and the dungeon view
+    effects.ts      Particles (smoke, weather, leaves, fireflies, debris, fireworks),
+                    birds, chickens, the market cart, floating text
+    lighting.ts     Night darkness with light pools, dawn/dusk tint, fog, vignette
+    dungeonView.ts  Inset panel showing a party fighting floor by floor
   ui/         HUD (DOM), stylesheet
   platform/   Save storage interface + localStorage impl, save/load, offline progress
   main.ts     Browser entry: game loop, autosave, hotkeys
@@ -96,5 +107,7 @@ The intended path is an Electron or Tauri shell around `dist/`:
   backend and pass it to `loadGame` / `saveGame` in `main.ts`.
 - Achievements / rich presence can hook `chronicle()` in `sim/log.ts`, which only
   receives important events.
-- The renderer is isolated; replacing shapes with sprites means editing
-  `render/renderer.ts` only.
+- The renderer is isolated; replacing the procedural art with sprites means
+  editing the draw functions in `render/` only. All art is drawn in logical
+  24px-tile coordinates and scaled to the display, so it stays sharp at any
+  resolution.

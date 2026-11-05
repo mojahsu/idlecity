@@ -29,6 +29,9 @@
   "ui.fullscreen": "全螢幕",
   "ui.exitFullscreen": "離開全螢幕",
   "ui.fullscreenHint": "按 F 或雙擊地圖",
+  "ui.floor": "第 {floor} / {floors} 層",
+  "ui.exploring": "探索中",
+  "ui.slain": "擊倒！",
 
   "res.wood": "木材",
   "res.stone": "石頭",

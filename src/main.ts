@@ -1,5 +1,5 @@
 // Browser entry point: wires simulation, renderer, HUD and storage together.
-import { step } from './sim/tick';
+import { advance, step } from './sim/tick';
 import { TICK } from './sim/constants';
 import type { GameState } from './sim/types';
 import { newGame } from './sim/state';
@@ -74,6 +74,16 @@ function frame(now: number): void {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+// Dev-only console hook for tuning and visual checks: idleTown.advance(3600).
+if (import.meta.env.DEV) {
+  (window as unknown as { idleTown: unknown }).idleTown = {
+    get state() { return state; },
+    renderer,
+    advance(seconds: number) { advance(state, seconds); },
+    set time(t: number) { state.time = t; },
+  };
+}
 
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(storage, state); });
 window.addEventListener('beforeunload', () => saveGame(storage, state));
