@@ -25,7 +25,7 @@ export class Processions {
     }
     this.graves = graves.length;
     for (const pr of this.processions) {
-      if (pr.d < pr.len + 2.1) { pr.d += 0.9 * dt; pr.fade = Math.min(1, pr.fade + dt); }
+      if (pr.d < pr.len + 2.1) { pr.d += 0.6 * dt; pr.fade = Math.min(1, pr.fade + dt); }
       else if (pr.mourn > 0) pr.mourn -= dt;
       else pr.fade -= dt;
     }

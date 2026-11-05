@@ -205,7 +205,7 @@ export function maybeRest(s: GameState, w: Worker): boolean {
 /** Advance a resting worker. */
 export function updateRest(s: GameState, w: Worker, t: RestTask, dt: number, moveAlong: (w: Worker, speed: number, dt: number) => boolean): void {
   if (t.phase === 'go') {
-    if (moveAlong(w, 1.6, dt)) t.phase = 'do';
+    if (moveAlong(w, 1.1, dt)) t.phase = 'do';
     return;
   }
   w.timer -= dt;

@@ -23,7 +23,7 @@ export function facing(x: number, path: { x: number; y: number }[], id: number):
 export interface Pose { walk: number; bob: number; swing: number }
 
 export function pose(moving: boolean, working: boolean, clock: number, id: number): Pose {
-  const t = clock * 11 + id;
+  const t = clock * 7.5 + id;
   return {
     walk: moving ? Math.sin(t) : 0,
     bob: moving ? Math.abs(Math.sin(t)) * -1.2 : working ? Math.abs(Math.sin(clock * 8 + id)) * -1 : Math.sin(clock * 2 + id) * 0.3,

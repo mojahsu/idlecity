@@ -37,7 +37,7 @@ export class MarketCart {
         if (!opts.length) { this.cart = null; this.cartTimer = 15; return; }
         const [nx, ny] = opts[Math.floor(Math.random() * opts.length)];
         c.px = c.tx; c.py = c.ty; c.tx = nx; c.ty = ny;
-      } else { const sp = Math.min(d, 1.1 * dt); c.x += dx / d * sp; c.y += dy / d * sp; c.wheel += sp * 6; }
+      } else { const sp = Math.min(d, 0.75 * dt); c.x += dx / d * sp; c.y += dy / d * sp; c.wheel += sp * 6; }
     } else if (this.cart) { this.cart = null; this.cartTimer = 10; }
   }
 

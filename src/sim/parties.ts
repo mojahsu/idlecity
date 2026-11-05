@@ -66,10 +66,10 @@ function makeEncounter(s: GameState, p: Party): Encounter {
   const maxHp = Math.round(m.hp * scale);
   let hp = maxHp;
   if (boss) {
-    // Bosses carry their wounds over from the last attempt, recovering a quarter in between,
+    // Bosses carry their wounds over from the last attempt, recovering a tenth in between,
     // so a town wears its Demon Lord down over several expeditions instead of feeding it.
     const d = s.dungeons.find((x) => x.id === p.dungeon)!;
-    if (d.bossHp !== undefined) hp = Math.round(Math.min(maxHp, d.bossHp + maxHp * 0.25));
+    if (d.bossHp !== undefined) hp = Math.round(Math.min(maxHp, d.bossHp + maxHp * 0.1));
   }
   return { monster: m.id, hp, maxHp, atk: Math.round(m.atk * (1 + 0.1 * (p.floor - 1))), boss };
 }

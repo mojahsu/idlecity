@@ -78,9 +78,9 @@ function updateWorker(s: GameState, w: Worker, dt: number): void {
       const b = f && s.buildings.find((x) => x.id === f.buildingId);
       if (!f || !b || b.id !== t.buildingId) { w.task = null; return; }
       if (t.phase === 'fetch') {
-        if (moveAlong(w, WORKER_SPEED * 1.25, dt)) { t.phase = 'carry'; w.path = findPath(s, w, b); }
+        if (moveAlong(w, WORKER_SPEED * 1.5, dt)) { t.phase = 'carry'; w.path = findPath(s, w, b); }
       } else if (t.phase === 'carry') {
-        if (moveAlong(w, WORKER_SPEED * 1.1, dt)) { t.phase = 'throw'; w.timer = 0.6; }
+        if (moveAlong(w, WORKER_SPEED * 1.3, dt)) { t.phase = 'throw'; w.timer = 0.6; }
       } else {
         w.timer -= dt;
         if (w.timer <= 0) {

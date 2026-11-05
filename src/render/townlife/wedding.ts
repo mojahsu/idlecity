@@ -22,7 +22,7 @@ export class Wedding {
       if (announced) this.weddingsSeen = weddings;
       if (chapel && (announced || this.weddingTimer <= 0) && env.dark < 0.3 && !env.rainy && !env.snowy) {
         this.weddingTimer = 900 + Math.random() * 600;
-        const a = roads.spawnWalker(s, false, 0.8, chapel);
+        const a = roads.spawnWalker(s, false, 0.55, chapel);
         if (a) { a.ttl = 30; a.basket = false; a.opts = { bride: true, tunic: '#f8f4ec' }; const b = { ...a, seed: a.seed + 3, opts: { tunic: '#2a2a3a' } }; this.wedding = [a, b]; music.notes.push({ x: a.x * TILE + TILE / 2, y: a.y * TILE, ttl: 2.2, glyph: '♥', color: '#ff80a0' }); }
       }
       return;

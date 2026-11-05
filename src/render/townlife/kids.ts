@@ -15,17 +15,17 @@ export class Kids {
     const real = s.children ?? [];
     for (const c of real) {
       let w = this.kidsById.get(c.id);
-      if (!w) { const nw = roads.spawnWalker(s, true, 1.3, s.buildings.find((b) => b.built && (b.type === 'house' || b.type === 'hut')) ?? s.center); if (!nw) continue; w = nw; w.seed = c.id * 31; w.basket = false; this.kidsById.set(c.id, w); }
+      if (!w) { const nw = roads.spawnWalker(s, true, 0.95, s.buildings.find((b) => b.built && (b.type === 'house' || b.type === 'hut')) ?? s.center); if (!nw) continue; w = nw; w.seed = c.id * 31; w.basket = false; this.kidsById.set(c.id, w); }
       w.ttl = 99;
       w.fade = playtime ? Math.min(1, w.fade + dt * 1.5) : Math.max(0, w.fade - dt * 2);
-      if (w.fade > 0 && !roads.step(s, w, dt)) { const nw = roads.spawnWalker(s, true, 1.3); if (nw) { nw.seed = w.seed; this.kidsById.set(c.id, nw); } }
+      if (w.fade > 0 && !roads.step(s, w, dt)) { const nw = roads.spawnWalker(s, true, 0.95); if (nw) { nw.seed = w.seed; this.kidsById.set(c.id, nw); } }
     }
     for (const id of [...this.kidsById.keys()]) if (!real.some((c) => c.id === id)) this.kidsById.delete(id);
     if (real.length) { this.kids = []; return; }
     if (!this.kids.length) {
       this.kidTimer -= dt;
       if (playtime && this.kidTimer <= 0) {
-        const a = roads.spawnWalker(s, true, 1.9);
+        const a = roads.spawnWalker(s, true, 1.3);
         if (a) { const b = { ...a, seed: a.seed + 7, basket: false }; a.ttl = b.ttl = 25 + Math.random() * 25; this.kids = [a, b]; }
         this.kidTimer = 25 + Math.random() * 40;
       }

@@ -8,6 +8,10 @@ party slays the Demon Lord in the Dark Tower. It keeps running after that.
 The map is 30x20 tiles (`sim/world.ts`); the canvas keeps the saved map's
 aspect ratio, so towns from before a size change keep their shape.
 
+People walk at a pace you can follow (`WORKER_SPEED`, 1.4 tiles a second;
+parties a little faster); daytime work yields `DAY_WORK_BONUS` more so the
+slow walk, the breaks and the evenings off do not slow the town's growth.
+
 Designed to sit on a second screen. The only controls are speed (pause, 1x, 2x,
 4x), language, and "new town".
 
@@ -171,11 +175,11 @@ tests/        bun tests
 
 Rough pacing at 1x: hamlet in minutes, village ~15 min, town ~40 min, city ~2 h,
 first dungeon ~45 min, Dark Tower after the Keep (~3 h), Demon Lord falls
-around hour 5.5–6.5 with a few deaths (0–4 over 10 h on eight seeds).
+around hour 5–7 with a few deaths (0–5 over 10 h on eight seeds).
 Parties never randomly revisit a dungeon above their level, turn back at a
 boss's door when under-levelled (`daresBossFloor`), and break off a boss
 fight as soon as anyone is badly hurt; bosses keep their wounds between
-attempts (recovering a quarter each time, `Dungeon.bossHp`), so a town wears
+attempts (recovering a tenth each time, `Dungeon.bossHp`), so a town wears
 its Demon Lord down over several expeditions instead of feeding it. Without
 those rules one unlucky wipe starts a death spiral. Check with a headless run of
 `advance()` over several seeds before and after touching any numbers.

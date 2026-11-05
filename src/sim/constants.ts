@@ -14,9 +14,9 @@ export const WEDDING_INTERVAL: [number, number] = [240, 480];
 export const BIRTH_INTERVAL: [number, number] = [300, 600];
 export const SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
 
-export const WORKER_SPEED = 2.2;      // tiles per second
-export const PARTY_SPEED = 2.8;
-export const RAID_SPEED = 1.6;
+export const WORKER_SPEED = 1.4;      // tiles per second: a stroll you can follow
+export const PARTY_SPEED = 2.2;
+export const RAID_SPEED = 1.1;
 
 export const GATHER_TIME = 4;         // seconds per gathering action
 export const GATHER_AMOUNT = 5;
@@ -26,7 +26,7 @@ export const FARM_AMOUNT = 8;
  * Workers sleep through the night, stop for lunch and take breaks, so the
  * work they do do yields this much more to keep the overall pacing where it was.
  */
-export const DAY_WORK_BONUS = 3.4;
+export const DAY_WORK_BONUS = 4.6;
 
 export const REST_CHANCE = 0.25;        // chance to take a break after a delivery
 export const LAZY_REST_CHANCE = 0.45;

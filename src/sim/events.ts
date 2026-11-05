@@ -9,7 +9,7 @@ import { chronicle, log } from './log';
 import { isRaining, year } from './time';
 import { brigadeSize, draftToFire } from './workers';
 
-const CARAVAN_SPEED = 1.5;
+const CARAVAN_SPEED = 1.0;
 const FLAMMABLE: Building['type'][] = ['hut', 'house', 'lumberCamp', 'granary', 'tavern', 'market', 'blacksmith', 'guildHall'];
 
 export function updateEvents(s: GameState, dt: number): void {

@@ -10,7 +10,7 @@ export class Walkers {
     const homes = s.buildings.filter((b) => b.built && (b.type === 'house' || b.type === 'hut')).length;
     let want = env.dark < 0.5 && !env.night ? Math.min(env.holiday ? 8 : 4, Math.floor(homes / 2) * (env.holiday ? 2 : 1)) : 0;
     if (env.rainy || env.snowy) want = Math.floor(want / 2);
-    if (this.walkers.length < want && Math.random() < dt * 0.4) { const w = roads.spawnWalker(s, false, 0.9 + Math.random() * 0.3); if (w) this.walkers.push(w); }
+    if (this.walkers.length < want && Math.random() < dt * 0.4) { const w = roads.spawnWalker(s, false, 0.6 + Math.random() * 0.2); if (w) this.walkers.push(w); }
     for (const w of this.walkers) {
       w.ttl -= dt;
       w.fade = Math.min(1, w.fade + dt * 1.5);

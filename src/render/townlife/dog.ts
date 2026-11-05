@@ -24,7 +24,7 @@ export class TownDog {
     const goal = w ? { x: w.x - 0.45 * (w.path.length ? Math.sign(w.path[0].x - w.x) || 1 : 1), y: w.y + 0.3 } : { x: s.center.x + 1.2, y: s.center.y + 1 };
     const dx = goal.x - d.x, dy = goal.y - d.y, dist = Math.hypot(dx, dy);
     if (dist > 8) { d.x = goal.x; d.y = goal.y; }
-    else if (dist > 0.15) { const sp = Math.min(dist, 2.6 * dt); d.x += dx / dist * sp; d.y += dy / dist * sp; d.wag += dt * 14; if (Math.abs(dx) > 0.05) d.face = dx > 0 ? 1 : -1; }
+    else if (dist > 0.15) { const sp = Math.min(dist, 1.8 * dt); d.x += dx / dist * sp; d.y += dy / dist * sp; d.wag += dt * 14; if (Math.abs(dx) > 0.05) d.face = dx > 0 ? 1 : -1; }
     else d.wag += dt * 6;
     void env;
   }
