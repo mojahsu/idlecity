@@ -51,6 +51,8 @@ li.kind-victory { color: var(--accent); font-weight: 700; }
 #controls button.active { background: var(--accent); color: #221; font-weight: 700; }
 #controls .spacer { flex: 1; }
 #controls .stats { color: var(--muted); font-size: 12px; }
+#app.idle, #app.idle * { cursor: none; }
+#app:fullscreen { height: 100%; background: var(--bg); }
 @media (max-width: 900px) {
   #app { grid-template-columns: 1fr; grid-template-rows: auto auto auto 1fr; grid-template-areas: "top" "stage" "ctl" "side"; }
   #side { border-left: 0; border-top: 1px solid #000; }

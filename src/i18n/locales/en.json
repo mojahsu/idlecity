@@ -26,6 +26,9 @@
   "ui.language": "Language",
   "ui.graves": "Graves",
   "ui.stats": "Built {built} · Slain {slain} · Runs {runs}",
+  "ui.fullscreen": "Fullscreen",
+  "ui.exitFullscreen": "Exit fullscreen",
+  "ui.fullscreenHint": "F or double-click the map",
 
   "res.wood": "Wood",
   "res.stone": "Stone",

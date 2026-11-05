@@ -12,6 +12,7 @@ export interface HudCallbacks {
   onSpeed(speed: number): void;
   onLocale(locale: Locale): void;
   onReset(): void;
+  onFullscreen(): void;
 }
 
 const SPEEDS = [0, 1, 2, 4];
@@ -24,6 +25,7 @@ export class Hud {
   private controls = document.getElementById('controls')!;
   private banner = document.getElementById('banner')!;
   private speed = 1;
+  private fullscreen = false;
   private lastLogLen = -1;
   private lastChronLen = -1;
   private lastLocale = '';
@@ -31,6 +33,13 @@ export class Hud {
 
   constructor(private cb: HudCallbacks) {
     this.buildControls();
+  }
+
+  /** Relabel the fullscreen button; called on toggle and on locale change. */
+  setFullscreen(on: boolean): void {
+    this.fullscreen = on;
+    const b = document.getElementById('fullscreen');
+    if (b) { b.textContent = t(on ? 'ui.exitFullscreen' : 'ui.fullscreen'); b.title = t('ui.fullscreenHint'); }
   }
 
   setSpeed(speed: number): void {
@@ -73,6 +82,10 @@ export class Hud {
     reset.id = 'reset';
     reset.onclick = () => { if (confirm(t('ui.confirmReset'))) this.cb.onReset(); };
     c.appendChild(reset);
+    const fs = document.createElement('button');
+    fs.id = 'fullscreen';
+    fs.onclick = () => this.cb.onFullscreen();
+    c.appendChild(fs);
     this.setSpeed(this.speed);
   }
 
@@ -84,6 +97,7 @@ export class Hud {
       document.title = t('app.title');
       document.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n!); });
       document.getElementById('reset')!.textContent = t('ui.newGame');
+      this.setFullscreen(this.fullscreen);
       this.lastLogLen = -1; this.lastChronLen = -1;
     }
     this.updateTop(s);

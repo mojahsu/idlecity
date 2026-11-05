@@ -6,6 +6,7 @@ import { newGame } from './sim/state';
 import { Renderer } from './render/renderer';
 import { Hud } from './ui/hud';
 import { LocalStorageSave } from './platform/storage';
+import { BrowserFullscreen } from './platform/fullscreen';
 import { clearSave, loadGame, loadSettings, saveGame, saveSettings } from './platform/save';
 import { detectLocale, setLocale, t, type Locale } from './i18n';
 
@@ -17,12 +18,26 @@ let speed = settings.speed ?? 1;
 let state: GameState;
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
+const app = document.getElementById('app')!;
 const renderer = new Renderer(canvas);
+const fullscreen = new BrowserFullscreen(app);
 const hud = new Hud({
   onSpeed(sp) { speed = sp; hud.setSpeed(sp); settings.speed = sp; saveSettings(storage, settings); },
   onLocale(l) { setLocale(l); settings.locale = l; saveSettings(storage, settings); },
   onReset() { clearSave(storage); state = newGame(); },
+  onFullscreen() { void fullscreen.toggle(); },
 });
+fullscreen.onChange(() => { hud.setFullscreen(fullscreen.isFullscreen()); showCursor(); });
+canvas.addEventListener('dblclick', () => { void fullscreen.toggle(); });
+
+// Hide the mouse cursor after a few idle seconds while fullscreen (watch mode).
+let cursorTimer = 0;
+function showCursor(): void {
+  app.classList.remove('idle');
+  clearTimeout(cursorTimer);
+  if (fullscreen.isFullscreen()) cursorTimer = window.setTimeout(() => app.classList.add('idle'), 3000);
+}
+window.addEventListener('mousemove', showCursor);
 hud.setSpeed(speed);
 
 {
@@ -64,5 +79,6 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) saveG
 window.addEventListener('beforeunload', () => saveGame(storage, state));
 window.addEventListener('keydown', (e) => {
   if (e.key === ' ') { e.preventDefault(); const sp = speed === 0 ? (settings.speed || 1) : 0; speed = sp; hud.setSpeed(sp); }
+  if (e.key === 'f' || e.key === 'F') { void fullscreen.toggle(); }
   if (e.key === '1' || e.key === '2' || e.key === '3') { speed = [1, 2, 4][Number(e.key) - 1]; hud.setSpeed(speed); settings.speed = speed; saveSettings(storage, settings); }
 });

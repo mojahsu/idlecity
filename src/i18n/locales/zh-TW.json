@@ -26,6 +26,9 @@
   "ui.language": "語言",
   "ui.graves": "墓碑",
   "ui.stats": "建造 {built} · 擊殺 {slain} · 遠征 {runs}",
+  "ui.fullscreen": "全螢幕",
+  "ui.exitFullscreen": "離開全螢幕",
+  "ui.fullscreenHint": "按 F 或雙擊地圖",
 
   "res.wood": "木材",
   "res.stone": "石頭",

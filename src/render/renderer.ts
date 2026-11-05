@@ -27,14 +27,22 @@ export class Renderer {
     this.night = document.createElement('canvas');
   }
 
+  /**
+   * Match the backing store to the size the canvas is actually shown at
+   * (CSS scales it to the stage, including fullscreen) so lines stay crisp.
+   * Drawing code keeps using logical TILE coordinates via the transform.
+   */
   resize(s: GameState): void {
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const w = s.width * TILE, h = s.height * TILE;
-    if (this.canvas.width !== w * dpr) {
-      this.canvas.width = w * dpr; this.canvas.height = h * dpr;
-      this.night.width = w; this.night.height = h;
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    const W = s.width * TILE, H = s.height * TILE;
+    const rect = this.canvas.getBoundingClientRect();
+    const cssW = rect.width || W, cssH = rect.height || H;
+    const bw = Math.max(1, Math.round(cssW * dpr)), bh = Math.max(1, Math.round(cssH * dpr));
+    if (this.canvas.width !== bw || this.canvas.height !== bh) {
+      this.canvas.width = bw; this.canvas.height = bh;
     }
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (this.night.width !== W) { this.night.width = W; this.night.height = H; }
+    this.ctx.setTransform(bw / W, 0, 0, bh / H, 0, 0);
   }
 
   render(s: GameState, dt: number): void {
