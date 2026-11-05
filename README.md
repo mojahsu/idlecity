@@ -56,26 +56,25 @@ src/
     events.ts     merchant caravans and house fires (bucket brigade)
   data/       Content as plain data: buildings, tiers, jobs, classes, monsters, dungeons, names
   i18n/       t() + one JSON per language (en, zh-TW)
-  render/     Canvas renderer. Reads state, never writes it.
+  render/     Canvas renderer. Reads state, never writes it. One directory per kind
+              of thing, one file per type inside it.
     renderer.ts     Orchestrates the passes; depth-sorts everything on the ground
-    palette.ts      Season palettes, time-of-day tint, noise + shape helpers
-    terrain.ts      Cached static ground layer (cobbled streets, grass, flowers,
-                    puddles, lily pads), animated water, three tree species
-                    and their sun shadows
-    buildings.ts    One drawing per building type, build reveal, dungeon entrances,
-                    sun shadows, street lamps, light + smoke sources
-    units.ts        Workers (tools, loads), adventurer classes, parties, raiders
-    monsters.ts     Monster art shared by raids and the dungeon view
-    effects.ts      Particles (smoke, weather, lightning, rainbow, shooting stars,
-                    aurora, leaves, fireflies, debris, fireworks), birds, chickens,
-                    the market cart, floating text
-    townlife.ts     Render-only life: strollers, children, a dog, roof cats, wall
-                    guards, tavern music, the chapel bell, cheering crowds,
-                    funerals, weddings, the harvest festival, level-up stars,
-                    forge sparks, wolves, deer, a fishing boat, the hero statue
-    lighting.ts     Night darkness with light pools, dawn/dusk tint, fog, vignette
-    dungeonView.ts  Inset panel showing a party fighting floor by floor: parallax
-                    backdrops per dungeon, floor reflections, banners, chests
+    palette/        colors, seasons, env (per-frame snapshot), shapes, shadows
+    terrain/        grass, road, water, rock, bush; trees/{oak,birch,pine}
+    buildings/      one file per building type + shared pieces (walls, roofs, doors)
+    dungeons/       one file per dungeon entrance
+    units/          worker, townsfolk, guard, caravan, statue, raid, adventurer;
+                    classes/{warrior,archer,mage,priest}
+    monsters/       one file per monster
+    effects/        particles (the pool), smoke, weather, ambient, work, blaze,
+                    fireworks, sky (lightning, rainbow, meteors, moon, aurora),
+                    birds, chickens, cart, floats
+    townlife/       roads + one file per subsystem: walkers, kids, dog, cats,
+                    guards, music, cheers, processions, sparkles, wedding,
+                    wolves, deer, river, festival, statue
+    lighting/       night, rays, fog, vignette
+    dungeonView/    state, step (HP → animation), panel, figures, chest, hud;
+                    backdrops/{goblinCave,ancientRuins,darkTower}
   ui/         HUD (DOM), stylesheet
   platform/   Save storage interface + localStorage impl, save/load, offline progress,
               fullscreen, the synthesised audio engine (audio.ts) and the soundtrack
