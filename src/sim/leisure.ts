@@ -107,7 +107,7 @@ export function archeryTarget(s: GameState): Point | null {
 }
 
 /** A spot on the river bank (land tile right of water) within reach, facing the water. */
-function bankSpot(s: GameState, w: Worker, activity: RestActivity, maxDist = 16): RestTask | null {
+export function bankSpotFor(s: GameState, w: Worker, activity: RestActivity, maxDist = 16): RestTask | null {
   const banks: Point[] = [];
   for (let y = 0; y < s.height; y++) for (let x = 0; x < s.width - 1; x++) {
     const t = s.tiles[y * s.width + x];
@@ -147,9 +147,9 @@ export function chooseRest(s: GameState, w: Worker): RestTask | null {
     case 'listen': { const ring = around(s, bardSpot(s), 2).filter((p) => p.y >= s.center.y - 1); if (!ring.length) return null; const p = pick(s, ring); return { kind: 'rest', activity: 'listen', x: p.x, y: p.y, dir: facing(p, bardSpot(s)), phase: 'go' }; }
     case 'archery': { const t = archeryTarget(s); if (!t) return null; const lane = pick(s, [2, 3].filter((d) => isPassable(s, t.x - d, t.y) && isReachable(s, t.x - d, t.y))); return lane ? { kind: 'rest', activity: 'archery', x: t.x - lane, y: t.y, dir: 1, phase: 'go' } : null; }
     case 'visit': { const homes = s.buildings.filter((b) => b.built && (b.type === 'house' || b.type === 'hut') && isPassable(s, b.x, b.y + 1) && isReachable(s, b.x, b.y + 1)); if (!homes.length) return null; const h = pick(s, homes); return { kind: 'rest', activity: 'visit', x: h.x, y: h.y + 1, dir: (w.id % 2) ? 1 : -1, phase: 'go', buildingId: h.id }; }
-    case 'sunset': return bankSpot(s, w, 'sunset', 22);
+    case 'sunset': return bankSpotFor(s, w, 'sunset', 22);
     case 'picnic': return meadowSpot(s, 'picnic', 1, 3, 6);
-    case 'swim': return bankSpot(s, w, 'swim', 14);
+    case 'swim': return bankSpotFor(s, w, 'swim', 14);
     case 'snowman': return meadowSpot(s, 'snowman', 1, 2, 5);
     case 'snowball': return meadowSpot(s, 'snowball', chance(s, 0.5) ? 1 : -1, 1, 3);
     case 'chat': { const b = building(s, 'well') ?? building(s, 'campfire'); return b ? spotNear(s, b, 'chat', b.id) : null; }

@@ -23,6 +23,8 @@ import { River } from './river';
 import { Festival } from './festival';
 import { Statue } from './statue';
 import { Pastimes } from './pastimes';
+import { NightLife } from './night';
+import { Seasonal } from './seasonal';
 
 export class TownLife {
   private roads = new Roads();
@@ -43,6 +45,8 @@ export class TownLife {
   private festival = new Festival();
   private statue = new Statue();
   private pastimes = new Pastimes();
+  private night = new NightLife();
+  private seasonal = new Seasonal();
 
   update(s: GameState, env: Env, dt: number): void {
     this.roads.refresh(s);
@@ -60,6 +64,8 @@ export class TownLife {
     this.deer.update(s, env, dt);
     this.river.update(s, env, dt);
     this.pastimes.update(s, env, dt, this.music);
+    this.night.update(s, env, dt, this.roads);
+    this.seasonal.update(s, env, dt, this.roads);
     this.bits.update(dt);
   }
 
@@ -68,24 +74,25 @@ export class TownLife {
     return [
       ...this.walkers.actors(), ...this.kids.actors(env), ...this.dog.actors(), ...this.cats.actors(s), ...this.guards.actors(s),
       ...this.cheers.actors(), ...this.wedding.actors(), ...this.processions.actors(), ...this.festival.actors(s, env),
-      ...this.wolves.actors(), ...this.deer.actors(), ...this.river.actors(), ...this.statue.actors(s, this.roads), ...this.pastimes.actors(s, env),
+      ...this.wolves.actors(), ...this.deer.actors(), ...this.river.actors(), ...this.statue.actors(s, this.roads), ...this.pastimes.actors(s, env), ...this.night.actors(s, env), ...this.seasonal.actors(s, env),
     ];
   }
 
   /** Where the children are this frame. */
-  kidSpots(): { x: number; y: number }[] { return this.kids.spots(); }
+  kidSpots(): { x: number; y: number }[] { return [...this.kids.spots(), ...this.night.scare()]; }
 
   /** Confetti, stars, lanterns, notes and bell rings, drawn above the lighting so they read at night. */
   drawOverlay(ctx: CanvasRenderingContext2D, env: Env, s: GameState): void {
     this.bits.draw(ctx);
     this.sparkles.overlay(ctx, s);
     this.festival.overlay(ctx, env, s);
+    this.seasonal.overlay(ctx, env, s);
     this.music.overlay(ctx);
   }
 
   /** Guard torches and festival lanterns at night. */
   lights(s: GameState, env: Env): LightSource[] {
     if (env.dark <= 0.25) return [];
-    return [...this.festival.lights(s, env), ...this.guards.lights(s, env)];
+    return [...this.festival.lights(s, env), ...this.guards.lights(s, env), ...this.night.lights(), ...this.seasonal.lights(s, env)];
   }
 }

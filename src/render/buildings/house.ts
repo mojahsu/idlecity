@@ -6,10 +6,13 @@ import { roofShingles, wallBox, timberFrame, window_, door, chimney } from './sh
 
 export function drawHouse(art: BuildingArt): void {
   const { ctx, s, b, env, px, py, cx, bottom, o, snow, v } = art;
+  const city = s.tier === 'city';
   groundShadow(ctx, cx + 2, bottom + 1, 14, 4);
-  wallBox(ctx, px + 2, py + 4, TILE - 4, TILE - 6, '#e3d2b0');
-  timberFrame(ctx, px + 2, py + 4, TILE - 4, TILE - 6, '#6b4a2b');
-  roofShingles(ctx, px - 1, py + 5, px + TILE + 1, py + 5, cx, py - 6, snow ? '#e9edf0' : '#9c3f30');
+  // In a city the ground floor is stone and the roof is slate.
+  wallBox(ctx, px + 2, py + 4, TILE - 4, TILE - 6, city ? '#d8d0c0' : '#e3d2b0');
+  if (city) wallBox(ctx, px + 2, py + 14, TILE - 4, TILE - 16, '#9a9a96', true);
+  timberFrame(ctx, px + 2, py + 4, TILE - 4, city ? 10 : TILE - 6, '#6b4a2b');
+  roofShingles(ctx, px - 1, py + 5, px + TILE + 1, py + 5, cx, py - 6, snow ? '#e9edf0' : city ? '#4a5a6a' : '#9c3f30');
   chimney(ctx, px + TILE - 8, py - 3);
   door(ctx, cx - 3, py + TILE - 10, 6, 8);
   window_(ctx, px + 5, py + 8, 4, 4, o);

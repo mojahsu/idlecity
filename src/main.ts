@@ -28,7 +28,7 @@ const soundtrack = new Soundtrack(audio);
 const hud = new Hud({
   onSpeed(sp) { speed = sp; hud.setSpeed(sp); settings.speed = sp; saveSettings(storage, settings); },
   onLocale(l) { setLocale(l); settings.locale = l; saveSettings(storage, settings); },
-  onReset() { clearSave(storage); state = newGame(); fitStage(); },
+  onReset() { clearSave(storage); state = newGame(); catchUp = 0; fitStage(); },
   onFullscreen() { void fullscreen.toggle(); },
   onMute() { toggleMute(); },
 });
@@ -51,17 +51,37 @@ function showCursor(): void {
 window.addEventListener('mousemove', showCursor);
 hud.setSpeed(speed);
 
+// Offline progress is replayed a little each frame so the town appears at once
+// and visibly races through the hours it missed.
+let catchUp = 0, catchUpTotal = 0;
+let before = { wood: 0, stone: 0, food: 0, gold: 0 };
 {
-  const before = { ...newGame(1).resources };
-  const loaded = loadGame(storage);
+  const loaded = loadGame(storage, Date.now(), false);
   state = loaded.state;
   if (loaded.offlineSeconds > 0) {
+    catchUp = catchUpTotal = loaded.offlineSeconds;
     const r = state.resources;
-    hud.showToast(t('ui.whileAway', {
-      minutes: Math.round(loaded.offlineSeconds / 60),
-      wood: Math.floor(r.wood - before.wood), stone: Math.floor(r.stone), food: Math.floor(r.food), gold: Math.floor(r.gold),
-    }), 12);
+    before = { wood: r.wood, stone: r.stone, food: r.food, gold: r.gold };
   }
+}
+const CATCH_UP_PER_FRAME = 20; // game seconds per sim call inside the time slice
+
+// Driven by a timer rather than the frame loop, so a tab opened in the
+// background (where frames are throttled) still catches up.
+function runCatchUp(): void {
+  // Replay as much as fits in a slice of wall time, so throttled timers still finish quickly.
+  const until = performance.now() + 12;
+  while (catchUp > 0 && performance.now() < until) {
+    const chunk = Math.min(catchUp, CATCH_UP_PER_FRAME);
+    advance(state, chunk);
+    catchUp -= chunk;
+  }
+  if (catchUp > 0) { hud.showToast(t('ui.catchingUp', { minutes: Math.ceil(catchUp / 60) }), 2); setTimeout(runCatchUp, 16); return; }
+  const r = state.resources;
+  hud.showToast(t('ui.whileAway', {
+    minutes: Math.round(catchUpTotal / 60),
+    wood: Math.floor(r.wood - before.wood), stone: Math.floor(r.stone - before.stone), food: Math.floor(r.food - before.food), gold: Math.floor(r.gold - before.gold),
+  }), 12);
 }
 
 /** The canvas keeps the map's aspect ratio; the map size lives in the save, so older towns keep their shape. */
@@ -77,10 +97,13 @@ const MAX_TICKS_PER_FRAME = 60;
 function frame(now: number): void {
   const dt = Math.min(0.25, (now - last) / 1000);
   last = now;
-  acc += dt * speed;
-  let ticks = 0;
-  while (acc >= TICK && ticks < MAX_TICKS_PER_FRAME) { step(state); acc -= TICK; ticks++; }
-  if (ticks === MAX_TICKS_PER_FRAME) acc = 0;
+  if (catchUp > 0) acc = 0; // the catch-up timer is stepping the sim; just keep drawing
+  else {
+    acc += dt * speed;
+    let ticks = 0;
+    while (acc >= TICK && ticks < MAX_TICKS_PER_FRAME) { step(state); acc -= TICK; ticks++; }
+    if (ticks === MAX_TICKS_PER_FRAME) acc = 0;
+  }
   renderer.render(state, dt);
   soundtrack.update(state, dt, speed, renderer.drainEvents());
   hudTimer += dt;
@@ -90,6 +113,7 @@ function frame(now: number): void {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+if (catchUp > 0) setTimeout(runCatchUp, 0);
 
 // Dev-only console hook for tuning and visual checks: idleTown.advance(3600).
 if (import.meta.env.DEV) {
@@ -98,6 +122,7 @@ if (import.meta.env.DEV) {
     renderer,
     advance(seconds: number) { advance(state, seconds); },
     set time(t: number) { state.time = t; },
+    get catchUp() { return catchUp; },
     audio, soundtrack,
   };
 }

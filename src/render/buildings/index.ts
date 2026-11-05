@@ -34,6 +34,7 @@ export function isLit(b: Building, env: Env): boolean {
   if (!def.light || env.dark <= 0.35) return false;
   const f = env.dayFrac, h = hash(b.x, b.y, 61);
   if (b.type === 'hut' || b.type === 'house') {
+    if (env.seasonal === 'solstice') return true; // candles in every window on midwinter night
     if (!env.indoors.has(b.id)) return false;
     return f >= 0.1 + h * 0.05 && !(f > 0.92 + h * 0.06 && f < 1) ;
   }
@@ -70,14 +71,21 @@ export function lampPosts(s: GameState): { x: number; y: number }[] {
   return out;
 }
 
-export function drawLampPost(ctx: CanvasRenderingContext2D, x: number, y: number, env: Env): void {
+/** The lamplighter does the round at dusk, so lamps come on one after another (index order); they all burn until dawn. */
+export function lampLit(i: number, env: Env): boolean {
+  if (env.dark <= 0.3) return false;
+  const f = env.dayFrac;
+  return f < 0.5 || f > 0.705 + i * 0.012;
+}
+
+export function drawLampPost(ctx: CanvasRenderingContext2D, x: number, y: number, env: Env, i = 0): void {
   const px = x * TILE + 5, py = y * TILE + 6;
   groundShadow(ctx, px, py + 1, 2.5, 1.2, 0.25);
   rect(ctx, px - 1, py - 16, 2, 17, '#3a3a40'); rect(ctx, px - 2.5, py - 1, 5, 2, '#3a3a40');
   rect(ctx, px - 1, py - 18, 4, 1.2, '#3a3a40');
   const lx = px + 3, ly = py - 15;
   rect(ctx, lx - 2, ly, 4, 5, '#4a4a50'); poly(ctx, [lx - 3, ly, lx, ly - 2.5, lx + 3, ly], '#3a3a40');
-  if (env.dark > 0.3) { const f = 0.8 + 0.2 * Math.sin(env.clock * 7 + x); rect(ctx, lx - 1.4, ly + 0.8, 2.8, 3.4, `rgba(255,${200 * f},100,${f})`); }
+  if (lampLit(i, env)) { const f = 0.8 + 0.2 * Math.sin(env.clock * 7 + x); rect(ctx, lx - 1.4, ly + 0.8, 2.8, 3.4, `rgba(255,${200 * f},100,${f})`); }
   else rect(ctx, lx - 1.4, ly + 0.8, 2.8, 3.4, 'rgba(210,225,240,0.6)');
 }
 
@@ -165,7 +173,7 @@ export function lightSources(s: GameState, env: Env): LightSource[] {
     else if (def.light && isLit(b, env)) out.push({ x: cx, y: cy, r: b.type === 'tavern' || b.type === 'guildHall' || b.type === 'market' ? 34 : 28, color: '#ffd080', flicker: 0.04 });
     if (s.fire && s.fire.buildingId === b.id) out.push({ x: cx, y: py + TILE - 10, r: 40 + 40 * s.fire.intensity, color: '#ff8030', flicker: 0.3 });
   }
-  if (env.dark > 0.3) for (const l of lampPosts(s)) out.push({ x: l.x * TILE + 8, y: l.y * TILE - 8, r: 22, color: '#ffc870', flicker: 0.06 });
+  lampPosts(s).forEach((l, i) => { if (lampLit(i, env)) out.push({ x: l.x * TILE + 8, y: l.y * TILE - 8, r: 22, color: '#ffc870', flicker: 0.06 }); });
   for (const d of s.dungeons) {
     if (d.id === 'darkTower' && d.unlocked) out.push({ x: d.x * TILE + TILE / 2, y: d.y * TILE + TILE / 2 - 6, r: 34, color: s.victory ? '#f0d050' : '#a040e0', flicker: 0.25 });
   }

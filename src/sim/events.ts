@@ -6,7 +6,8 @@ import { chance, pick, randInt, random } from './rng';
 import { edgeSpawnPoint, findPath, moveAlong } from './world';
 import { hasBuilding } from './buildings';
 import { chronicle, log } from './log';
-import { isRaining, year } from './time';
+import { currentDay, dayFraction, isRaining, seasonalEvent, year } from './time';
+import { bankSpotFor } from './leisure';
 import { brigadeSize, draftToFire } from './workers';
 
 const CARAVAN_SPEED = 1.0;
@@ -15,6 +16,37 @@ const FLAMMABLE: Building['type'][] = ['hut', 'house', 'lumberCamp', 'granary', 
 export function updateEvents(s: GameState, dt: number): void {
   updateCaravan(s, dt);
   updateFire(s, dt);
+  updateSeasonal(s);
+}
+
+// ---- seasonal days ------------------------------------------------------------------
+
+/** Announce the day's event once, and run the summer fishing contest. */
+function updateSeasonal(s: GameState): void {
+  const ev = seasonalEvent(s);
+  if (!ev) return;
+  const day = currentDay(s), f = dayFraction(s);
+  if (s.timers.eventDay !== day && f > 0.18) {
+    s.timers.eventDay = day;
+    log(s, 'info', `log.${ev}`);
+  }
+  if (ev !== 'fishing') return;
+  // Mid afternoon: five free hands line the bank; at the end of the evening one of them lands the big one.
+  if (f > 0.5 && f < 0.52) {
+    const free = s.workers.filter((w) => !w.task || (w.task.kind === 'rest' && w.task.activity !== 'fish'));
+    let n = s.workers.filter((w) => w.task?.kind === 'rest' && w.task.activity === 'fish').length;
+    for (const w of free) {
+      if (n >= 5) break;
+      const t = bankSpotFor(s, w, 'fish', 30);
+      if (!t) continue;
+      w.task = t; w.path = findPath(s, w, t); w.timer = (0.79 - f) * 60; n++;
+    }
+  }
+  if (f > 0.76 && s.timers.contestDay !== day) {
+    s.timers.contestDay = day;
+    const anglers = s.workers.filter((w) => w.task?.kind === 'rest' && w.task.activity === 'fish');
+    if (anglers.length) { const w = pick(s, anglers); s.resources.food += 30; s.fx.push({ kind: 'float', x: w.x, y: w.y, text: '+30', color: '#7ad07a' }); log(s, 'people', 'log.fishingWinner', { name: w.name }); }
+  }
 }
 
 // ---- caravan ------------------------------------------------------------------

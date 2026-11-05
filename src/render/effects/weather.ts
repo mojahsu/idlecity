@@ -7,8 +7,8 @@ export class Weather {
   private weatherAcc = 0;
 
   emitWeather(s: GameState, env: Env, dt: number, W: number, H: number, P: Particles): void {
-    if (!env.rainy && !env.snowy) return;
-    this.weatherAcc += (env.rainy ? 140 : 40) * dt;
+    if (!env.rainy && !env.snowy && env.seasonal !== 'blizzard') return;
+    this.weatherAcc += (env.rainy ? 140 : env.seasonal === 'blizzard' ? 160 : 40) * dt;
     while (this.weatherAcc >= 1) {
       this.weatherAcc -= 1;
       const x = Math.random() * (W + 80) - 40, y = -10 - Math.random() * 20;

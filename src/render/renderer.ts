@@ -13,6 +13,7 @@ import { drawDungeonEntrance } from './dungeons';
 import { drawAdventurer, drawCaravan, drawParty, drawRaid, drawWorker } from './units';
 import { Effects } from './effects';
 import { TownLife } from './townlife';
+import { Spotlight } from './spotlight';
 import { Lighting, drawVignette } from './lighting';
 import { DungeonView } from './dungeonView';
 import { isIndoors } from '../sim/workers';
@@ -26,6 +27,7 @@ export class Renderer {
   private terrain = new TerrainLayer();
   private effects = new Effects();
   private townLife = new TownLife();
+  private spotlight = new Spotlight();
   private lighting = new Lighting();
   private dungeonView = new DungeonView();
   private clock = 0;
@@ -62,6 +64,7 @@ export class Renderer {
     this.effects.scare = this.townLife.kidSpots();
     this.effects.update(s, env, dt);
     this.townLife.update(s, env, dt);
+    this.spotlight.update(s, env, dt);
     this.dungeonView.update(s, env, dt);
 
     ctx.clearRect(0, 0, W, H);
@@ -78,7 +81,7 @@ export class Renderer {
     }
     for (const b of s.buildings) items.push({ y: b.y + 0.95, draw: (c, e) => drawBuilding(c, s, b, e) });
     for (const d of s.dungeons) items.push({ y: d.y + 0.95, draw: (c, e) => drawDungeonEntrance(c, s, d, e) });
-    for (const l of lampPosts(s)) items.push({ y: l.y + 0.3, draw: (c, e) => drawLampPost(c, l.x, l.y, e) });
+    lampPosts(s).forEach((l, i) => items.push({ y: l.y + 0.3, draw: (c, e) => drawLampPost(c, l.x, l.y, e, i) }));
     for (const w of s.workers) if (!isIndoors(s, w)) items.push({ y: w.y + 0.8, draw: (c, e) => drawWorker(c, w, e) });
     if (s.caravan) { const cv = s.caravan; items.push({ y: cv.y + 0.9, draw: (c, e) => drawCaravan(c, cv, e) }); }
     for (const a of s.adventurers) if (a.status === 'resting' || a.status === 'arriving') items.push({ y: a.y + 0.8, draw: (c, e) => drawAdventurer(c, a, e, s.equipment) });
@@ -99,6 +102,7 @@ export class Renderer {
     this.lighting.draw(ctx, s, env, W, H, lights, env.dark > 0 ? this.effects.nightLights() : []);
     this.effects.drawSky(ctx, env, W, H);
     this.townLife.drawOverlay(ctx, env, s);
+    this.spotlight.draw(ctx, s, env, W);
     this.effects.drawBirds(ctx, env);
     this.drawCaption(ctx, s, dt, W, H);
     this.dungeonView.draw(ctx, s, env, W, H);

@@ -7,7 +7,7 @@ import { findNearestTile, findPath, isReachable, moveAlong, tileAt } from './wor
 import { completeBuilding, constructionSite, gatherBonus } from './buildings';
 import { pick } from './rng';
 import { DAY_WORK_BONUS, FARM_AMOUNT, FARM_TIME, FIRE_BRIGADE, FIRE_BUCKET, GATHER_AMOUNT, GATHER_TIME, WORKER_SPEED as BASE_SPEED, TILE_REGEN_PER_SEC } from './constants';
-import { dayFraction, isEvening, isLunch, isNight } from './time';
+import { dayFraction, isBlizzard, isEvening, isLunch, isNight } from './time';
 import { fireSeat, maybeRest, updateRest } from './leisure';
 import { isElder } from './population';
 
@@ -30,7 +30,7 @@ function updateWorker(s: GameState, w: Worker, dt: number): void {
 
     case 'gather':
       if (t.phase === 'go') {
-        if (isNight(s) || isLunch(s) || isEvening(s)) { w.task = null; return; } // sunset, lunch or evening: turn back before starting
+        if (isNight(s) || isLunch(s) || isEvening(s) || isBlizzard(s)) { w.task = null; return; } // sunset, lunch, evening or a blizzard: turn back before starting
         if (moveAlong(w, WORKER_SPEED, dt)) { t.phase = 'work'; w.timer = GATHER_TIME; }
       } else if (t.phase === 'work') {
         w.timer -= dt;
@@ -51,7 +51,7 @@ function updateWorker(s: GameState, w: Worker, dt: number): void {
     case 'build': {
       const b = s.buildings.find((x) => x.id === t.buildingId);
       if (!b || b.built) { w.task = null; return; }
-      if (isNight(s) || isEvening(s)) { w.task = null; return; } // tools down for the evening
+      if (isNight(s) || isEvening(s) || isBlizzard(s)) { w.task = null; return; } // tools down for the evening
       if (t.phase === 'go') {
         if (moveAlong(w, WORKER_SPEED, dt)) t.phase = 'work';
       } else {
@@ -64,7 +64,7 @@ function updateWorker(s: GameState, w: Worker, dt: number): void {
 
     case 'sleep': {
       // Everyone wakes a little after sunrise, staggered so the street fills gradually.
-      if (!isNight(s) && dayFraction(s) > 0.17 + ((w.id * 37) % 10) * 0.006) { w.task = null; return; }
+      if (!isNight(s) && !isBlizzard(s) && dayFraction(s) > 0.17 + ((w.id * 37) % 10) * 0.006) { w.task = null; return; }
       if (t.phase === 'go' && moveAlong(w, WORKER_SPEED, dt)) t.phase = 'sleep';
       return;
     }
@@ -97,7 +97,7 @@ function updateWorker(s: GameState, w: Worker, dt: number): void {
       const b = s.buildings.find((x) => x.id === t.buildingId);
       if (!b) { w.task = null; return; }
       if (t.phase === 'go') {
-        if (isNight(s) || isLunch(s) || isEvening(s)) { w.task = null; return; }
+        if (isNight(s) || isLunch(s) || isEvening(s) || isBlizzard(s)) { w.task = null; return; }
         if (moveAlong(w, WORKER_SPEED, dt)) { t.phase = 'work'; w.timer = FARM_TIME; }
       } else if (t.phase === 'work') {
         w.timer -= dt;
@@ -127,7 +127,7 @@ function deposit(s: GameState, w: Worker): void {
 
 function assignTask(s: GameState, w: Worker): void {
   if (s.fire && dousers(s) < brigadeSize(s)) { draftToFire(s, w); return; }
-  if (isNight(s)) { goHome(s, w); return; }
+  if (isNight(s) || isBlizzard(s)) { goHome(s, w); return; }
   if (maybeRest(s, w)) return;
   const job = JOBS[w.job];
   if (w.job === 'builder') {

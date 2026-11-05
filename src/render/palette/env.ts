@@ -1,6 +1,6 @@
 // Per-frame environment snapshot: season, time of day, weather, who is indoors.
 import type { GameState } from '../../sim/types';
-import { RAIN_TO, currentDay, darkness, dayFraction, dayWeather, isHoliday, isNight, isRaining, season } from '../../sim/time';
+import { RAIN_TO, currentDay, darkness, dayFraction, dayWeather, isHoliday, isNight, isRaining, season, seasonalEvent, type SeasonalEvent } from '../../sim/time';
 import type { Season } from './seasons';
 
 /** Per-frame environment snapshot so draw functions don't recompute it. */
@@ -33,6 +33,8 @@ export interface Env {
   festival: boolean;
   /** The festival day itself: nobody works. */
   holiday: boolean;
+  /** The season's special day, if today is one. */
+  seasonal: SeasonalEvent | null;
 }
 
 export function makeEnv(s: GameState, clock: number): Env {
@@ -52,7 +54,7 @@ export function makeEnv(s: GameState, clock: number): Env {
   const indoors = new Set<number>();
   for (const w of s.workers) if (w.task?.kind === 'sleep' && w.task.phase === 'sleep') indoors.add(w.task.buildingId);
   const festival = sea === 'autumn' && (day - 1) % 10 === 5 && f > 0.78;
-  return { season: sea, dark, dayFrac: f, clock, day, rainy, storm, snowy, foggy, rainbow, clearNight, night: isNight(s), bell, indoors, festival, holiday: isHoliday(s) };
+  return { season: sea, dark, dayFrac: f, clock, day, rainy, storm, snowy, foggy, rainbow, clearNight, night: isNight(s), bell, indoors, festival, holiday: isHoliday(s), seasonal: seasonalEvent(s) };
 }
 
 /** Warm/cool tint of the whole scene for the time of day, as an rgba fill. */

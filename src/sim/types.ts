@@ -234,7 +234,7 @@ export interface GameState {
   ironForged: number;
   victory: boolean;
   mayor: { want: BuildingTypeId | null; jobTimer: number; buildTimer: number };
-  timers: { immigrant: number; adventurer: number; raid: number; chapel: number; caravan?: number; fire?: number; wedding?: number; birth?: number };
+  timers: { immigrant: number; adventurer: number; raid: number; chapel: number; caravan?: number; fire?: number; wedding?: number; birth?: number; eventDay?: number; contestDay?: number };
   stats: { built: number; monstersSlain: number; dungeonRuns: number; deaths: number; immigrants: number; births?: number; passed?: number };
   /** Transient, cleared each tick. Not saved. */
   fx: Fx[];

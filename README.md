@@ -173,6 +173,23 @@ tests/        bun tests
     the speaker button mutes; the choice is saved. Sound starts on the first
     click or key press, as browsers require.
 
+14. Each season has a special day (`seasonalEvent` in `sim/time.ts`): sowing
+    in spring (seed over the fields), the fishing contest in summer (five
+    free hands line the bank, one lands +30 food), the solstice in winter
+    (candles in every window, lantern strings between houses) and a blizzard
+    that keeps everyone indoors for a day. After dark the lamplighter lights
+    the street lamps one by one, a watchman walks the streets with a lantern
+    once the walls stand, patrons weave home from the tavern, a fox creeps up
+    on the hens and an owl sits on a roof (`render/townlife/night.ts`).
+15. The spotlight (`render/spotlight.ts`) picks a villager or adventurer every
+    so often and follows them for a while with a card: name, age, job, what
+    they are doing. Buildings grow with the town's tier: huts get chimneys and
+    flower boxes, city houses stone ground floors and slate roofs, the market
+    lanterns and a flower stall, the square a stone ring, benches and paving.
+16. Offline progress is replayed over the first frames after loading
+    (a 12 ms slice of simulation per timer tick, `runCatchUp` in main.ts) with a "catching up" toast,
+    so the town appears at once instead of the page freezing.
+
 Rough pacing at 1x: hamlet in minutes, village ~15 min, town ~40 min, city ~2 h,
 first dungeon ~45 min, Dark Tower after the Keep (~3 h), Demon Lord falls
 around hour 5–7 with a few deaths (0–5 over 10 h on eight seeds).

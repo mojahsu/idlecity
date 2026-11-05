@@ -27,12 +27,12 @@ export function saveGame(storage: SaveStorage, s: GameState): void {
 
 export interface LoadResult {
   state: GameState;
-  /** Seconds of offline progress applied (0 for a new game). */
+  /** Seconds of offline progress applied, or still to apply when `catchUp` is false (0 for a new game). */
   offlineSeconds: number;
   isNew: boolean;
 }
 
-export function loadGame(storage: SaveStorage, now = Date.now()): LoadResult {
+export function loadGame(storage: SaveStorage, now = Date.now(), catchUp = true): LoadResult {
   const raw = storage.load(KEY);
   if (raw) {
     try {
@@ -41,7 +41,7 @@ export function loadGame(storage: SaveStorage, now = Date.now()): LoadResult {
         const s = file.state;
         s.fx = [];
         const away = Math.min(MAX_OFFLINE_SECONDS, Math.max(0, (now - file.savedAt) / 1000));
-        if (away > 5) advance(s, away);
+        if (away > 5 && catchUp) advance(s, away);
         return { state: s, offlineSeconds: away > 5 ? away : 0, isNew: false };
       }
     } catch { /* corrupt save: start over */ }

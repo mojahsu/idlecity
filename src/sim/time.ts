@@ -74,3 +74,20 @@ export function isEvening(s: GameState): boolean {
   const f = dayFraction(s);
   return f >= EVENING_FROM && f < 0.8;
 }
+
+/** Day within the season, 0..DAYS_PER_SEASON-1. */
+export function dayOfSeason(s: GameState): number { return (currentDay(s) - 1) % DAYS_PER_SEASON; }
+
+export type SeasonalEvent = 'sowing' | 'fishing' | 'solstice' | 'blizzard';
+
+/** One special day per season: sowing in spring, the fishing contest in summer, the solstice lights in winter, and a blizzard that keeps everyone indoors. */
+export function seasonalEvent(s: GameState): SeasonalEvent | null {
+  const sea = season(s), d = dayOfSeason(s);
+  if (sea === 'spring' && d === 1) return 'sowing';
+  if (sea === 'summer' && d === 4) return 'fishing';
+  if (sea === 'winter' && d === 4) return 'solstice';
+  if (sea === 'winter' && d === 7) return 'blizzard';
+  return null;
+}
+
+export function isBlizzard(s: GameState): boolean { return seasonalEvent(s) === 'blizzard'; }
