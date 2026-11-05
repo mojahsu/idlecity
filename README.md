@@ -22,6 +22,16 @@ bun run build      # static files in dist/
 
 Keyboard: `space` pause, `1` / `2` / `3` for 1x / 2x / 4x.
 
+### Play it from anywhere (GitHub Pages)
+
+`.github/workflows/pages.yml` builds and publishes `dist/` on every push to
+`main`. One-time setup: in the GitHub repository go to Settings → Pages and
+set *Source* to **GitHub Actions**. The game is then served at
+`https://<owner>.github.io/<repo>/`.
+
+Each browser runs its own town and keeps its own save in localStorage, so
+opening the page on a phone starts a separate town from the one on your desk.
+
 ## Layout
 
 ```
