@@ -19,6 +19,7 @@ import { DungeonView } from './dungeonView';
 import { isIndoors } from '../sim/workers';
 import { trainingPosts } from '../sim/adventurers';
 import { drawTrainingPost } from './units/trainingPost';
+import { loadSprites } from './sprites';
 
 export { TILE };
 
@@ -39,6 +40,7 @@ export class Renderer {
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d')!;
+    loadSprites();
   }
 
   /**

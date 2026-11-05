@@ -3,6 +3,8 @@ import type { GameState, Point } from '../../sim/types';
 import { TILE } from '../constants';
 import { circle, ellipse, poly, rect, line, groundShadow, type Env } from '../palette';
 import type { Actor } from './shared';
+import { drawSprite, townSprites } from '../sprites';
+import { ANIMAL } from '../spriteMap';
 
 export interface Deer { x: number; y: number; tx: number; ty: number; home: Point; phase: 'go' | 'drink' | 'back'; timer: number; fade: number }
 
@@ -46,6 +48,7 @@ function drawDeer(ctx: CanvasRenderingContext2D, d: Deer, env: Env): void {
   const dip = d.phase === 'drink' ? 3 + Math.sin(env.clock * 1.5) * 1 : 0;
   ctx.save(); ctx.globalAlpha = d.fade; ctx.translate(px, py); ctx.scale(dir, 1);
   groundShadow(ctx, 0, 0.5, 6, 2, 0.22);
+  if (townSprites()) { drawSprite(ctx, ANIMAL.deer, 0, 1 + Math.abs(trot) * 0.3, 18, { rot: dip * 0.08 }); ctx.restore(); return; }
   for (let k = 0; k < 4; k++) rect(ctx, -4.5 + k * 3, -6, 1, 6 + (k % 2 ? trot : -trot) * 0.5, '#7a5a3a');
   ellipse(ctx, 0, -8, 6, 3, '#a07848'); ellipse(ctx, -1, -7, 3.5, 1.5, '#e0c8a0');
   ctx.save(); ctx.translate(5, -10); ctx.rotate(dip * 0.25);

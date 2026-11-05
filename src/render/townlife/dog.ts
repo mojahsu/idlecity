@@ -4,6 +4,8 @@ import { isIndoors } from '../../sim/workers';
 import { TILE } from '../constants';
 import { circle, ellipse, poly, rect, line, groundShadow, type Env } from '../palette';
 import type { Actor } from './shared';
+import { drawSprite, townSprites } from '../sprites';
+import { ANIMAL } from '../spriteMap';
 
 export interface Dog { x: number; y: number; target: number; timer: number; wag: number; face: number }
 
@@ -43,6 +45,7 @@ function drawDog(ctx: CanvasRenderingContext2D, d: Dog, env: Env): void {
   ctx.scale(d.face, 1);
   void env;
   const trot = Math.sin(d.wag) * 1;
+  if (townSprites()) { drawSprite(ctx, ANIMAL.dog, 0, 1, 14, { rot: trot * 0.06 }); ctx.restore(); return; }
   for (let k = 0; k < 4; k++) rect(ctx, -3 + k * 1.9, -2.5, 1, 2.5 + (k % 2 ? trot : -trot) * 0.6, '#6a4a2a');
   ellipse(ctx, 0, -4, 4.2, 2.2, '#8a6a3a'); ellipse(ctx, 0, -3.2, 3, 1.2, '#c8a878');
   circle(ctx, 4, -5.5, 1.9, '#8a6a3a'); poly(ctx, [5.5, -5.5, 7, -5, 5.5, -4.3], '#6a4a2a'); poly(ctx, [2.8, -7, 3.6, -8.5, 4.4, -7], '#6a4a2a');

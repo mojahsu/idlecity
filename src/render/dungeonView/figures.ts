@@ -56,7 +56,7 @@ export function drawFigures(ctx: CanvasRenderingContext2D, s: GameState, p: Part
     const crouch = myTurn ? 1 - 0.12 * Math.sin(windup * Math.PI) : 1;
     ellipse(ctx, x - lunge * 6, floorY + 1, 9 * sc, 3 * sc, 'rgba(0,0,0,0.45)');
     ctx.save(); ctx.translate(x, floorY); ctx.scale(-sc * (myTurn ? 1 + 0.06 * windup : 1), sc * crouch);
-    drawMonster(ctx, en.monster, env, 1, ev.hurt, v.frozen > 0 ? 0 : lunge * 1.4);
+    drawMonster(ctx, en.monster, env, 1, ev.hurt, v.frozen > 0 ? 0 : lunge * 1.4, 'panel', p.phase === 'explore');
     ctx.restore();
     if (lunge > 0.7) { const h = monsterHeight(en.monster) * sc; ctx.strokeStyle = 'rgba(255,120,80,0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x - lunge * 8 - 8, floorY - h * 0.5, 7, Math.PI - 0.6, Math.PI + 1.2); ctx.stroke(); }
     if (v.frozen > 0) {
@@ -67,7 +67,7 @@ export function drawFigures(ctx: CanvasRenderingContext2D, s: GameState, p: Part
   });
   for (const d of v.dying) {
     ctx.save(); ctx.translate(d.x, floorY); ctx.scale(-d.scale, d.scale); ctx.globalAlpha *= Math.max(0, 1 - d.t); ctx.translate(0, d.t * 8); ctx.rotate(d.t * 0.5);
-    drawMonster(ctx, d.monster, env, 1, 1);
+    drawMonster(ctx, d.monster, env, 1, 1, 0, 'panel');
     ctx.restore();
   }
   void mx;

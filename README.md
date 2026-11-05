@@ -67,6 +67,8 @@ src/
               of thing, one file per type inside it.
     renderer.ts     Orchestrates the passes; depth-sorts everything on the ground
     palette/        colors, seasons, env (per-frame snapshot), shapes, shadows
+    sprites.ts      sheet loader, tinted tile cache, drawSprite/drawNamed
+    spriteMap.ts    which tile of which sheet stands for each thing in the game
     terrain/        grass, road, water, rock, bush; trees/{oak,birch,pine}
     buildings/      one file per building type + shared pieces (walls, roofs, doors)
     dungeons/       one file per dungeon entrance
@@ -228,7 +230,22 @@ The intended path is an Electron or Tauri shell around `dist/`:
   backend and pass it to `loadGame` / `saveGame` in `main.ts`.
 - Achievements / rich presence can hook `chronicle()` in `sim/log.ts`, which only
   receives important events.
-- The renderer is isolated; replacing the procedural art with sprites means
-  editing the draw functions in `render/` only. All art is drawn in logical
-  24px-tile coordinates and scaled to the display, so it stays sharp at any
-  resolution.
+- The renderer is isolated and all art is drawn in logical 24px-tile
+  coordinates and scaled to the display, so it stays sharp at any resolution.
+
+## Art
+
+The map is drawn from CC0 sprite sheets in `public/assets` (credits and licence
+texts in `public/assets/CREDITS.md`): Kenney's Tiny Town (ground, trees,
+buildings, tools) and Tiny Dungeon (villagers, adventurers, weapons), Clint
+Bellanger's Tiny Creatures (animals and the monsters on the map), and 0x72's
+DungeonTileset II (the animated heroes, monsters and chest in the dungeon
+panel). `render/spriteMap.ts` maps game ids to tiles; `render/sprites.ts` loads
+the sheets lazily and caches tinted copies, which is how one villager tile
+wears every job colour and how roofs get snow. Everything keeps a procedural
+fallback (the old hand-drawn art) that shows until the sheets arrive, and the
+lighting, weather, particles, shadows and seasonal washes are drawn over the
+sprites as before. Buildings are stacks of roof and wall tiles
+(`BUILDING_SPRITES`); the campfire, farm crops, market and graves stay
+procedural. `public/assets/viewer.html?sheet=tiny-town&s=6&from=0&to=83&cols=12`
+shows any sheet with its indices when adding a mapping.

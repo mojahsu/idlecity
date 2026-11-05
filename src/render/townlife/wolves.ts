@@ -3,6 +3,8 @@ import type { GameState, Point } from '../../sim/types';
 import { TILE } from '../constants';
 import { circle, ellipse, poly, rect, line, groundShadow, type Env } from '../palette';
 import type { Actor } from './shared';
+import { drawSprite, townSprites } from '../sprites';
+import { ANIMAL } from '../spriteMap';
 
 export interface Wolf { x: number; y: number; seed: number; fade: number }
 
@@ -36,6 +38,11 @@ function drawWolf(ctx: CanvasRenderingContext2D, w: Wolf, env: Env): void {
   const dir = Math.sin(env.clock * 0.6 + w.seed) >= 0 ? 1 : -1;
   ctx.save(); ctx.globalAlpha = w.fade; ctx.translate(px, py); ctx.scale(dir, 1);
   groundShadow(ctx, 0, 0.5, 5, 1.6, 0.25);
+  if (townSprites()) {
+    drawSprite(ctx, ANIMAL.wolf, 0, 1, 16, { sy: 1 + Math.sin(env.clock * 3 + w.seed) * 0.03 });
+    if (env.dark > 0.3) { rect(ctx, 1.5, -10, 1, 1, '#ffe040'); rect(ctx, 4, -10, 1, 1, '#ffe040'); }
+    ctx.restore(); return;
+  }
   for (let k = 0; k < 4; k++) rect(ctx, -4 + k * 2.4, -3, 1.1, 3, '#4a4a52');
   ellipse(ctx, 0, -5, 5.5, 2.6, '#5a5a64'); ellipse(ctx, 0, -4, 3.5, 1.3, '#8a8a94');
   circle(ctx, 5, -6.5, 2.2, '#5a5a64'); poly(ctx, [6.5, -6.5, 9, -6, 6.5, -5], '#5a5a64');

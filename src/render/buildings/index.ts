@@ -24,6 +24,7 @@ import { drawGuildHall } from './guildHall';
 import { drawWalls } from './walls';
 import { drawKeep } from './keep';
 import { drawGrave } from './grave';
+import { drawSpriteBuilding, hasSpriteBuilding, spriteBuildingHeight } from './sprite';
 
 /**
  * Whether a building's windows glow. Homes light up when someone is inside and
@@ -52,7 +53,7 @@ const HEIGHT: Partial<Record<Building['type'], number>> = {
 /** Sun shadows of every finished building, drawn on the ground before the scene. */
 export function drawBuildingShadows(ctx: CanvasRenderingContext2D, s: GameState, env: Env): void {
   for (const b of s.buildings) {
-    const h = HEIGHT[b.type] ?? 0;
+    const h = hasSpriteBuilding(b.type) ? spriteBuildingHeight(b.type) : HEIGHT[b.type] ?? 0;
     if (!b.built || !h) continue;
     const px = b.x * TILE, py = b.y * TILE;
     castShadow(ctx, env, px + TILE / 2, py + TILE - 1, TILE - 4, h);
@@ -148,6 +149,7 @@ function drawConstruction(ctx: CanvasRenderingContext2D, s: GameState, b: Buildi
 
 // ---- per-type art -----------------------------------------------------------
 function drawBuilt(ctx: CanvasRenderingContext2D, s: GameState, b: Building, env: Env, px: number, py: number): void {
+  if (drawSpriteBuilding(ctx, s, b, env, px, py)) return;
   const [sx, sy] = stretchOf(b.type);
   if (sx === 1 && sy === 1) { drawBuiltArt(ctx, s, b, env, px, py); return; }
   ctx.save();

@@ -3,6 +3,8 @@ import type { GameState } from '../../sim/types';
 import { TILE } from '../constants';
 import { circle, ellipse, poly, rect, hash, type Env } from '../palette';
 import type { Actor } from './shared';
+import { drawSprite, townSprites } from '../sprites';
+import { ANIMAL } from '../spriteMap';
 
 export interface Cat { house: number; timer: number; fade: number; seed: number }
 
@@ -37,6 +39,11 @@ export class Cats {
 function drawCat(ctx: CanvasRenderingContext2D, px: number, py: number, c: Cat, env: Env): void {
   ctx.save(); ctx.globalAlpha = c.fade;
   const col = hash(Math.floor(c.seed), 1) > 0.5 ? '#3a3a3a' : '#c88a4a';
+  if (townSprites()) {
+    drawSprite(ctx, ANIMAL.cat, px, py + 3, 11, { flip: hash(Math.floor(c.seed), 2) > 0.5, tint: col === '#c88a4a' ? '#d89a50' : null, tintA: 0.5 });
+    if (env.dark > 0.4) { rect(ctx, px - 1.5, py - 3.5, 0.9, 0.9, '#e8ff60'); rect(ctx, px + 0.8, py - 3.5, 0.9, 0.9, '#e8ff60'); }
+    ctx.restore(); return;
+  }
   ellipse(ctx, px, py, 3.6, 2.2, col); circle(ctx, px + 2.6, py - 2, 1.8, col);
   poly(ctx, [px + 1.4, py - 3, px + 1.8, py - 4.8, px + 2.6, py - 3.2], col); poly(ctx, [px + 3, py - 3.2, px + 3.6, py - 4.8, px + 3.9, py - 3], col);
   const tail = Math.sin(env.clock * 2 + c.seed) * 1.5;

@@ -3,6 +3,8 @@ import type { GameState } from '../../sim/types';
 import { TILE } from '../constants';
 import { circle, ellipse, poly, rect, line, type Env } from '../palette';
 import type { Actor } from './shared';
+import { drawSprite, townSprites } from '../sprites';
+import { ANIMAL } from '../spriteMap';
 
 export interface Boat { y: number; x: number; fade: number; cast: number }
 export interface Fish { x: number; y: number; t: number }
@@ -68,7 +70,8 @@ function drawFish(ctx: CanvasRenderingContext2D, f: Fish): void {
   if (k < 0.6) {
     const h = Math.sin(k / 0.6 * Math.PI) * 9;
     ctx.save(); ctx.translate(px, py - h); ctx.rotate((k / 0.6 - 0.5) * 2.2);
-    ellipse(ctx, 0, 0, 3.2, 1.3, '#b8c8d8'); poly(ctx, [-3, 0, -5, -1.8, -5, 1.8], '#b8c8d8'); rect(ctx, 1.5, -0.5, 0.6, 0.6, '#222');
+    if (townSprites()) drawSprite(ctx, ANIMAL.fish[Math.floor(f.x * 7) % ANIMAL.fish.length], 0, 4, 9);
+    else { ellipse(ctx, 0, 0, 3.2, 1.3, '#b8c8d8'); poly(ctx, [-3, 0, -5, -1.8, -5, 1.8], '#b8c8d8'); rect(ctx, 1.5, -0.5, 0.6, 0.6, '#222'); }
     ctx.restore();
   }
   if (k > 0.45) { const q = (k - 0.45) / 0.65; ctx.strokeStyle = `rgba(230,240,255,${0.7 * (1 - q)})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(px, py, 2 + q * 8, 1 + q * 3.5, 0, 0, Math.PI * 2); ctx.stroke(); }

@@ -2,6 +2,20 @@
 // and the unit transform. Figures are drawn around (0,0) = feet centre, facing +x.
 import { TILE } from '../constants';
 import { circle, poly, rect, groundShadow, shade, hash } from '../palette';
+import { drawSprite, townSprites, type SpriteRef } from '../sprites';
+import { ELDER, VILLAGERS } from '../spriteMap';
+
+/** A sprite-sheet figure: which tile, and the colour washed over it (undefined = the tunic colour, null = none). */
+export interface Fig { ref: SpriteRef; tint?: string | null; tintA?: number }
+
+/** Sprite figures are this tall in unit space (feet at 0), a little over the procedural body. */
+export const FIG_SIZE = 22;
+
+/** Whether figures come from the sprite sheets (loaded) rather than the procedural art. */
+export function spriteFigures(): boolean { return townSprites(); }
+
+/** One of the villager tiles, picked by seed; elders get the white-haired one. */
+export function villagerFig(seed: number, elder = false): Fig { return { ref: elder ? ELDER : VILLAGERS[Math.floor(hash(seed, 7) * VILLAGERS.length)] }; }
 
 /** People are drawn small relative to buildings; adventurers a touch larger than townsfolk. */
 export const WORKER_SCALE = 0.8;
@@ -31,8 +45,17 @@ export function pose(moving: boolean, working: boolean, clock: number, id: numbe
   };
 }
 
-/** Body shared by everyone: legs, tunic, head. Drawn around (0,0) = feet centre, facing +x. */
-export function body(ctx: CanvasRenderingContext2D, tunic: string, skin: string, hair: string, p: Pose, robe = false): void {
+/**
+ * Body shared by everyone: legs, tunic, head. Drawn around (0,0) = feet centre, facing +x.
+ * With a `fig` and the sheets loaded, the sprite is drawn instead (rocking as it walks,
+ * leaning into work) and true is returned so callers skip hats and other procedural trim.
+ */
+export function body(ctx: CanvasRenderingContext2D, tunic: string, skin: string, hair: string, p: Pose, robe = false, fig?: Fig | null): boolean {
+  if (fig && spriteFigures()) {
+    const tint = fig.tint === undefined ? tunic : fig.tint;
+    drawSprite(ctx, fig.ref, 0, 0, FIG_SIZE, { rot: p.walk * 0.12 + p.swing * 0.18, tint, tintA: fig.tintA ?? 0.4 });
+    return true;
+  }
   // Legs.
   const legA = p.walk * 2, legB = -p.walk * 2;
   if (!robe) {
@@ -49,6 +72,7 @@ export function body(ctx: CanvasRenderingContext2D, tunic: string, skin: string,
   circle(ctx, 0, -13, 3.4, skin); ctx.strokeStyle = OUTLINE; ctx.lineWidth = 0.8; ctx.stroke();
   ctx.fillStyle = hair; ctx.beginPath(); ctx.arc(0, -13.6, 3.4, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
   rect(ctx, 1.2, -13.4, 0.9, 0.9, '#2a1a1a');
+  return false;
 }
 
 export function withUnit(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number, bob: number, draw: () => void, scale = WORKER_SCALE): void {

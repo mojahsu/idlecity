@@ -2,15 +2,19 @@
 import { TILE } from '../constants';
 import { circle, ellipse, poly, rect, line, PALETTE } from '../palette';
 import type { BuildingArt } from './shared';
+import { drawTileRect, townSprites } from '../sprites';
+import { GROUND } from '../spriteMap';
 
 export function drawFarm(art: BuildingArt): void {
   const { ctx, env, px, py, snow, v } = art;
   const pal = PALETTE[env.season];
-  rect(ctx, px + 1, py + 1, TILE - 2, TILE - 2, snow ? '#d9d5c8' : '#8a6a3a');
+  // The field: the Tiny Town dirt tile when the sheets are in, else plain soil.
+  const spr = townSprites() && drawTileRect(ctx, GROUND.dirt.c, px, py, TILE, TILE, snow ? '#e8ecf2' : null, 0.6);
+  if (!spr) rect(ctx, px + 1, py + 1, TILE - 2, TILE - 2, snow ? '#d9d5c8' : '#8a6a3a');
   // Furrows and crops.
   for (let i = 0; i < 5; i++) {
     const rx = px + 3 + i * 4.5;
-    rect(ctx, rx, py + 2, 1, TILE - 4, snow ? '#c4c0b2' : '#6f5430');
+    rect(ctx, rx, py + 2, 1, TILE - 4, snow ? '#c4c0b2' : spr ? 'rgba(90,60,30,0.35)' : '#6f5430');
     if (!snow) {
       const hgt = 2 + 7 * pal.cropHeight;
       for (let j = 0; j < 4; j++) {

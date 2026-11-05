@@ -1,7 +1,9 @@
 // The merchant caravan: merchant on foot, two laden mules and a covered wagon.
 import { TILE } from '../constants';
 import { circle, ellipse, poly, rect, line, groundShadow, rgba, type Env } from '../palette';
-import { facing, pose, body, withUnit } from './shared';
+import { facing, pose, body, withUnit, spriteFigures } from './shared';
+import { drawSprite } from '../sprites';
+import { ANIMAL, MERCHANT } from '../spriteMap';
 import type { Caravan } from '../../sim/types';
 
 /** Merchant on foot, two laden mules and a covered wagon. */
@@ -15,6 +17,12 @@ export function drawCaravan(ctx: CanvasRenderingContext2D, c: Caravan, env: Env)
     const mx = px - dir * (14 + i * 11), my = py - 1 + (i ? 1 : -1);
     const trot = moving ? Math.sin(step + i * 2) * 1.2 : 0;
     groundShadow(ctx, mx, my + 1, 7, 2, 0.25);
+    if (spriteFigures()) {
+      // A pack horse from the creatures sheet, its load strapped on top.
+      drawSprite(ctx, ANIMAL.horse, mx, my + 1 + Math.abs(trot) * 0.4, 20, { flip: dir < 0 });
+      rect(ctx, mx - 3.5, my - 14, 7, 4.5, i ? '#b85a4a' : '#5a7ab0'); rect(ctx, mx - 3.5, my - 14, 7, 1, i ? '#d88a7a' : '#8aa0d0'); line(ctx, mx, my - 14, mx, my - 9.5, '#3a2a1a', 0.8);
+      continue;
+    }
     ctx.save(); ctx.translate(mx, my); ctx.scale(dir, 1);
     for (let k = 0; k < 4; k++) rect(ctx, -4 + k * 2.6, -4, 1.2, 4 + (k % 2 ? trot : -trot), '#5a4a3a');
     ellipse(ctx, 0, -6.5, 5.5, 3, '#8a7a6a'); rect(ctx, 4, -10.5, 2.6, 5, '#8a7a6a'); poly(ctx, [4, -10.5, 4.5, -13.5, 5.5, -10.5], '#8a7a6a'); poly(ctx, [6, -10.5, 6.5, -13.5, 7.2, -10.5], '#8a7a6a');
@@ -31,8 +39,7 @@ export function drawCaravan(ctx: CanvasRenderingContext2D, c: Caravan, env: Env)
   // Merchant leads on foot with a staff and a wide hat.
   const p = pose(moving, false, env.clock, 11);
   withUnit(ctx, c.x + dir * 0.05, c.y, dir, p.bob, () => {
-    body(ctx, '#7a4a8a', '#e8b88a', '#2b1d12', p, true);
-    ellipse(ctx, 0, -15.5, 6, 1.8, '#5a3a2a'); ellipse(ctx, 0, -16.5, 3.2, 2.2, '#6a4a3a');
+    if (!body(ctx, '#7a4a8a', '#e8b88a', '#2b1d12', p, true, { ref: MERCHANT, tint: '#7a4a8a', tintA: 0.5 })) { ellipse(ctx, 0, -15.5, 6, 1.8, '#5a3a2a'); ellipse(ctx, 0, -16.5, 3.2, 2.2, '#6a4a3a'); }
     line(ctx, 4.5, 0, 4.5, -14, '#8a6a3a', 1.2);
     ellipse(ctx, -4.5, -6, 2.4, 2, '#b08a52');
   });

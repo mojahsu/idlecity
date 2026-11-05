@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><title>sheet viewer</title>
+<body style="margin:0;background:#223"><canvas id="c"></canvas>
+<script>
+// ?sheet=name&t=16&s=4            whole sheet, every tile numbered
+// &from=84&to=131&cols=8          only a range of tile indices, re-flowed into N columns
+// &x=128&y=0&w=160&h=260          a pixel region (for sheets that are not on a grid)
+const q = new URLSearchParams(location.search); const sheet = q.get('sheet') || 'tiny-town'; const T = +(q.get('t') || 16); const S = +(q.get('s') || 5);
+const img = new Image(); img.src = '/assets/' + sheet + '.png';
+img.onload = () => {
+  const c = document.getElementById('c'); const x = c.getContext('2d');
+  if (q.has('x')) { const rx = +q.get('x'), ry = +q.get('y'), rw = +q.get('w'), rh = +q.get('h'); c.width = rw * S; c.height = rh * S; x.imageSmoothingEnabled = false; x.fillStyle = '#334'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, rx, ry, rw, rh, 0, 0, rw * S, rh * S); x.strokeStyle = 'rgba(255,255,0,0.25)'; for (let gx = 0; gx <= rw; gx += 16) { x.beginPath(); x.moveTo(gx * S, 0); x.lineTo(gx * S, rh * S); x.stroke(); } for (let gy = 0; gy <= rh; gy += 16) { x.beginPath(); x.moveTo(0, gy * S); x.lineTo(rw * S, gy * S); x.stroke(); } x.font = 'bold 11px monospace'; x.fillStyle = '#ff0'; for (let gx = 0; gx < rw; gx += 32) x.fillText(rx + gx, gx * S + 2, 12); for (let gy = 0; gy < rh; gy += 32) x.fillText(ry + gy, 2, gy * S + 24); return; }
+  const sheetCols = Math.floor(img.width / T), sheetRows = Math.floor(img.height / T);
+  const from = +(q.get('from') || 0), to = +(q.get('to') || sheetCols * sheetRows - 1); const cols = +(q.get('cols') || sheetCols);
+  const n = to - from + 1, rows = Math.ceil(n / cols);
+  c.width = cols * T * S; c.height = rows * T * S; x.imageSmoothingEnabled = false; x.fillStyle = '#334'; x.fillRect(0, 0, c.width, c.height);
+  x.font = 'bold 11px monospace'; x.textBaseline = 'top';
+  for (let k = 0; k < n; k++) { const i = from + k; const sx = (i % sheetCols) * T, sy = Math.floor(i / sheetCols) * T; const dx = (k % cols) * T * S, dy = Math.floor(k / cols) * T * S; x.drawImage(img, sx, sy, T, T, dx, dy, T * S, T * S); x.strokeStyle = 'rgba(255,255,255,0.25)'; x.strokeRect(dx + 0.5, dy + 0.5, T * S - 1, T * S - 1); x.fillStyle = 'rgba(0,0,0,0.7)'; x.fillRect(dx, dy, 24, 12); x.fillStyle = '#ff0'; x.fillText(i, dx + 1, dy + 1); }
+};
+</script>

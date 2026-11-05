@@ -1,7 +1,9 @@
 // Workers: job tools, hats, loads, buckets, rest poses, elders.
 import { TILE } from '../constants';
 import { circle, ellipse, poly, rect, line, rgba, hash, shade, type Env } from '../palette';
-import { SKIN, HAIR, facing, Pose, pose, body, withUnit, bubble } from './shared';
+import { SKIN, HAIR, facing, Pose, pose, body, withUnit, bubble, spriteFigures, villagerFig } from './shared';
+import { drawSprite } from '../sprites';
+import { PROP, TOOL } from '../spriteMap';
 import type { Worker } from '../../sim/types';
 import { JOBS } from '../../data/jobs';
 import { isElder } from '../../sim/population';
@@ -10,6 +12,8 @@ import { isElder } from '../../sim/population';
 function tool(ctx: CanvasRenderingContext2D, w: Worker, p: Pose): void {
   // Held at the right hand (3.5,-6), swung forward when working.
   ctx.save(); ctx.translate(3.6, -6); ctx.rotate(p.swing * 0.9 - 0.4);
+  const spr = spriteFigures() ? TOOL[w.job] : undefined;
+  if (spr) { drawSprite(ctx, spr, 1, 3, 13, { rot: 0.35 }); ctx.restore(); return; }
   switch (w.job) {
     case 'lumberjack': line(ctx, 0, 0, 0, -9, '#8a5a2a', 1.4); poly(ctx, [-0.5, -9.5, 3.5, -8.5, 3.5, -5.5, -0.5, -6.5], '#b8bec6'); break;
     case 'quarryman': case 'miner': line(ctx, 0, 0, 0, -9, '#8a5a2a', 1.4); poly(ctx, [-3.5, -8, 0, -10, 3.5, -8, 0, -8.5], '#8a8f96'); break;
@@ -31,6 +35,7 @@ function bucket(ctx: CanvasRenderingContext2D, env: Env, phase: 'fetch' | 'carry
 }
 
 function hat(ctx: CanvasRenderingContext2D, job: string): void {
+  if (spriteFigures()) return; // the sprites wear their own
   switch (job) {
     case 'farmer': ellipse(ctx, 0, -15.5, 5.5, 1.6, '#d8b860'); ellipse(ctx, 0, -16.5, 3, 2, '#e0c468'); break;
     case 'miner': ctx.fillStyle = '#5a6a8a'; ctx.beginPath(); ctx.arc(0, -14, 3.6, Math.PI, 0); ctx.fill(); circle(ctx, 2.2, -15, 1, '#ffd870'); break;
@@ -43,7 +48,8 @@ function hat(ctx: CanvasRenderingContext2D, job: string): void {
 
 function load(ctx: CanvasRenderingContext2D, w: Worker): void {
   if (!w.carrying) return;
-  // Carried on the back/shoulder, behind the head.
+  // Carried on the back/shoulder, behind the head (a little higher on the taller sprites).
+  ctx.save(); if (spriteFigures()) ctx.translate(0, -4);
   switch (w.carrying) {
     case 'wood': for (let i = 0; i < 3; i++) { circle(ctx, -5 + i * 2.2, -16 - (i % 2) * 1.5, 1.6, '#8a5a30'); circle(ctx, -5 + i * 2.2, -16 - (i % 2) * 1.5, 0.8, '#d6a86c'); } break;
     case 'stone': rect(ctx, -5.5, -18.5, 6, 4.5, '#9a9a96'); rect(ctx, -5.5, -18.5, 6, 1.2, '#c0c0bc'); break;
@@ -51,6 +57,7 @@ function load(ctx: CanvasRenderingContext2D, w: Worker): void {
     case 'iron': rect(ctx, -5.5, -18, 6, 3.5, '#5a6a8a'); rect(ctx, -5.5, -18, 6, 1, '#8a9ab8'); break;
     case 'gold': circle(ctx, -3.5, -17, 2.2, '#e0b040'); break;
   }
+  ctx.restore();
 }
 
 function sleepZ(ctx: CanvasRenderingContext2D, w: Worker, env: Env, dir: number): void {
@@ -69,23 +76,25 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
   const elder = isElder(w);
   const skin = SKIN[Math.floor(hash(w.id, 1) * SKIN.length)], hair = elder ? '#d8d8d8' : HAIR[Math.floor(hash(w.id, 2) * HAIR.length)];
   const tunic = JOBS[w.job].color;
+  const fig = villagerFig(w.id, elder);
+  const spr = spriteFigures();
   const px = w.x * TILE + TILE / 2, py = w.y * TILE + TILE / 2;
   if (elder) p.bob += 1.2; // a slight stoop
   const sit = { walk: 0, bob: 0, swing: 0 };
   if (sleeping || rest?.activity === 'nap') {
     // Dozing: sat down, head nodding, the odd "z".
     const nod = Math.sin(env.clock * 1.5 + w.id) * 0.6;
-    withUnit(ctx, w.x, w.y, dir, 3 + nod, () => { body(ctx, tunic, skin, hair, sit, true); hat(ctx, w.job); });
+    withUnit(ctx, w.x, w.y, dir, 3 + nod, () => { body(ctx, tunic, skin, hair, sit, true, fig); hat(ctx, w.job); });
     sleepZ(ctx, w, env, dir);
     return;
   }
   if (rest?.activity === 'lunch') {
-    withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true); hat(ctx, w.job); ellipse(ctx, 3.5, -5.5, 2.4, 1.4, '#8a6a3a'); ellipse(ctx, 3.5, -6, 1.8, 0.8, '#d8b060'); const sp = Math.sin(env.clock * 3 + w.id) > 0.3 ? -2 : 0; line(ctx, 4.5, -6, 5.5, -9 + sp, '#e0d0b0', 0.8); });
+    withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true, fig); hat(ctx, w.job); ellipse(ctx, 3.5, -5.5, 2.4, 1.4, '#8a6a3a'); ellipse(ctx, 3.5, -6, 1.8, 0.8, '#d8b060'); const sp = Math.sin(env.clock * 3 + w.id) > 0.3 ? -2 : 0; line(ctx, 4.5, -6, 5.5, -9 + sp, '#e0d0b0', 0.8); });
     return;
   }
   if (rest?.activity === 'fish') {
     withUnit(ctx, w.x, w.y, dir, 3, () => {
-      body(ctx, tunic, skin, hair, sit, true); hat(ctx, w.job);
+      body(ctx, tunic, skin, hair, sit, true, fig); hat(ctx, w.job);
       const tug = Math.sin(env.clock * 1.2 + w.id) > 0.95 ? 2 : 0;
       line(ctx, 3, -7, 12, -16, '#6b4a2b', 1); line(ctx, 12, -16, 14 + tug, 2, 'rgba(255,255,255,0.6)', 0.5);
     });
@@ -93,7 +102,7 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
   }
   if (rest?.activity === 'sunset') {
     // Sat on the bank, knees up, watching the river and the sky.
-    withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true); hat(ctx, w.job); rect(ctx, 1, -5, 4, 1.4, shade(tunic, -0.2)); });
+    withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true, fig); hat(ctx, w.job); rect(ctx, 1, -5, 4, 1.4, shade(tunic, -0.2)); });
     return;
   }
   if (rest?.activity === 'chess') {
@@ -108,7 +117,7 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
     }
     const myTurn = (Math.floor(env.clock * 0.5) % 2 === 0) === (dir === 1);
     const reach = myTurn ? Math.max(0, Math.sin(((env.clock * 0.5) % 1) * Math.PI)) * 3 : 0;
-    withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true); hat(ctx, w.job); rect(ctx, 2.8 + reach, -7.5 + reach * 0.3, 1.6, 4, tunic); circle(ctx, 3.6 + reach, -3.5 + reach * 0.3, 1.1, skin); });
+    withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true, fig); hat(ctx, w.job); rect(ctx, 2.8 + reach, -7.5 + reach * 0.3, 1.6, 4, tunic); circle(ctx, 3.6 + reach, -3.5 + reach * 0.3, 1.1, skin); });
     return;
   }
   if (rest?.activity === 'picnic') {
@@ -118,7 +127,7 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
       for (let r = 0; r < 3; r++) for (let c = 0; c < 6; c++) rect(ctx, bx - 15 + c * 5, by - 3 + r * 3, 5, 3, (r + c) % 2 ? '#d84a4a' : '#f0e0d0');
       ellipse(ctx, bx, by - 6, 3.4, 2.4, '#b08a52'); rect(ctx, bx - 3.4, by - 8, 6.8, 1.2, '#8a6a3a'); circle(ctx, bx - 1, by - 7.5, 1, '#d83a4a'); circle(ctx, bx + 1.5, by - 7.8, 1, '#f7d94c');
     }
-    withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true); hat(ctx, w.job); if (Math.sin(env.clock * 2 + w.id) > 0.4) { circle(ctx, 4, -8, 1.2, '#f06a4f'); } });
+    withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true, fig); hat(ctx, w.job); if (Math.sin(env.clock * 2 + w.id) > 0.4) { circle(ctx, 4, -8, 1.2, '#f06a4f'); } });
     return;
   }
   if (rest?.activity === 'swim') {
@@ -137,7 +146,7 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
     const k = Math.min(1, 1 - w.timer / 20);
     const bx = px + dir * 10, by = py + 6;
     circle(ctx, bx, by - 3 * k, 3 + 4 * k, '#f4f7f9'); circle(ctx, bx - 1, by - 4 * k, 2 + 3 * k, '#ffffff');
-    withUnit(ctx, w.x, w.y, dir, p.bob, () => { body(ctx, tunic, skin, hair, { walk: 0, bob: 0, swing: 0 }); hat(ctx, w.job); rect(ctx, 2.8, -8, 4.5, 1.5, tunic); circle(ctx, 7.5, -7.5, 1.1, skin); });
+    withUnit(ctx, w.x, w.y, dir, p.bob, () => { body(ctx, tunic, skin, hair, { walk: 0, bob: 0, swing: 0 }, false, fig); hat(ctx, w.job); rect(ctx, 2.8, -8, 4.5, 1.5, tunic); circle(ctx, 7.5, -7.5, 1.1, skin); });
     return;
   }
   // Standing about: chatting, strolling, feeding the hens, watching something.
@@ -150,12 +159,13 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
   const throwing = rest?.activity === 'snowball' ? Math.max(0, Math.sin(env.clock * 2.5 + w.id * 1.7)) : 0;
   withUnit(ctx, w.x + wobble / TILE, w.y, dir, p.bob + (tipsy ? Math.sin(env.clock * 5 + w.id) : 0) + sway, () => {
     load(ctx, w);
-    body(ctx, tunic, skin, hair, p);
+    body(ctx, tunic, skin, hair, p, false, fig);
     hat(ctx, w.job);
-    if (dancing) { rect(ctx, -5.2, -15, 1.6, 6, tunic); rect(ctx, 3.6, -15, 1.6, 6, tunic); circle(ctx, -4.4, -15.5, 1.1, skin); circle(ctx, 4.4, -15.5, 1.1, skin); }
-    if (rest?.activity === 'archery') { ctx.strokeStyle = '#6a4a2a'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(4, -8, 6, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke(); const draw = Math.max(0, Math.sin(env.clock * 1.5 + w.id)) * 3; line(ctx, 4, -14, 4 - draw, -8, '#e0e0e0', 0.5); line(ctx, 4 - draw, -8, 4, -2, '#e0e0e0', 0.5); }
+    if (dancing && !spr) { rect(ctx, -5.2, -15, 1.6, 6, tunic); rect(ctx, 3.6, -15, 1.6, 6, tunic); circle(ctx, -4.4, -15.5, 1.1, skin); circle(ctx, 4.4, -15.5, 1.1, skin); }
+    if (rest?.activity === 'archery' && spr) drawSprite(ctx, PROP.bow, 5.5, -2, 12, { rot: 0.1 });
+    else if (rest?.activity === 'archery') { ctx.strokeStyle = '#6a4a2a'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(4, -8, 6, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke(); const draw = Math.max(0, Math.sin(env.clock * 1.5 + w.id)) * 3; line(ctx, 4, -14, 4 - draw, -8, '#e0e0e0', 0.5); line(ctx, 4 - draw, -8, 4, -2, '#e0e0e0', 0.5); }
     if (throwing > 0) { ctx.save(); ctx.translate(3.6, -9); ctx.rotate(-1.2 * throwing); rect(ctx, -0.8, -4, 1.6, 4, tunic); circle(ctx, 0, -4.5, 1.1, skin); circle(ctx, 0, -6.5, 1.6, '#f4f7f9'); ctx.restore(); }
-    if (tipsy) { circle(ctx, 1.2, -12, 1.1, 'rgba(240,80,80,0.55)'); circle(ctx, -1.6, -12, 1.1, 'rgba(240,80,80,0.55)'); }
+    if (tipsy && !spr) { circle(ctx, 1.2, -12, 1.1, 'rgba(240,80,80,0.55)'); circle(ctx, -1.6, -12, 1.1, 'rgba(240,80,80,0.55)'); }
     if (elder && !dousing && !rest) line(ctx, -4.5, 0, -4, -8, '#6b4a2b', 1.2);
     if (dousing) bucket(ctx, env, (w.task as { phase: 'fetch' | 'carry' | 'throw' }).phase, w.id);
     else if (rest?.activity === 'feed') { ellipse(ctx, -4.5, -6, 2.6, 1.8, '#b08a52'); }

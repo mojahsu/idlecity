@@ -6,6 +6,8 @@ import type { TreeArt, TreeKind } from './shared';
 import { drawPine } from './pine';
 import { drawBirch } from './birch';
 import { drawOak } from './oak';
+import { drawSprite, townSprites } from '../../sprites';
+import { TREES } from '../../spriteMap';
 
 const ART: Record<TreeKind, (a: TreeArt) => void> = { pine: drawPine, birch: drawBirch, oak: drawOak };
 
@@ -26,6 +28,7 @@ export function drawTree(ctx: CanvasRenderingContext2D, x: number, y: number, t:
   const base = pal.canopy[ci % pal.canopy.length];
   const kind = treeFoot(x, y, t).kind;
   groundShadow(ctx, cx + 1, cy + 8 * size, r * 0.9, r * 0.35, 0.22);
+  if (townSprites()) { drawSpriteTree(ctx, kind, t, env, cx, cy + 9 * size + 1, size, sway); return; }
   ART[kind]({ ctx, x, y, t, env, pal, size, r, sway, cx, cy, base, kind });
 }
 
@@ -37,4 +40,18 @@ export function drawTreeShadows(ctx: CanvasRenderingContext2D, s: GameState, env
     const f = treeFoot(x, y, t);
     castShadow(ctx, env, f.cx, f.cy, f.r * 1.6, f.h, true);
   }
+}
+
+/** Tiny Town trees: two-tile oaks and pines, a small round tree for the birch; orange in autumn, dusted white in winter. */
+function drawSpriteTree(ctx: CanvasRenderingContext2D, kind: TreeKind, t: Tile, env: Env, cx: number, foot: number, size: number, sway: number): void {
+  const orange = env.season === 'autumn';
+  const o = env.season === 'winter' ? { tint: '#e8eef5', tintA: 0.5 } : {};
+  const ts = TILE * (0.62 + 0.38 * size);
+  ctx.save(); ctx.translate(cx, foot); ctx.rotate(sway * 0.012);
+  if (kind === 'birch') { drawSprite(ctx, orange ? TREES.round.orange : TREES.round.green, 0, 0, ts * 1.1, o); ctx.restore(); return; }
+  const set = kind === 'oak' ? TREES.oak : t.v < 0.14 ? TREES.pine : TREES.pine2;
+  const [top, bottom] = orange ? set.orange : set.green;
+  drawSprite(ctx, bottom, 0, 0, ts, o);
+  drawSprite(ctx, top, 0, -ts + 0.5, ts, o);
+  ctx.restore();
 }

@@ -3,6 +3,8 @@ import type { GameState } from '../../sim/types';
 import { TILE } from '../constants';
 import { circle, ellipse, poly, rect, groundShadow, type Env } from '../palette';
 import type { Actor } from './shared';
+import { drawSprite, townSprites } from '../sprites';
+import { ANIMAL } from '../spriteMap';
 
 interface Chicken { x: number; y: number; tx: number; ty: number; home: number; timer: number; peck: number }
 
@@ -44,6 +46,7 @@ function drawChicken(ctx: CanvasRenderingContext2D, c: Chicken, env: Env): void 
   const dir = c.tx >= c.x ? 1 : -1;
   groundShadow(ctx, px, py + 1, 3, 1.3, 0.2);
   ctx.save(); ctx.translate(px, py + bob); ctx.scale(dir, 1);
+  if (townSprites()) { drawSprite(ctx, ANIMAL.chicken, 0, 1, 11, { rot: peck * 0.3 }); ctx.restore(); return; }
   ellipse(ctx, 0, -3, 3.2, 2.4, '#f4f0e6'); poly(ctx, [-3, -4, -5, -6.5, -2.5, -5], '#e8e4d8');
   circle(ctx, 2.6, -5.5 + peck, 1.7, '#f4f0e6'); poly(ctx, [3.8, -5.5 + peck, 5.5, -5 + peck, 3.8, -4.5 + peck], '#f0a030'); rect(ctx, 2.6, -7.5 + peck, 1.2, 1.4, '#e04040');
   rect(ctx, 3, -6 + peck, 0.6, 0.6, '#222');
