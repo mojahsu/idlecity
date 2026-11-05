@@ -3,7 +3,8 @@
 // buildings, people, creatures) → particles → weather → lighting → birds →
 // dungeon view → vignette. All drawing uses logical TILE coordinates; the
 // canvas transform scales to the displayed size so big screens stay sharp.
-import type { GameState } from '../sim/types';
+import type { GameState, LogEntry } from '../sim/types';
+import { t } from '../i18n';
 import { TILE } from './constants';
 import { makeEnv, type Env } from './palette';
 import { TerrainLayer, drawTree, drawWater } from './terrain';
@@ -28,6 +29,8 @@ export class Renderer {
   private dungeonView = new DungeonView();
   private clock = 0;
   private scale = 1;
+  private lastLog: LogEntry | null = null;
+  private caption: { text: string; ttl: number } | null = null;
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d')!;
@@ -73,11 +76,11 @@ export class Renderer {
     for (const d of s.dungeons) items.push({ y: d.y + 0.95, draw: (c, e) => drawDungeonEntrance(c, s, d, e) });
     for (const w of s.workers) if (!isIndoors(s, w)) items.push({ y: w.y + 0.8, draw: (c, e) => drawWorker(c, w, e) });
     if (s.caravan) { const cv = s.caravan; items.push({ y: cv.y + 0.9, draw: (c, e) => drawCaravan(c, cv, e) }); }
-    for (const a of s.adventurers) if (a.status === 'resting' || a.status === 'arriving') items.push({ y: a.y + 0.8, draw: (c, e) => drawAdventurer(c, a, e) });
+    for (const a of s.adventurers) if (a.status === 'resting' || a.status === 'arriving') items.push({ y: a.y + 0.8, draw: (c, e) => drawAdventurer(c, a, e, s.equipment) });
     for (const p of s.parties) if (p.phase === 'travel' || p.phase === 'return') items.push({ y: p.y + 0.9, draw: (c, e) => drawParty(c, s, p, e) });
     if (s.raid) { const r = s.raid; items.push({ y: r.y + 0.9, draw: (c, e) => drawRaid(c, r, e) }); }
     for (const g of this.effects.groundActors()) items.push(g);
-    for (const g of this.townLife.groundActors(s)) items.push(g);
+    for (const g of this.townLife.groundActors(s, env)) items.push(g);
     items.sort((a, b) => a.y - b.y);
     for (const it of items) it.draw(ctx, env);
 
@@ -90,10 +93,27 @@ export class Renderer {
     const lights: LightSource[] = env.dark > 0 ? [...lightSources(s, env), ...this.unitLights(s, env), ...this.townLife.lights(s, env)] : [];
     this.lighting.draw(ctx, s, env, W, H, lights, env.dark > 0 ? this.effects.nightLights() : []);
     this.effects.drawSky(ctx, env, W, H);
-    this.townLife.drawOverlay(ctx);
+    this.townLife.drawOverlay(ctx, env, s);
     this.effects.drawBirds(ctx, env);
+    this.drawCaption(ctx, s, dt, W, H);
     this.dungeonView.draw(ctx, s, env, W, H);
     drawVignette(ctx, W, H);
+  }
+
+  /** The newest event as a caption in the bottom right corner, so you never miss what just happened. */
+  private drawCaption(ctx: CanvasRenderingContext2D, s: GameState, dt: number, W: number, H: number): void {
+    const last = s.log[s.log.length - 1] ?? null;
+    if (last !== this.lastLog) { if (this.lastLog !== null) this.caption = { text: t(last!.key, last!.params), ttl: 7 }; this.lastLog = last; }
+    const c = this.caption;
+    if (!c) return;
+    c.ttl -= dt;
+    if (c.ttl <= 0) { this.caption = null; return; }
+    ctx.font = 'bold 11px system-ui, sans-serif'; ctx.textAlign = 'right';
+    const w = ctx.measureText(c.text).width + 16;
+    ctx.globalAlpha = Math.min(1, c.ttl / 1.2, (7 - c.ttl) * 3);
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.roundRect(W - 10 - w, H - 28, w, 20, 4); ctx.fill();
+    ctx.fillStyle = '#f0e6d0'; ctx.fillText(c.text, W - 18, H - 14);
+    ctx.globalAlpha = 1;
   }
 
   /** Torches and magic carried by people, visible at night. */

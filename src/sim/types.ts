@@ -177,7 +177,9 @@ export type Fx =
   /** A bucket of water thrown at a burning building. */
   | { kind: 'water'; x: number; y: number }
   /** A class skill fired inside a dungeon; the renderer animates it. */
-  | { kind: 'skill'; partyId: number; actorId: number; skill: string; targetId?: number; amount?: number };
+  | { kind: 'skill'; partyId: number; actorId: number; skill: string; targetId?: number; amount?: number }
+  /** A hidden chest found underground. */
+  | { kind: 'treasure'; partyId: number; gold: number };
 
 export interface GameState {
   version: number;

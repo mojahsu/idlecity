@@ -32,6 +32,9 @@
   "ui.floor": "第 {floor} / {floors} 層",
   "ui.exploring": "探索中",
   "ui.slain": "擊倒！",
+  "ui.festival": "豐收祭",
+  "ui.wedding": "婚禮！",
+  "ui.levelUpShort": "Lv {level}！",
 
   "res.wood": "木材",
   "res.stone": "石頭",

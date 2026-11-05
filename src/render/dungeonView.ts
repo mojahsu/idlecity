@@ -17,6 +17,7 @@ export const PANEL_SCALE = 1.6;
 interface Num { x: number; y: number; text: string; color: string; ttl: number }
 interface Spark { x: number; y: number; vx: number; vy: number; ttl: number; color: string }
 interface Shot { kind: 'arrow' | 'fire'; x: number; y: number; tx: number; ty: number; t: number; life: number }
+interface Banner { text: string; color: string; ttl: number; life: number; big: boolean }
 
 interface ViewState {
   lastHp: Map<number, number>;
@@ -52,6 +53,11 @@ interface ViewState {
   reviveIdx: number;
   casting: number;
   castIdx: number;
+  banner: Banner | null;
+  /** Red pulse and name card when a boss steps out. */
+  bossIntro: number;
+  /** A chest popping open. */
+  chest: number;
 }
 
 export class DungeonView {
@@ -63,7 +69,7 @@ export class DungeonView {
       if (p.phase !== 'explore' && p.phase !== 'fight') continue;
       seen.add(p.id);
       let v = this.views.get(p.id);
-      if (!v) { v = { lastHp: new Map(), lastEncHp: 0, hadEncounter: false, monster: '', boss: false, floor: p.floor, attacker: 0, heroLunge: 0, heroIdx: 0, monsterLunge: 0, monsterHurt: 0, heroHurt: new Map(), heal: new Map(), death: 0, deathMonster: '', deathBoss: false, floorFlash: 0.8, shake: 0, nums: [], sparks: [], scroll: 0, shots: [], taunt: 0, tauntIdx: 0, frozen: 0, beam: 0, beamIdx: 0, block: 0, blockIdx: 0, revive: 0, reviveIdx: 0, casting: 0, castIdx: 0 }; this.views.set(p.id, v); }
+      if (!v) { v = { lastHp: new Map(), lastEncHp: 0, hadEncounter: false, monster: '', boss: false, floor: p.floor, attacker: 0, heroLunge: 0, heroIdx: 0, monsterLunge: 0, monsterHurt: 0, heroHurt: new Map(), heal: new Map(), death: 0, deathMonster: '', deathBoss: false, floorFlash: 0.8, shake: 0, nums: [], sparks: [], scroll: 0, shots: [], taunt: 0, tauntIdx: 0, frozen: 0, beam: 0, beamIdx: 0, block: 0, blockIdx: 0, revive: 0, reviveIdx: 0, casting: 0, castIdx: 0, banner: null, bossIntro: 0, chest: 0 }; this.views.set(p.id, v); }
       this.step(s, p, v, env, dt);
     }
     for (const k of [...this.views.keys()]) if (!seen.has(k)) this.views.delete(k);
@@ -90,10 +96,14 @@ export class DungeonView {
       }
     }
     // Floor change.
-    if (p.floor !== v.floor) { v.floor = p.floor; v.floorFlash = 0.8; }
+    if (p.floor !== v.floor) { v.floor = p.floor; v.floorFlash = 0.8; const def = DUNGEONS.find((d) => d.id === p.dungeon)!; v.banner = { text: t('ui.floor', { floor: p.floor, floors: def.floors }), color: p.floor === def.floors ? '#ffb0f0' : '#f0e0c0', ttl: 1.3, life: 1.3, big: false }; }
+    for (const f of s.fx) if (f.kind === 'treasure' && f.partyId === p.id) { v.chest = 1.4; this.burst(v, mx - 30, floorY - 6, '#ffd040', 22); v.nums.push({ x: mx - 30, y: floorY - 20, text: `+${f.gold}g`, color: '#ffd040', ttl: 1.3 }); }
     if (p.phase === 'explore') v.scroll += dt * 24;
     // Monster appears / is slain.
-    if (e && !v.hadEncounter) { v.monster = e.monster; v.boss = e.boss; v.lastEncHp = e.hp; v.shake = e.boss ? 0.5 : 0; }
+    if (e && !v.hadEncounter) {
+      v.monster = e.monster; v.boss = e.boss; v.lastEncHp = e.hp; v.shake = e.boss ? 0.5 : 0;
+      if (e.boss) { v.bossIntro = 1.8; v.banner = { text: t(`monster.${e.monster}`), color: e.monster === 'demonLord' ? '#ff60c0' : '#ff8080', ttl: 1.8, life: 1.8, big: true }; }
+    }
     if (!e && v.hadEncounter) { v.death = 0.9; v.deathMonster = v.monster; v.deathBoss = v.boss; this.burst(v, PANEL_W * 0.74, PANEL_H - 30, v.boss ? '#ffd040' : '#c0c0c0', v.boss ? 40 : 16); }
     v.hadEncounter = !!e;
     // Monster took damage → a hero strikes.
@@ -117,6 +127,8 @@ export class DungeonView {
     });
     v.heroLunge = Math.max(0, v.heroLunge - dt); v.monsterLunge = Math.max(0, v.monsterLunge - dt); v.monsterHurt = Math.max(0, v.monsterHurt - dt);
     v.death = Math.max(0, v.death - dt); v.floorFlash = Math.max(0, v.floorFlash - dt); v.shake = Math.max(0, v.shake - dt);
+    v.bossIntro = Math.max(0, v.bossIntro - dt); v.chest = Math.max(0, v.chest - dt);
+    if (v.banner && (v.banner.ttl -= dt) <= 0) v.banner = null;
     v.taunt = Math.max(0, v.taunt - dt); v.frozen = Math.max(0, v.frozen - dt); v.beam = Math.max(0, v.beam - dt); v.block = Math.max(0, v.block - dt); v.revive = Math.max(0, v.revive - dt); v.casting = Math.max(0, v.casting - dt);
     for (const sh of v.shots) {
       sh.t += dt;
@@ -164,7 +176,7 @@ export class DungeonView {
       const hurt = v.heroHurt.get(a.id) ?? 0, heal = v.heal.get(a.id) ?? 0;
       ellipse(ctx, hx, floorY + 1, 6, 2.5, 'rgba(0,0,0,0.4)');
       if (heal > 0) circle(ctx, hx, floorY - 10, 9 * (1 - heal), rgba('#90f090', heal * 0.5));
-      drawClassFigure(ctx, a.cls, a.level, env, p.phase === 'explore', hx + lunge, floorY, 1, 1.35, hurt > 0);
+      drawClassFigure(ctx, a.cls, a.level, env, p.phase === 'explore', hx + lunge, floorY, 1, 1.35, hurt > 0, s.equipment);
       if (lunge > 8) { ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(hx + lunge + 10, floorY - 14, 8, -1.2, 0.6); ctx.stroke(); }
       if (v.taunt > 0 && v.tauntIdx === i) { ctx.font = 'bold 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#ff6060'; ctx.fillText('!', hx, floorY - 34 - Math.sin(v.taunt * 12) * 2); }
       if (v.beam > 0 && v.beamIdx === i) { const g = ctx.createLinearGradient(0, 0, 0, floorY); g.addColorStop(0, `rgba(255,240,160,${0.7 * v.beam})`); g.addColorStop(1, `rgba(255,240,160,${0.15 * v.beam})`); ctx.fillStyle = g; ctx.fillRect(hx - 7, 0, 14, floorY); for (let k = 0; k < 4; k++) circle(ctx, hx - 8 + k * 5.5, floorY - 8 - ((env.clock * 40 + k * 9) % 30), 1.2, rgba('#fff8c0', v.beam)); }
@@ -179,6 +191,7 @@ export class DungeonView {
     });
     // Monster.
     const mx = PANEL_W * 0.74;
+    if (v.chest > 0) this.drawChest(ctx, mx - 30, floorY, v.chest, env);
     if (e) {
       const sc = e.boss ? (e.monster === 'demonLord' ? 1.8 : 1.5) : 1.15;
       const lunge = v.monsterLunge > 0 ? Math.sin((v.monsterLunge / 0.35) * Math.PI) : 0;
@@ -227,9 +240,41 @@ export class DungeonView {
     ctx.fillText(t(`dungeon.${p.dungeon}`), 8, 14);
     ctx.font = '9px system-ui, sans-serif'; ctx.fillStyle = p.floor === def.floors ? '#ffb0f0' : '#d0c8b8';
     ctx.fillText(t('ui.floor', { floor: p.floor, floors: def.floors }), 8, 25);
+    // Floor progress dots, bottom right.
+    for (let i = 0; i < def.floors; i++) {
+      const dx = PANEL_W - 8 - (def.floors - 1 - i) * 6, dy = PANEL_H - 6;
+      circle(ctx, dx, dy, i + 1 === p.floor ? 2.2 : 1.4, i + 1 < p.floor ? '#d0c8b8' : i + 1 === p.floor ? '#ffe080' : 'rgba(255,255,255,0.25)');
+    }
     if (v.floorFlash > 0) { ctx.fillStyle = `rgba(255,255,255,${v.floorFlash * 0.25})`; ctx.fillRect(0, 0, PANEL_W, PANEL_H); }
     if (v.revive > 0.8) { ctx.fillStyle = `rgba(255,255,255,${(v.revive - 0.8) * 1.5})`; ctx.fillRect(0, 0, PANEL_W, PANEL_H); }
+    if (v.bossIntro > 0) {
+      // Red pulse around the edges while the boss steps out.
+      const a = Math.min(1, v.bossIntro) * (0.5 + 0.5 * Math.sin(env.clock * 10));
+      const g = ctx.createRadialGradient(PANEL_W / 2, PANEL_H / 2, PANEL_H * 0.4, PANEL_W / 2, PANEL_H / 2, PANEL_W * 0.6);
+      g.addColorStop(0, 'rgba(255,0,40,0)'); g.addColorStop(1, `rgba(255,0,40,${0.45 * a})`);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, PANEL_W, PANEL_H);
+    }
+    if (v.banner) {
+      const b = v.banner, k = 1 - b.ttl / b.life;
+      const a = k < 0.15 ? k / 0.15 : k > 0.75 ? (1 - k) / 0.25 : 1;
+      const slide = (k < 0.15 ? (1 - k / 0.15) * -30 : 0) + (k > 0.75 ? (k - 0.75) / 0.25 * 30 : 0);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, PANEL_H / 2 - (b.big ? 13 : 9), PANEL_W, b.big ? 26 : 18);
+      ctx.font = `bold ${b.big ? 15 : 11}px system-ui, sans-serif`; ctx.textAlign = 'center';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.strokeText(b.text, PANEL_W / 2 + slide, PANEL_H / 2 + (b.big ? 5 : 4));
+      ctx.fillStyle = b.color; ctx.fillText(b.text, PANEL_W / 2 + slide, PANEL_H / 2 + (b.big ? 5 : 4));
+      ctx.globalAlpha = 1;
+    }
     ctx.restore();
+  }
+
+  /** A chest flipping open with a glow, next to the party. */
+  private drawChest(ctx: CanvasRenderingContext2D, x: number, y: number, k: number, env: Env): void {
+    const open = Math.min(1, (1.4 - k) * 3);
+    circle(ctx, x, y - 4, 14, rgba('#ffe080', 0.25 * open * (0.7 + 0.3 * Math.sin(env.clock * 8))));
+    rect(ctx, x - 7, y - 6, 14, 7, '#8a5a2a'); rect(ctx, x - 7, y - 6, 14, 1.2, '#b08a52'); rect(ctx, x - 1, y - 5, 2, 3, '#e0c060');
+    ctx.save(); ctx.translate(x - 7, y - 6); ctx.rotate(-open * 1.9); rect(ctx, 0, -4, 14, 4, '#a06a3a'); rect(ctx, 0, -4, 14, 1, '#c89060'); ctx.restore();
+    if (open > 0.5) for (let i = 0; i < 3; i++) circle(ctx, x - 3 + i * 3, y - 5 - (i % 2), 1.3, '#ffd040');
   }
 
   private drawBackdrop(ctx: CanvasRenderingContext2D, id: string, v: ViewState, env: Env, floorY: number): void {

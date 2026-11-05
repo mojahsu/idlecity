@@ -32,6 +32,9 @@
   "ui.floor": "Floor {floor} / {floors}",
   "ui.exploring": "Exploring",
   "ui.slain": "Slain!",
+  "ui.festival": "Harvest Festival",
+  "ui.wedding": "A wedding!",
+  "ui.levelUpShort": "Lv {level}!",
 
   "res.wood": "Wood",
   "res.stone": "Stone",

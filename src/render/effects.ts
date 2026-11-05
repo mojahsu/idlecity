@@ -230,12 +230,12 @@ export class Effects {
   }
 
   private updateFireworks(s: GameState, env: Env, dt: number): void {
-    if (!s.victory) return;
-    if (this.victorySeen < 0) this.victorySeen = env.clock;
-    const since = env.clock - this.victorySeen;
+    if (!s.victory && !env.festival) return;
+    if (s.victory && this.victorySeen < 0) this.victorySeen = env.clock;
+    const since = s.victory ? env.clock - this.victorySeen : Infinity;
     this.fireworkTimer -= dt;
     if (this.fireworkTimer > 0) return;
-    this.fireworkTimer = since < 90 ? 0.9 + Math.random() * 0.8 : 18 + Math.random() * 20;
+    this.fireworkTimer = since < 90 ? 0.9 + Math.random() * 0.8 : env.festival && env.dark > 0.5 ? 3 + Math.random() * 4 : 18 + Math.random() * 20;
     const keep = s.buildings.find((b) => b.built && b.type === 'keep');
     const ox = (keep ? keep.x : s.center.x) * TILE + TILE / 2 + (Math.random() - 0.5) * 120, oy = (keep ? keep.y : s.center.y) * TILE;
     const colors = ['#ff6060', '#ffd040', '#60c0ff', '#c080ff', '#80ff90', '#ffffff'];
@@ -372,6 +372,7 @@ export class Effects {
   /** Things in the sky that must stay bright at night: the storm flash, shooting stars, the aurora. */
   drawSky(ctx: CanvasRenderingContext2D, env: Env, W: number, H: number): void {
     if (this.flash > 0) { ctx.fillStyle = `rgba(235,240,255,${0.55 * this.flash * this.flash})`; ctx.fillRect(0, 0, W, H); }
+    if (env.dark > 0.3 && !env.rainy && !env.snowy) this.drawMoon(ctx, env, W);
     if (env.clearNight && env.season === 'winter' && env.day % 2 === 0) this.drawAurora(ctx, env, W, H);
     for (const p of this.particles) {
       if (p.kind !== 'meteor') continue;
@@ -384,6 +385,21 @@ export class Effects {
       circle(ctx, p.x, p.y, 1.4, '#ffffff');
     }
     ctx.globalAlpha = 1;
+  }
+
+  /** The moon in the top right corner, waxing and waning over eight days. */
+  private drawMoon(ctx: CanvasRenderingContext2D, env: Env, W: number): void {
+    const a = Math.min(1, (env.dark - 0.3) / 0.4);
+    const x = W - 48, y = 34, r = 9;
+    const phase = (env.day % 8) / 8; // 0 new → 0.5 full → 1 new
+    ctx.save(); ctx.globalAlpha = a;
+    circle(ctx, x, y, r * 2.4, rgba('#d0d8ff', 0.08)); circle(ctx, x, y, r * 1.5, rgba('#d0d8ff', 0.08));
+    circle(ctx, x, y, r, '#f2f0e0');
+    circle(ctx, x - 3, y - 2, 1.6, rgba('#c8c4b0', 0.5)); circle(ctx, x + 2.5, y + 3, 1.1, rgba('#c8c4b0', 0.5)); circle(ctx, x + 1, y - 4, 0.8, rgba('#c8c4b0', 0.5));
+    // Shadow disc slides across to make the phase.
+    const lit = 1 - Math.abs(phase - 0.5) * 2; // 0 new → 1 full
+    if (lit < 0.98) circle(ctx, x + (phase < 0.5 ? -1 : 1) * lit * r * 2.3, y, r + 0.5, 'rgba(14,20,55,0.92)');
+    ctx.restore();
   }
 
   private drawAurora(ctx: CanvasRenderingContext2D, env: Env, W: number, H: number): void {

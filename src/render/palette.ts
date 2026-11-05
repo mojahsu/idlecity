@@ -31,6 +31,8 @@ export interface Env {
   bell: number;
   /** Ids of houses with someone asleep inside. */
   indoors: Set<number>;
+  /** Harvest festival evening (mid autumn). */
+  festival: boolean;
 }
 
 export function makeEnv(s: GameState, clock: number): Env {
@@ -49,7 +51,8 @@ export function makeEnv(s: GameState, clock: number): Env {
   const bell = f > 0.24 && f < 0.275 ? 1 : f > 0.765 && f < 0.8 ? 1 : 0;
   const indoors = new Set<number>();
   for (const w of s.workers) if (w.task?.kind === 'sleep' && w.task.phase === 'sleep') indoors.add(w.task.buildingId);
-  return { season: sea, dark, dayFrac: f, clock, day, rainy, storm, snowy, foggy, rainbow, clearNight, night: isNight(s), bell, indoors };
+  const festival = sea === 'autumn' && (day - 1) % 10 === 5 && f > 0.78;
+  return { season: sea, dark, dayFrac: f, clock, day, rainy, storm, snowy, foggy, rainbow, clearNight, night: isNight(s), bell, indoors, festival };
 }
 
 /** Deterministic 0..1 noise from integer coordinates and a salt. */

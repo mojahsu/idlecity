@@ -140,15 +140,42 @@ const TUNICS = ['#b85a4a', '#6a8ab8', '#8a9a5a', '#b8a060', '#9a6a9a', '#7a8a8a'
  * A generic villager at absolute tile coordinates. `seed` picks the colours;
  * `child` draws a half-height figure. Used by the ambient town life layer.
  */
-export function drawTownsfolk(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number, moving: boolean, env: Env, seed: number, child = false, basket = false): void {
+export interface TownsfolkOpts {
+  child?: boolean;
+  basket?: boolean;
+  /** Override the tunic colour (mourners, the bride). */
+  tunic?: string;
+  /** Veil and bouquet. */
+  bride?: boolean;
+  /** Arms in the air, bouncing. */
+  cheer?: boolean;
+}
+
+export function drawTownsfolk(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number, moving: boolean, env: Env, seed: number, opts: TownsfolkOpts = {}): void {
   const p = pose(moving, false, env.clock, seed);
+  if (opts.cheer) p.bob = Math.abs(Math.sin(env.clock * 7 + seed)) * -3;
   const skin = SKIN[Math.floor(hash(seed, 1) * SKIN.length)], hair = HAIR[Math.floor(hash(seed, 2) * HAIR.length)];
-  const tunic = TUNICS[Math.floor(hash(seed, 4) * TUNICS.length)];
+  const tunic = opts.tunic ?? TUNICS[Math.floor(hash(seed, 4) * TUNICS.length)];
+  const child = !!opts.child;
   withUnit(ctx, x, y, dir, p.bob, () => {
-    body(ctx, tunic, skin, hair, p, hash(seed, 5) > 0.5 && !child);
-    if (!child && hash(seed, 6) > 0.6) { ctx.fillStyle = shade(tunic, -0.3); ctx.beginPath(); ctx.arc(0, -13.4, 3.9, Math.PI * 0.95, Math.PI * 2.05); ctx.fill(); }
-    if (basket) { ellipse(ctx, 4.5, -5, 2.6, 1.8, '#b08a52'); circle(ctx, 3.8, -6, 0.9, '#d83a4a'); circle(ctx, 5.4, -6.2, 0.9, '#8fcf7a'); }
+    body(ctx, tunic, skin, hair, p, (hash(seed, 5) > 0.5 && !child) || !!opts.bride);
+    if (opts.cheer) { rect(ctx, -5.2, -15, 1.6, 6, tunic); rect(ctx, 3.6, -15, 1.6, 6, tunic); circle(ctx, -4.4, -15.5, 1.1, skin); circle(ctx, 4.4, -15.5, 1.1, skin); }
+    if (opts.bride) { poly(ctx, [-4, -14, 0, -17.5, 4, -14, 4.5, -4, -4.5, -4], 'rgba(255,255,255,0.55)'); circle(ctx, 4.5, -6, 1.6, '#f29ac6'); circle(ctx, 5.5, -7, 1.2, '#ffffff'); }
+    else if (!child && !opts.tunic && hash(seed, 6) > 0.6) { ctx.fillStyle = shade(tunic, -0.3); ctx.beginPath(); ctx.arc(0, -13.4, 3.9, Math.PI * 0.95, Math.PI * 2.05); ctx.fill(); }
+    if (opts.basket) { ellipse(ctx, 4.5, -5, 2.6, 1.8, '#b08a52'); circle(ctx, 3.8, -6, 0.9, '#d83a4a'); circle(ctx, 5.4, -6.2, 0.9, '#8fcf7a'); }
   }, child ? WORKER_SCALE * 0.68 : WORKER_SCALE);
+}
+
+/** Stone hero on a plinth, raised on the square once the Demon Lord is dead. */
+export function drawStatue(ctx: CanvasRenderingContext2D, x: number, y: number, env: Env): void {
+  const px = x * TILE + TILE / 2, py = y * TILE + TILE / 2 + 5;
+  groundShadow(ctx, px, py + 2, 9, 3, 0.3);
+  rect(ctx, px - 8, py - 4, 16, 6, '#8a8a86'); rect(ctx, px - 8, py - 4, 16, 1.5, '#b0b0ac'); rect(ctx, px - 6, py - 9, 12, 5, '#9a9a96'); rect(ctx, px - 6, py - 9, 12, 1.2, '#c0c0bc');
+  rect(ctx, px - 3, py - 2, 6, 2, '#e0c060');
+  ctx.save(); ctx.translate(px, py - 9); ctx.scale(0.75, 0.75);
+  ctx.filter = 'grayscale(1) brightness(1.15) contrast(0.9)';
+  classArt(ctx, 'warrior', { walk: 0, bob: 0, swing: 0 }, false, env, 1);
+  ctx.restore();
 }
 
 /** A town guard pacing a wall: grey tunic, kettle helmet, spear, torch after dark. */
@@ -210,7 +237,7 @@ export function drawCaravan(ctx: CanvasRenderingContext2D, c: Caravan, env: Env)
 
 // ---- adventurers -------------------------------------------------------------
 
-function classArt(ctx: CanvasRenderingContext2D, cls: AdventurerClass, p: Pose, moving: boolean, env: Env, level: number): void {
+function classArt(ctx: CanvasRenderingContext2D, cls: AdventurerClass, p: Pose, moving: boolean, env: Env, level: number, gear = 0): void {
   const flutter = moving ? Math.sin(env.clock * 9) * 1.5 : Math.sin(env.clock * 2) * 0.4;
   switch (cls) {
     case 'warrior': {
@@ -249,22 +276,25 @@ function classArt(ctx: CanvasRenderingContext2D, cls: AdventurerClass, p: Pose, 
       break;
     }
   }
+  // Forged gear shows: a gold trim line on the tunic from quality 4, a bright pauldron from 8.
+  if (gear >= 4) rect(ctx, -3.2, -4.6, 6.4, 0.9, '#e0c060');
+  if (gear >= 8) { circle(ctx, -3.4, -9.6, 1.6, '#d8dde3'); circle(ctx, 3.4, -9.6, 1.6, '#d8dde3'); }
   if (level >= 10) circle(ctx, -4.5, -17.5, 1.3, '#f0d050');
 }
 
 /** Draw a class figure at absolute logical pixels (used by the dungeon view). */
-export function drawClassFigure(ctx: CanvasRenderingContext2D, cls: AdventurerClass, level: number, env: Env, moving: boolean, px: number, py: number, dir: number, scale: number, hurt = false): void {
+export function drawClassFigure(ctx: CanvasRenderingContext2D, cls: AdventurerClass, level: number, env: Env, moving: boolean, px: number, py: number, dir: number, scale: number, hurt = false, gear = 0): void {
   const p = pose(moving, false, env.clock, level * 7);
   ctx.save(); ctx.translate(px, py + p.bob * scale); ctx.scale(dir * scale, scale);
   if (hurt) { ctx.filter = 'brightness(1.8) saturate(0.3)'; ctx.translate(Math.sin(env.clock * 60) * 1.5, 0); }
-  classArt(ctx, cls, p, moving, env, level);
+  classArt(ctx, cls, p, moving, env, level, gear);
   ctx.restore();
 }
 
-export function drawAdventurer(ctx: CanvasRenderingContext2D, a: Adventurer, env: Env, x = a.x, y = a.y, moving = a.path.length > 0): void {
+export function drawAdventurer(ctx: CanvasRenderingContext2D, a: Adventurer, env: Env, gear = 0, x = a.x, y = a.y, moving = a.path.length > 0): void {
   const p = pose(moving, false, env.clock, a.id);
   const dir = facing(a.x, a.path, a.id);
-  withUnit(ctx, x, y, dir, p.bob, () => classArt(ctx, a.cls, p, moving, env, a.level), HERO_SCALE);
+  withUnit(ctx, x, y, dir, p.bob, () => classArt(ctx, a.cls, p, moving, env, a.level, gear), HERO_SCALE);
   if (a.status === 'resting' && a.hp < a.maxHp * 0.6) {
     const px = x * TILE + TILE / 2, py = y * TILE + TILE / 2 - 12;
     rect(ctx, px - 5, py, 10, 1.5, '#3a1a1a'); rect(ctx, px - 5, py, 10 * (a.hp / a.maxHp), 1.5, '#7ad07a');
@@ -279,7 +309,7 @@ export function drawParty(ctx: CanvasRenderingContext2D, s: GameState, p: Party,
   team.forEach((a, i) => {
     const ox = ((i % 2) * 0.42 - 0.21) * dir - i * 0.08 * dir, oy = Math.floor(i / 2) * 0.32 - 0.16;
     const pz = pose(true, false, env.clock, a.id);
-    withUnit(ctx, p.x + ox, p.y + oy, dir, pz.bob, () => classArt(ctx, a.cls, pz, true, env, a.level), HERO_SCALE);
+    withUnit(ctx, p.x + ox, p.y + oy, dir, pz.bob, () => classArt(ctx, a.cls, pz, true, env, a.level, s.equipment), HERO_SCALE);
   });
   // Banner carried by the leader.
   const bx = px + dir * 6, by = py - 2;

@@ -118,7 +118,7 @@ function onMonsterSlain(s: GameState, p: Party): void {
   s.stats.monstersSlain++;
   p.loot.gold += m.gold * 0.5 * (0.8 + random(s) * 0.4);
   p.loot.iron += m.iron ?? 0;
-  if (chance(s, 0.15)) { p.loot.gold += 10 + p.floor * 4; log(s, 'adventure', 'log.treasure', { leader: team[0].name }); }
+  if (chance(s, 0.15)) { const g = 10 + p.floor * 4; p.loot.gold += g; s.fx.push({ kind: 'treasure', partyId: p.id, gold: g }); log(s, 'adventure', 'log.treasure', { leader: team[0].name }); }
   for (const a of team) { a.kills++; gainXp(s, a, m.xp / team.length + p.floor); }
   if (p.floor > dungeon.deepestFloor) dungeon.deepestFloor = p.floor;
 

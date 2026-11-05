@@ -65,8 +65,10 @@ src/
     effects.ts      Particles (smoke, weather, lightning, rainbow, shooting stars,
                     aurora, leaves, fireflies, debris, fireworks), birds, chickens,
                     the market cart, floating text
-    townlife.ts     Render-only townsfolk: strollers, children, a dog, roof cats,
-                    wall guards, tavern music, the chapel bell
+    townlife.ts     Render-only life: strollers, children, a dog, roof cats, wall
+                    guards, tavern music, the chapel bell, cheering crowds,
+                    funerals, weddings, the harvest festival, level-up stars,
+                    forge sparks, wolves, deer, a fishing boat, the hero statue
     lighting.ts     Night darkness with light pools, dawn/dusk tint, fog, vignette
     dungeonView.ts  Inset panel showing a party fighting floor by floor
   ui/         HUD (DOM), stylesheet
@@ -118,6 +120,14 @@ tests/        bun tests
     the renderer agree: rain falls from late morning to mid afternoon and a
     rainbow follows; storm days add lightning; clear nights have shooting
     stars, and even-numbered clear winter nights the aurora.
+
+11. The renderer also reacts to things the sim already does, without new sim
+    state: a party coming home draws a cheering crowd at the tavern, a new
+    grave gets a funeral procession, a level gained while resting sparkles,
+    a forged gear level throws sparks at the smithy, and the newest log line
+    shows as a caption in the corner of the map. The dungeon panel announces
+    floors and bosses with a banner, pops chests open, and shows floor
+    progress as dots.
 
 Rough pacing at 1x: hamlet in minutes, village ~15 min, town ~40 min, city ~2 h,
 first dungeon ~45 min, Dark Tower after the Keep (~3 h), Demon Lord falls
