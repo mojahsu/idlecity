@@ -7,7 +7,7 @@ import { TILE } from './constants';
 import { smokeSources } from './buildings';
 import { circle, ellipse, poly, rect, line, groundShadow, hash, rgba, type Env } from './palette';
 
-type Kind = 'smoke' | 'ember' | 'spark' | 'leaf' | 'petal' | 'firefly' | 'rain' | 'snow' | 'splash' | 'chip' | 'dust' | 'rocket' | 'burst' | 'clash' | 'coin' | 'drop' | 'meteor';
+type Kind = 'smoke' | 'ember' | 'spark' | 'leaf' | 'petal' | 'firefly' | 'rain' | 'snow' | 'splash' | 'chip' | 'dust' | 'rocket' | 'burst' | 'clash' | 'coin' | 'drop' | 'meteor' | 'mote' | 'butterfly';
 
 interface Particle {
   kind: Kind; x: number; y: number; vx: number; vy: number; ttl: number; life: number; size: number; color: string; spin: number;
@@ -71,6 +71,8 @@ export class Effects {
         case 'burst': p.vy += 18 * dt; p.vx *= 0.985; p.vy *= 0.985; break;
         case 'rocket': p.vx += Math.sin(env.clock * 10 + p.spin) * 2 * dt; break;
         case 'dust': p.size += 3 * dt; break;
+        case 'butterfly': p.vx += (Math.sin(env.clock * 1.7 + p.spin) * 14 - p.vx * 0.6) * dt; p.vy += (Math.cos(env.clock * 2.3 + p.spin * 1.3) * 10 - p.vy * 0.6) * dt; break;
+        case 'mote': p.vy += Math.sin(env.clock + p.spin) * 2 * dt; break;
       }
       p.x += p.vx * dt; p.y += p.vy * dt;
       keep.push(p);
@@ -129,6 +131,13 @@ export class Effects {
     if (env.season === 'autumn' && !env.rainy) { rate = 6; kind = 'leaf'; }
     else if (env.season === 'spring' && !env.rainy) { rate = 3; kind = 'petal'; }
     else if (env.season === 'summer' && night) { rate = 2.5; kind = 'firefly'; }
+    // Butterflies over the meadows on warm days, dust motes drifting in the low morning sun.
+    if ((env.season === 'spring' || env.season === 'summer') && env.dark < 0.2 && !env.rainy && this.particles.filter((p) => p.kind === 'butterfly').length < 6 && Math.random() < dt * 0.4) {
+      for (let tries = 0; tries < 8; tries++) { const i = Math.floor(Math.random() * s.tiles.length); if (s.tiles[i].terrain !== 'grass') continue; this.spawn('butterfly', (i % s.width) * TILE + Math.random() * TILE, Math.floor(i / s.width) * TILE + Math.random() * TILE, (Math.random() - 0.5) * 10, -2, 12 + Math.random() * 10, 1, ['#f7d94c', '#f29ac6', '#ffffff', '#80c0ff'][Math.floor(Math.random() * 4)]); break; }
+    }
+    if (env.dayFrac > 0.2 && env.dayFrac < 0.4 && env.dark < 0.6 && !env.rainy && !env.snowy && Math.random() < dt * 6) {
+      this.spawn('mote', Math.random() * s.width * TILE, Math.random() * s.height * TILE, 3 + Math.random() * 4, -2 + Math.random() * 3, 4 + Math.random() * 4, 1, '#fff4d0');
+    }
     if (!kind) return;
     this.ambientAcc += rate * dt;
     while (this.ambientAcc >= 1) {
@@ -339,6 +348,8 @@ export class Effects {
         case 'leaf': ctx.globalAlpha = Math.min(1, k * 3); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.spin); ellipse(ctx, 0, 0, p.size * 1.6, p.size * 0.9, p.color); ctx.restore(); break;
         case 'petal': ctx.globalAlpha = Math.min(1, k * 3); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.spin); ellipse(ctx, 0, 0, p.size * 1.4, p.size * 0.8, p.color); ctx.restore(); break;
         case 'firefly': { const bl = 0.5 + 0.5 * Math.sin(env.clock * 6 + p.spin * 7); ctx.globalAlpha = Math.min(1, k * 3) * bl; circle(ctx, p.x, p.y, 2.5, rgba('#e8ff80', 0.35)); circle(ctx, p.x, p.y, 1, '#f8ffb0'); break; }
+        case 'butterfly': { const flap = Math.abs(Math.sin(env.clock * 14 + p.spin)); ctx.globalAlpha = Math.min(1, k * 4, (1 - k) * 4 + 0.2); const d = Math.sign(p.vx) || 1; ellipse(ctx, p.x - d * 1.6 * flap, p.y, 1.7 * flap + 0.3, 1.3, p.color); ellipse(ctx, p.x + d * 1.6 * flap, p.y, 1.7 * flap + 0.3, 1.3, p.color); rect(ctx, p.x - 0.4, p.y - 1.2, 0.8, 2.4, '#3a2a1a'); break; }
+        case 'mote': { const tw = 0.5 + 0.5 * Math.sin(env.clock * 5 + p.spin * 9); ctx.globalAlpha = Math.min(1, k * 3) * tw * 0.7; circle(ctx, p.x, p.y, 1.1, p.color); break; }
         case 'rocket': ctx.globalAlpha = 1; circle(ctx, p.x, p.y, 1.5, '#fff8d0'); line(ctx, p.x, p.y, p.x - p.vx * 0.05, p.y - p.vy * 0.05, rgba('#ffd080', 0.7), 1.2); break;
         case 'burst': ctx.globalAlpha = k; circle(ctx, p.x, p.y, p.size * (0.6 + k * 0.6), p.color); break;
         default: continue;

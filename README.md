@@ -58,9 +58,11 @@ src/
   render/     Canvas renderer. Reads state, never writes it.
     renderer.ts     Orchestrates the passes; depth-sorts everything on the ground
     palette.ts      Season palettes, time-of-day tint, noise + shape helpers
-    terrain.ts      Cached static ground layer, animated water and trees
+    terrain.ts      Cached static ground layer (cobbled streets, grass, flowers,
+                    puddles, lily pads), animated water, three tree species
+                    and their sun shadows
     buildings.ts    One drawing per building type, build reveal, dungeon entrances,
-                    light + smoke sources
+                    sun shadows, street lamps, light + smoke sources
     units.ts        Workers (tools, loads), adventurer classes, parties, raiders
     monsters.ts     Monster art shared by raids and the dungeon view
     effects.ts      Particles (smoke, weather, lightning, rainbow, shooting stars,

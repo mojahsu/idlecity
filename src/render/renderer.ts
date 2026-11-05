@@ -7,8 +7,8 @@ import type { GameState, LogEntry } from '../sim/types';
 import { t } from '../i18n';
 import { TILE } from './constants';
 import { makeEnv, type Env } from './palette';
-import { TerrainLayer, drawTree, drawWater } from './terrain';
-import { drawBuilding, drawDungeonEntrance, lightSources, type LightSource } from './buildings';
+import { TerrainLayer, drawTree, drawTreeShadows, drawWater } from './terrain';
+import { drawBuilding, drawBuildingShadows, drawDungeonEntrance, drawLampPost, lampPosts, lightSources, type LightSource } from './buildings';
 import { drawAdventurer, drawCaravan, drawParty, drawRaid, drawWorker } from './units';
 import { Effects } from './effects';
 import { TownLife } from './townlife';
@@ -65,6 +65,8 @@ export class Renderer {
     ctx.clearRect(0, 0, W, H);
     this.terrain.draw(ctx, s, env, this.scale);
     drawWater(ctx, s, env);
+    drawTreeShadows(ctx, s, env);
+    drawBuildingShadows(ctx, s, env);
 
     // Depth-sorted scene.
     const items: Drawable[] = [];
@@ -74,6 +76,7 @@ export class Renderer {
     }
     for (const b of s.buildings) items.push({ y: b.y + 0.95, draw: (c, e) => drawBuilding(c, s, b, e) });
     for (const d of s.dungeons) items.push({ y: d.y + 0.95, draw: (c, e) => drawDungeonEntrance(c, s, d, e) });
+    for (const l of lampPosts(s)) items.push({ y: l.y + 0.3, draw: (c, e) => drawLampPost(c, l.x, l.y, e) });
     for (const w of s.workers) if (!isIndoors(s, w)) items.push({ y: w.y + 0.8, draw: (c, e) => drawWorker(c, w, e) });
     if (s.caravan) { const cv = s.caravan; items.push({ y: cv.y + 0.9, draw: (c, e) => drawCaravan(c, cv, e) }); }
     for (const a of s.adventurers) if (a.status === 'resting' || a.status === 'arriving') items.push({ y: a.y + 0.8, draw: (c, e) => drawAdventurer(c, a, e, s.equipment) });

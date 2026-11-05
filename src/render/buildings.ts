@@ -4,7 +4,7 @@
 import type { Building, GameState } from '../sim/types';
 import { BUILDINGS } from '../data/buildings';
 import { TILE } from './constants';
-import { PALETTE, circle, ellipse, poly, rect, line, roundRect, groundShadow, shade, rgba, hash, glow, type Env } from './palette';
+import { PALETTE, circle, ellipse, poly, rect, line, roundRect, groundShadow, shade, rgba, hash, glow, castShadow, type Env } from './palette';
 
 export interface LightSource { x: number; y: number; r: number; color: string; flicker: number }
 export interface SmokeSource { x: number; y: number; rate: number; color: string; size: number }
@@ -43,6 +43,45 @@ export function isLit(b: Building, env: Env): boolean {
   if (b.type === 'market') return f > 0.5 && f < 0.9;
   if (b.type === 'chapel') return f > 0.5 && f < 0.96;
   return true;
+}
+
+/** Rough height of each building above the ground line, for sun shadows. */
+const HEIGHT: Partial<Record<Building['type'], number>> = {
+  hut: 26, house: 36, lumberCamp: 22, quarry: 6, farm: 0, well: 22, granary: 40, tavern: 42, blacksmith: 34,
+  market: 18, mine: 12, chapel: 50, guildHall: 42, walls: 34, keep: 52, grave: 8, campfire: 0,
+};
+
+/** Sun shadows of every finished building, drawn on the ground before the scene. */
+export function drawBuildingShadows(ctx: CanvasRenderingContext2D, s: GameState, env: Env): void {
+  for (const b of s.buildings) {
+    const h = HEIGHT[b.type] ?? 0;
+    if (!b.built || !h) continue;
+    const px = b.x * TILE, py = b.y * TILE;
+    castShadow(ctx, env, px + TILE / 2, py + TILE - 1, TILE - 4, h);
+  }
+  for (const l of lampPosts(s)) castShadow(ctx, env, l.x * TILE + 5, l.y * TILE + 6, 2, 16);
+}
+
+/** Street lamps on a few road tiles near the square; lit after dark. */
+export function lampPosts(s: GameState): { x: number; y: number }[] {
+  const out: { x: number; y: number }[] = [];
+  for (let y = 0; y < s.height; y++) for (let x = 0; x < s.width; x++) {
+    if (s.tiles[y * s.width + x].terrain !== 'road') continue;
+    if ((x * 7 + y * 13) % 6 !== 0 || Math.hypot(x - s.center.x, y - s.center.y) > 9) continue;
+    out.push({ x, y });
+  }
+  return out;
+}
+
+export function drawLampPost(ctx: CanvasRenderingContext2D, x: number, y: number, env: Env): void {
+  const px = x * TILE + 5, py = y * TILE + 6;
+  groundShadow(ctx, px, py + 1, 2.5, 1.2, 0.25);
+  rect(ctx, px - 1, py - 16, 2, 17, '#3a3a40'); rect(ctx, px - 2.5, py - 1, 5, 2, '#3a3a40');
+  rect(ctx, px - 1, py - 18, 4, 1.2, '#3a3a40');
+  const lx = px + 3, ly = py - 15;
+  rect(ctx, lx - 2, ly, 4, 5, '#4a4a50'); poly(ctx, [lx - 3, ly, lx, ly - 2.5, lx + 3, ly], '#3a3a40');
+  if (env.dark > 0.3) { const f = 0.8 + 0.2 * Math.sin(env.clock * 7 + x); rect(ctx, lx - 1.4, ly + 0.8, 2.8, 3.4, `rgba(255,${200 * f},100,${f})`); }
+  else rect(ctx, lx - 1.4, ly + 0.8, 2.8, 3.4, 'rgba(210,225,240,0.6)');
 }
 
 /** Full height above the tile top a building may occupy (used for the build reveal). */
@@ -224,6 +263,16 @@ function drawBuiltArt(ctx: CanvasRenderingContext2D, s: GameState, b: Building, 
       window_(ctx, px + TILE - 9, py + 8, 4, 4, o);
       // Flower box.
       if (!snow) { rect(ctx, px + 4, py + 12.5, 6, 1.5, '#6b4a2b'); circle(ctx, px + 5.5, py + 12, 1, '#f06a4f'); circle(ctx, px + 8.5, py + 12, 1, '#f7d94c'); }
+      // A woodpile or a rain barrel by the wall.
+      if (v > 0.5) { for (let i = 0; i < 3; i++) { circle(ctx, px + TILE - 3 + (i % 2) * 2.4, py + TILE - 4 - Math.floor(i / 2) * 2.4, 1.4, '#8a5a30'); circle(ctx, px + TILE - 3 + (i % 2) * 2.4, py + TILE - 4 - Math.floor(i / 2) * 2.4, 0.6, '#d6a86c'); } }
+      else { roundRect(ctx, px - 1, py + TILE - 7, 4, 5, 1, '#6b4a2b'); line(ctx, px - 1, py + TILE - 5, px + 3, py + TILE - 5, '#3a2a1a', 0.8); }
+      // Washing line to the neighbouring house.
+      const right = s.buildings.find((o) => o.built && o.x === b.x + 1 && o.y === b.y && (o.type === 'house' || o.type === 'hut'));
+      if (right && !snow && !env.rainy && hash(b.x, b.y, 55) > 0.4) {
+        const ly = py + 9;
+        line(ctx, px + TILE - 2, ly, px + TILE + 6, ly + 0.5, '#e8e4dc', 0.7);
+        for (let i = 0; i < 3; i++) { const lx = px + TILE - 1 + i * 2.6, wv = Math.sin(env.clock * 3 + i + b.x) * 0.8; poly(ctx, [lx, ly, lx + 2, ly, lx + 2 + wv, ly + 4, lx + wv, ly + 4], ['#d8e0f0', '#f0d0c0', '#c8e0c0'][i]); }
+      }
       return;
     }
     case 'lumberCamp': {
@@ -463,6 +512,7 @@ export function lightSources(s: GameState, env: Env): LightSource[] {
     else if (def.light && isLit(b, env)) out.push({ x: cx, y: cy, r: b.type === 'tavern' || b.type === 'guildHall' || b.type === 'market' ? 34 : 28, color: '#ffd080', flicker: 0.04 });
     if (s.fire && s.fire.buildingId === b.id) out.push({ x: cx, y: py + TILE - 10, r: 40 + 40 * s.fire.intensity, color: '#ff8030', flicker: 0.3 });
   }
+  if (env.dark > 0.3) for (const l of lampPosts(s)) out.push({ x: l.x * TILE + 8, y: l.y * TILE - 8, r: 22, color: '#ffc870', flicker: 0.06 });
   for (const d of s.dungeons) {
     if (d.id === 'darkTower' && d.unlocked) out.push({ x: d.x * TILE + TILE / 2, y: d.y * TILE + TILE / 2 - 6, r: 34, color: s.victory ? '#f0d050' : '#a040e0', flicker: 0.25 });
   }
