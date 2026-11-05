@@ -31,3 +31,15 @@ export function fitText(ctx: CanvasRenderingContext2D, text: string, x: number, 
   while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
   ctx.fillText(t + '…', x, y);
 }
+
+/** Where each enemy of a pack stands: a boss alone in the centre, a pack fanned out to the right. */
+export function enemyX(i: number, n: number, boss: boolean, panelW: number): number {
+  if (boss || n === 1) return panelW * 0.74;
+  const xs = n === 2 ? [0.68, 0.86] : [0.64, 0.78, 0.92];
+  return panelW * xs[Math.min(i, xs.length - 1)];
+}
+
+export function enemyScale(monster: string, boss: boolean, n: number): number {
+  if (boss) return monster === 'demonLord' ? 1.8 : 1.5;
+  return n >= 3 ? 1.0 : 1.15;
+}

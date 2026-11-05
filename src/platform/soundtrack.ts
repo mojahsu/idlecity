@@ -26,6 +26,7 @@ export class Soundtrack {
   private encounters = new Map<number, boolean>();
   private tuneTimer = 0;
   private tuneIdx = 4;
+  private breathHeard = false;
 
   constructor(private audio: AudioEngine) {}
 
@@ -86,21 +87,38 @@ export class Soundtrack {
 
   private battle(s: GameState, dt: number): void {
     const a = this.audio;
-    this.hitTimer = Math.max(0, this.hitTimer - dt); this.slainTimer = Math.max(0, this.slainTimer - dt);
+    this.hitTimer = Math.max(0, this.hitTimer - dt); this.slainTimer = Math.max(0, this.slainTimer - dt); this.breathHeard = false;
     for (const f of s.fx) {
       if (f.kind === 'hit' && this.hitTimer <= 0) { a.hit(); this.hitTimer = 0.12; }
       else if (f.kind === 'water') a.splash();
       else if (f.kind === 'float' && f.text.endsWith('g')) a.coins();
       else if (f.kind === 'treasure') a.chest();
+      else if (f.kind === 'strike') {
+        switch (f.style) {
+          case 'melee': a.clank(); break;
+          case 'arrow': case 'volley': a.whoosh(); break;
+          case 'crit': a.clank(); a.whoosh(); break;
+          case 'bolt': case 'smite': a.frost(); break;
+          case 'fireball': a.fireball(); break;
+          case 'heal': a.chime(); break;
+          case 'holyLight': a.holy(); break;
+        }
+      } else if (f.kind === 'enemyStrike') {
+        if (f.all && this.breathHeard) continue;
+        if (f.all) this.breathHeard = true;
+        switch (f.style) {
+          case 'breath': a.fireball(); a.roar(false); break;
+          case 'curse': a.taunt(); a.frost(); break;
+          case 'bolt': a.frost(); break;
+          case 'smash': a.hit(); a.burst(); break;
+          default: a.hit(); break;
+        }
+      } else if (f.kind === 'slain') { a.slain(); }
       else if (f.kind === 'skill') {
         switch (f.skill) {
-          case 'fireball': a.fireball(); break;
           case 'frost': a.frost(); break;
-          case 'holyLight': a.holy(); break;
           case 'taunt': a.taunt(); break;
           case 'block': a.clank(); break;
-          case 'volley': a.whoosh(); break;
-          case 'crit': a.clank(); break;
           case 'revive': a.rise(); break;
         }
       }
@@ -112,7 +130,6 @@ export class Soundtrack {
       const had = this.encounters.get(p.id) ?? false;
       const has = !!p.encounter;
       if (has && !had && p.encounter!.boss && !this.bosses.has(p.id)) { a.roar(p.encounter!.monster === 'demonLord' || p.encounter!.monster === 'dragon'); this.bosses.add(p.id); }
-      if (!has && had && this.slainTimer <= 0) { a.slain(); this.slainTimer = 1.2; }
       if (!has) this.bosses.delete(p.id);
       this.encounters.set(p.id, has);
     }

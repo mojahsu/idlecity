@@ -1,30 +1,35 @@
-// Per-party animation state, derived from HP changes so the sim stays untouched.
+// Per-party animation state, driven by the sim's per-action fx so every blow,
+// shot, spell and special plays out one at a time.
 
-export interface Num { x: number; y: number; text: string; color: string; ttl: number }
+export interface Num { x: number; y: number; text: string; color: string; ttl: number; big?: boolean }
 
 export interface Spark { x: number; y: number; vx: number; vy: number; ttl: number; color: string }
 
-export interface Shot { kind: 'arrow' | 'fire'; x: number; y: number; tx: number; ty: number; t: number; life: number }
+export interface Shot { kind: 'arrow' | 'fire' | 'bolt' | 'dark' | 'light'; x: number; y: number; tx: number; ty: number; t: number; life: number; onLand?: () => void }
 
 export interface Banner { text: string; color: string; ttl: number; life: number; big: boolean }
 
+export interface Dying { monster: string; x: number; boss: boolean; t: number; scale: number }
+
+export interface EnemyView {
+  /** Lunge toward the heroes, 0..1 over its life. */
+  lunge: number;
+  hurt: number;
+  /** Fading bars so damage reads even when a blow is quick. */
+  shownHp: number;
+}
+
 export interface ViewState {
-  lastHp: Map<number, number>;
-  lastEncHp: number;
-  hadEncounter: boolean;
-  monster: string;
-  boss: boolean;
   floor: number;
-  attacker: number;
-  heroLunge: number;
-  heroIdx: number;
-  monsterLunge: number;
-  monsterHurt: number;
+  hadEncounter: boolean;
+  boss: boolean;
+  /** Per hero id: lunge timer and where the lunge goes. */
+  heroLunge: Map<number, { t: number; tx: number }>;
   heroHurt: Map<number, number>;
   heal: Map<number, number>;
-  death: number;
-  deathMonster: string;
-  deathBoss: boolean;
+  shownHp: Map<number, number>;
+  enemies: EnemyView[];
+  dying: Dying[];
   floorFlash: number;
   shake: number;
   nums: Num[];
@@ -42,17 +47,19 @@ export interface ViewState {
   reviveIdx: number;
   casting: number;
   castIdx: number;
+  /** A dragon's (or demon's) breath sweeping the heroes: 0..1 timer. */
+  breath: number;
+  breathFrom: number;
+  /** A curse mark over a hero. */
+  curse: number;
+  curseIdx: number;
   banner: Banner | null;
-  /** Red pulse and name card when a boss steps out. */
   bossIntro: number;
-  /** A chest popping open. */
   chest: number;
-  /** Dust hanging in the air. */
   motes: { x: number; y: number; vx: number; vy: number; ttl: number; life: number }[];
-  /** Puffs of dust kicked up at the feet. */
   puffs: { x: number; y: number; ttl: number }[];
 }
 
 export function newViewState(floor: number): ViewState {
-  return { lastHp: new Map(), lastEncHp: 0, hadEncounter: false, monster: '', boss: false, floor, attacker: 0, heroLunge: 0, heroIdx: 0, monsterLunge: 0, monsterHurt: 0, heroHurt: new Map(), heal: new Map(), death: 0, deathMonster: '', deathBoss: false, floorFlash: 0.8, shake: 0, nums: [], sparks: [], scroll: 0, shots: [], taunt: 0, tauntIdx: 0, frozen: 0, beam: 0, beamIdx: 0, block: 0, blockIdx: 0, revive: 0, reviveIdx: 0, casting: 0, castIdx: 0, banner: null, bossIntro: 0, chest: 0, motes: [], puffs: [] };
+  return { floor, hadEncounter: false, boss: false, heroLunge: new Map(), heroHurt: new Map(), heal: new Map(), shownHp: new Map(), enemies: [], dying: [], floorFlash: 0.8, shake: 0, nums: [], sparks: [], scroll: 0, shots: [], taunt: 0, tauntIdx: 0, frozen: 0, beam: 0, beamIdx: 0, block: 0, blockIdx: 0, revive: 0, reviveIdx: 0, casting: 0, castIdx: 0, breath: 0, breathFrom: 0, curse: 0, curseIdx: 0, banner: null, bossIntro: 0, chest: 0, motes: [], puffs: [] };
 }

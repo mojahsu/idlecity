@@ -108,12 +108,25 @@ export interface Adventurer {
 
 export type DungeonId = 'goblinCave' | 'ancientRuins' | 'darkTower';
 
+/** One monster in a fight. */
+export interface Enemy {
+  monster: string;
+  hp: number;
+  maxHp: number;
+  atk: number;
+  /** Actions taken so far (drives the monster's special attack cadence). */
+  acts: number;
+}
+
+/** A fight on a floor: a pack of monsters, or one boss. `monster`, `hp` and `maxHp` summarise the pack. */
 export interface Encounter {
   monster: string;
   hp: number;
   maxHp: number;
   atk: number;
   boss: boolean;
+  /** Optional for saves from before packs existed. */
+  enemies?: Enemy[];
 }
 
 export interface Party {
@@ -134,6 +147,8 @@ export interface Party {
   reviveUsed?: boolean;
   /** Monster is frozen and skips its next attack. */
   frozen?: boolean;
+  /** Whose turn is next in the fight: heroes in order, then each enemy. */
+  actIdx?: number;
 }
 
 export interface Dungeon {
@@ -208,7 +223,16 @@ export type Fx =
   /** A class skill fired inside a dungeon; the renderer animates it. */
   | { kind: 'skill'; partyId: number; actorId: number; skill: string; targetId?: number; amount?: number }
   /** A hidden chest found underground. */
-  | { kind: 'treasure'; partyId: number; gold: number };
+  | { kind: 'treasure'; partyId: number; gold: number }
+  /** A hero acts: a blow, a shot, a spell or a heal on `targetIdx` (enemy index) or `targetId` (hero). */
+  | { kind: 'strike'; partyId: number; actorId: number; style: StrikeStyle; targetIdx?: number; targetId?: number; amount: number; splash?: number[] }
+  /** An enemy acts on a hero (or on everyone, for a breath). */
+  | { kind: 'enemyStrike'; partyId: number; enemyIdx: number; style: EnemyStyle; targetId: number; amount: number; all?: boolean }
+  /** An enemy falls. */
+  | { kind: 'slain'; partyId: number; enemyIdx: number; monster: string; boss: boolean };
+
+export type StrikeStyle = 'melee' | 'arrow' | 'volley' | 'crit' | 'bolt' | 'fireball' | 'smite' | 'heal' | 'holyLight';
+export type EnemyStyle = 'bite' | 'slash' | 'claw' | 'smash' | 'bolt' | 'breath' | 'curse';
 
 export interface GameState {
   version: number;

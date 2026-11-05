@@ -5,7 +5,8 @@ import { CLASSES } from '../../data/adventurers';
 import { t } from '../../i18n';
 import { circle, line, poly, rect, rgba, type Env } from '../palette';
 import { PANEL_H, PANEL_W } from './layout';
-import { HERO_GAP, fitText, heroX, hpBar, members } from './hud';
+import { HERO_GAP, enemyScale, enemyX, fitText, heroX, hpBar, members } from './hud';
+import { monsterHeight } from '../monsters';
 import type { ViewState } from './state';
 import { drawBackdrop } from './backdrops';
 import { drawFigures } from './figures';
@@ -46,7 +47,7 @@ export function drawPanel(ctx: CanvasRenderingContext2D, s: GameState, p: Party,
   // Hero HP bars and names (figures are drawn by drawFigures).
   team.forEach((a, i) => {
     const hx = heroX(i);
-    const w = 26, hp = Math.max(0, a.hp / a.maxHp);
+    const w = 26, hp = Math.max(0, v.shownHp.get(a.id) ?? a.hp / a.maxHp);
     hpBar(ctx, hx - w / 2, floorY + 6, w, 3.5, hp, hp > 0.5 ? '#7ad07a' : hp > 0.25 ? '#e0b040' : '#e05050');
     ctx.textAlign = 'center'; ctx.fillStyle = CLASSES[a.cls].color;
     fitText(ctx, a.name, hx, floorY + 18, HERO_GAP - 4);
@@ -55,17 +56,30 @@ export function drawPanel(ctx: CanvasRenderingContext2D, s: GameState, p: Party,
   const mx = PANEL_W * 0.74;
   if (v.chest > 0) drawChest(ctx, mx - 30, floorY, v.chest, env);
   if (e) {
-    // HP bar with name; bosses get a wide segmented bar.
-    const w = e.boss ? 120 : 60, hp = Math.max(0, e.hp / e.maxHp);
-    const bx = PANEL_W - 8 - w, by = 8;
-    hpBar(ctx, bx, by, w, e.boss ? 6 : 4, hp, e.boss ? '#e040c0' : '#e04040');
-    if (e.boss) for (let k = 1; k < 4; k++) rect(ctx, bx + w * k / 4, by, 1, 6, 'rgba(0,0,0,0.5)');
-    ctx.font = `${e.boss ? 'bold 10px' : '9px'} system-ui, sans-serif`; ctx.textAlign = 'right';
-    ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(t(`monster.${e.monster}`), PANEL_W - 8, by + (e.boss ? 18 : 15));
-    ctx.fillStyle = e.boss ? '#ffb0f0' : '#f0e0e0'; ctx.fillText(t(`monster.${e.monster}`), PANEL_W - 8, by + (e.boss ? 18 : 15));
-  } else if (v.death > 0) {
-    ctx.font = 'bold 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(t('ui.slain'), mx, floorY - 30 - (0.9 - v.death) * 10);
-    ctx.fillStyle = `rgba(255,224,128,${Math.min(1, v.death * 2)})`; ctx.fillText(t('ui.slain'), mx, floorY - 30 - (0.9 - v.death) * 10);
+    const enemies = e.enemies ?? [];
+    const n = enemies.length;
+    if (e.boss) {
+      // Bosses get a wide segmented bar with their name.
+      const w = 120, hp = Math.max(0, v.enemies[0]?.shownHp ?? e.hp / e.maxHp);
+      const bx = PANEL_W - 8 - w, by = 8;
+      hpBar(ctx, bx, by, w, 6, hp, '#e040c0');
+      for (let k = 1; k < 4; k++) rect(ctx, bx + w * k / 4, by, 1, 6, 'rgba(0,0,0,0.5)');
+      ctx.font = 'bold 10px system-ui, sans-serif'; ctx.textAlign = 'right';
+      ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(t(`monster.${e.monster}`), PANEL_W - 8, by + 18);
+      ctx.fillStyle = '#ffb0f0'; ctx.fillText(t(`monster.${e.monster}`), PANEL_W - 8, by + 18);
+    } else {
+      // Each monster of the pack carries a small bar over its head; the lead one is named top right.
+      enemies.forEach((en, i) => {
+        if (en.hp <= 0) return;
+        const x = enemyX(i, n, false, PANEL_W), h = monsterHeight(en.monster) * enemyScale(en.monster, false, n);
+        hpBar(ctx, x - 10, floorY - h - 7, 20, 2.5, Math.max(0, v.enemies[i]?.shownHp ?? en.hp / en.maxHp), '#e04040');
+      });
+      ctx.font = '9px system-ui, sans-serif'; ctx.textAlign = 'right';
+      const alive = enemies.filter((x) => x.hp > 0).length;
+      const name = n > 1 ? `${t(`monster.${e.monster}`)} ×${alive}` : t(`monster.${e.monster}`);
+      ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(name, PANEL_W - 8, 16);
+      ctx.fillStyle = '#f0e0e0'; ctx.fillText(name, PANEL_W - 8, 16);
+    }
   } else if (p.phase === 'explore') {
     ctx.font = '9px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,0.7)';
     const dots = '.'.repeat(1 + Math.floor(env.clock * 2) % 3);
@@ -75,14 +89,18 @@ export function drawPanel(ctx: CanvasRenderingContext2D, s: GameState, p: Party,
   for (const sh of v.shots) {
     if (sh.t < 0) continue;
     const k = Math.min(1, sh.t / sh.life), x = sh.x + (sh.tx - sh.x) * k, y = sh.y + (sh.ty - sh.y) * k - Math.sin(k * Math.PI) * 10;
-    if (sh.kind === 'arrow') { line(ctx, x - 6, y + 1.5, x, y, '#e8dcc0', 1.5); poly(ctx, [x, y, x - 2.5, y - 1.5, x - 2.5, y + 1.5], '#d0d0d8'); }
-    else { circle(ctx, x, y, 5, rgba('#ff6020', 0.5)); circle(ctx, x, y, 3.2, '#ff9040'); circle(ctx, x - 1, y - 1, 1.5, '#ffe080'); for (let q = 1; q <= 3; q++) circle(ctx, x - q * 4 * (sh.tx > sh.x ? 1 : -1), y + q * 1.5, 3 - q * 0.7, rgba('#ff8030', 0.35 - q * 0.1)); }
+    const d = sh.tx > sh.x ? 1 : -1;
+    if (sh.kind === 'arrow') { line(ctx, x - 6 * d, y + 1.5, x, y, '#e8dcc0', 1.5); poly(ctx, [x, y, x - 2.5 * d, y - 1.5, x - 2.5 * d, y + 1.5], '#d0d0d8'); }
+    else if (sh.kind === 'fire') { circle(ctx, x, y, 5, rgba('#ff6020', 0.5)); circle(ctx, x, y, 3.2, '#ff9040'); circle(ctx, x - 1, y - 1, 1.5, '#ffe080'); for (let q = 1; q <= 3; q++) circle(ctx, x - q * 4 * d, y + q * 1.5, 3 - q * 0.7, rgba('#ff8030', 0.35 - q * 0.1)); }
+    else if (sh.kind === 'bolt') { circle(ctx, x, y, 3, rgba('#80c0ff', 0.5)); circle(ctx, x, y, 1.6, '#e0f4ff'); for (let q = 1; q <= 3; q++) circle(ctx, x - q * 3.5 * d, y + Math.sin(q + env.clock * 20) * 1.5, 1.6 - q * 0.4, rgba('#a0e0ff', 0.4 - q * 0.1)); }
+    else if (sh.kind === 'light') { circle(ctx, x, y, 3.5, rgba('#fff0a0', 0.5)); circle(ctx, x, y, 1.8, '#ffffff'); }
+    else { circle(ctx, x, y, 3.5, rgba('#8030c0', 0.6)); circle(ctx, x, y, 2, '#d080ff'); for (let q = 1; q <= 3; q++) circle(ctx, x - q * 3.5 * d, y - q * 1, 2 - q * 0.5, rgba('#8030c0', 0.4 - q * 0.1)); }
   }
   // Sparks and numbers.
   for (const sp of v.sparks) { ctx.globalAlpha = Math.min(1, sp.ttl * 2); circle(ctx, sp.x, sp.y, 1.4, sp.color); }
   ctx.globalAlpha = 1;
   ctx.font = 'bold 10px system-ui, sans-serif'; ctx.textAlign = 'center';
-  for (const n of v.nums) { ctx.globalAlpha = Math.min(1, n.ttl * 2); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(n.text, n.x, n.y); ctx.fillStyle = n.color; ctx.fillText(n.text, n.x, n.y); }
+  for (const n of v.nums) { ctx.font = n.big ? 'bold 13px system-ui, sans-serif' : 'bold 10px system-ui, sans-serif'; ctx.globalAlpha = Math.min(1, n.ttl * 2); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(n.text, n.x, n.y); ctx.fillStyle = n.color; ctx.fillText(n.text, n.x, n.y); }
   ctx.globalAlpha = 1;
   // Header.
   ctx.font = 'bold 10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = '#f0e0c0';

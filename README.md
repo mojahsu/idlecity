@@ -190,9 +190,18 @@ tests/        bun tests
     (a 12 ms slice of simulation per timer tick, `runCatchUp` in main.ts) with a "catching up" toast,
     so the town appears at once instead of the page freezing.
 
-17. Fights are paced to be watched. Underground, blows are exchanged every
-    `FIGHT_ROUND` seconds (rewards per kill are scaled by the same factor so
-    xp and gold per hour are unchanged). Raids are fought in rounds too: only
+17. Fights are paced to be watched. Underground a floor holds a pack of one
+    to three monsters (or one boss) and the fight runs action by action,
+    one every `ACT_TIME` seconds: each hero in turn (a blow, a shot, a bolt,
+    a fireball that splashes the rest of the pack, a heal or Holy Light, a
+    priest's smite), then each monster (bites, slashes, claws, smashes, the
+    imp's and lich's bolts, the dragon's and demons' breath over everyone,
+    the lich's curse). Every action is an fx the panel plays out with a
+    wind-up, a lunge or a projectile, a number and sparks; monsters carry
+    their own bars and die one at a time. Monster hit points grow with the
+    heroes' level so every monster takes several blows, their attacks are
+    scaled down, and rewards per kill grow with the hit points (`FIGHT_TUNE`)
+    so xp and gold per hour hold. Raids are fought in rounds too: only
     adventurers who have run out to the raiders (`pastime: 'sally'`) deal
     damage, walls and townsfolk count for a little, and raiders scale with the
     heroes' level so a raid lasts twenty to forty seconds. Between expeditions
@@ -201,7 +210,7 @@ tests/        bun tests
 
 Rough pacing at 1x: hamlet in minutes, village ~15 min, town ~40 min, city ~2 h,
 first dungeon ~45 min, Dark Tower after the Keep (~3 h), Demon Lord falls
-around hour 3–5 with a few deaths (0–2 over 10 h on eight seeds).
+around hour 2–5 with a few deaths (0–9 over 10 h on eight seeds; fights now last about 40 s, bosses several minutes).
 Parties never randomly revisit a dungeon above their level, turn back at a
 boss's door when under-levelled (`daresBossFloor`), and break off a boss
 fight as soon as anyone is badly hurt; bosses keep their wounds between
