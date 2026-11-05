@@ -1,7 +1,7 @@
 // Colours, deterministic noise and small drawing helpers shared by the
 // render modules. Everything here is pure; no canvas state is kept.
 import type { GameState } from '../sim/types';
-import { RAIN_TO, currentDay, darkness, dayFraction, dayWeather, isNight, isRaining, season } from '../sim/time';
+import { RAIN_TO, currentDay, darkness, dayFraction, dayWeather, isHoliday, isNight, isRaining, season } from '../sim/time';
 
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
 
@@ -33,6 +33,8 @@ export interface Env {
   indoors: Set<number>;
   /** Harvest festival evening (mid autumn). */
   festival: boolean;
+  /** The festival day itself: nobody works. */
+  holiday: boolean;
 }
 
 export function makeEnv(s: GameState, clock: number): Env {
@@ -52,7 +54,7 @@ export function makeEnv(s: GameState, clock: number): Env {
   const indoors = new Set<number>();
   for (const w of s.workers) if (w.task?.kind === 'sleep' && w.task.phase === 'sleep') indoors.add(w.task.buildingId);
   const festival = sea === 'autumn' && (day - 1) % 10 === 5 && f > 0.78;
-  return { season: sea, dark, dayFrac: f, clock, day, rainy, storm, snowy, foggy, rainbow, clearNight, night: isNight(s), bell, indoors, festival };
+  return { season: sea, dark, dayFrac: f, clock, day, rainy, storm, snowy, foggy, rainbow, clearNight, night: isNight(s), bell, indoors, festival, holiday: isHoliday(s) };
 }
 
 /** Deterministic 0..1 noise from integer coordinates and a salt. */

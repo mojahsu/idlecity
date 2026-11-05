@@ -1,11 +1,11 @@
 import type { GameState, Worker } from './types';
 import { WORKER_NAMES } from '../data/names';
-import { pick, uniqueName } from './rng';
+import { chance, pick, uniqueName } from './rng';
 import { edgeSpawnPoint, findPath } from './world';
 import { housingCapacity, countBuildings } from './buildings';
 import { chronicle, log } from './log';
 import { tierForPop, tierIndex } from '../data/tiers';
-import { DAY_LENGTH, FOOD_PER_PERSON_PER_DAY } from './constants';
+import { DAY_LENGTH, FOOD_PER_PERSON_PER_DAY, LAZY_SHARE } from './constants';
 
 export function spawnWorker(s: GameState, atCenter = false): Worker {
   const from = atCenter ? { x: s.center.x + 1, y: s.center.y + 1 } : edgeSpawnPoint(s);
@@ -19,6 +19,7 @@ export function spawnWorker(s: GameState, atCenter = false): Worker {
     carrying: null,
     carryAmount: 0,
     timer: 0,
+    lazy: !atCenter && chance(s, LAZY_SHARE),
   };
   if (!atCenter) {
     w.task = { kind: 'arrive' };

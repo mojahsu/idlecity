@@ -44,7 +44,11 @@ export type WorkerTask =
   /** Night: walk home (or to the campfire) and sleep until dawn. `inside` = hidden indoors. */
   | { kind: 'sleep'; buildingId: number; phase: 'go' | 'sleep' }
   /** Bucket brigade: fetch water at the well (or river), carry it to the blaze, throw, repeat. */
-  | { kind: 'douse'; buildingId: number; phase: 'fetch' | 'carry' | 'throw' };
+  | { kind: 'douse'; buildingId: number; phase: 'fetch' | 'carry' | 'throw' }
+  /** Time off: walk to a spot and do something that is not work. `dir` is which way to face there. */
+  | { kind: 'rest'; activity: RestActivity; x: number; y: number; dir: number; phase: 'go' | 'do'; buildingId?: number };
+
+export type RestActivity = 'chat' | 'drink' | 'fish' | 'nap' | 'feed' | 'pray' | 'lunch' | 'stroll' | 'watch';
 
 export interface Worker {
   id: number;
@@ -57,6 +61,10 @@ export interface Worker {
   carrying: ResourceId | null;
   carryAmount: number;
   timer: number;
+  /** Takes breaks far more often than the others. Optional for old saves. */
+  lazy?: boolean;
+  /** Seconds of wobbly walking left after a drink. */
+  tipsy?: number;
 }
 
 export type AdventurerClass = 'warrior' | 'archer' | 'mage' | 'priest';

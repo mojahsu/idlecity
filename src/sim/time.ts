@@ -54,3 +54,16 @@ export function isRaining(s: GameState): boolean {
   const f = dayFraction(s);
   return f >= RAIN_FROM && f <= RAIN_TO;
 }
+
+/** The harvest festival: nobody works on the fifth day of autumn. */
+export function isHoliday(s: GameState): boolean {
+  return season(s) === 'autumn' && (currentDay(s) - 1) % 10 === 5;
+}
+
+/** Midday break: everyone who is near the square sits down to eat. */
+export const LUNCH_FROM = 0.47;
+export const LUNCH_TO = 0.55;
+export function isLunch(s: GameState): boolean {
+  const f = dayFraction(s);
+  return f >= LUNCH_FROM && f < LUNCH_TO;
+}

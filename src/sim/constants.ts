@@ -13,10 +13,16 @@ export const GATHER_AMOUNT = 5;
 export const FARM_TIME = 8;
 export const FARM_AMOUNT = 8;
 /**
- * Workers sleep through the night (about a third of each day), so daytime
- * work yields this much more to keep the overall pacing where it was.
+ * Workers sleep through the night, stop for lunch and take breaks, so the
+ * work they do do yields this much more to keep the overall pacing where it was.
  */
-export const DAY_WORK_BONUS = 1.5;
+export const DAY_WORK_BONUS = 2.0;
+
+export const REST_CHANCE = 0.15;        // chance to take a break after a delivery
+export const LAZY_REST_CHANCE = 0.45;
+export const LAZY_SHARE = 0.12;         // share of newcomers who are born idle
+export const REST_TIME: [number, number] = [15, 30];
+export const FISH_CATCH_CHANCE = 0.35;
 
 export const CARAVAN_INTERVAL: [number, number] = [300, 600];
 export const CARAVAN_TRADE_TIME = 24;

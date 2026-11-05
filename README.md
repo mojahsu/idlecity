@@ -45,7 +45,8 @@ src/
     state.ts      newGame()
     tick.ts       step() — advances one tick; advance() for offline catch-up
     world.ts      map generation, pathfinding, reachability, movement
-    workers.ts    gather / carry / build / farm behaviour
+    workers.ts    gather / carry / build / farm / sleep / bucket-brigade behaviour
+    leisure.ts    breaks (chat, drink, fish, nap, feed hens, pray), lunch, the holiday
     mayor.ts      the AI that chooses buildings and assigns jobs
     population.ts immigration, food, tier progression
     adventurers.ts arrivals, resting, party formation, dungeon unlocks
@@ -106,10 +107,18 @@ tests/        bun tests
    fallen companion per run). Fights run once per second in `sim/parties.ts`;
    every skill emits a `skill` fx the dungeon view animates.
 
-8. Townsfolk sleep: at sunset workers finish their trip and go home (a bed in a
+8. Nobody works all day. After a delivery a worker may take a break
+   (`sim/leisure.ts`): chat at the well, a drink at the tavern (then a wobbly
+   walk home), fishing on the river bank (sometimes +1 food), a nap under a
+   tree, feeding the hens, a prayer in the chapel, or gawping at the caravan.
+   Around noon everyone near the square sits down at the campfire to eat, and
+   on the festival day (fifth day of autumn) nobody works at all. About one in
+   eight people is born lazy and takes three times as many breaks.
+   Townsfolk sleep: at sunset workers finish their trip and go home (a bed in a
    hut or house, otherwise the campfire); windows light up as they arrive and go
    dark one by one late at night; everyone is back out a little after sunrise.
-   Daytime work yields `DAY_WORK_BONUS` more to make up for the night off.
+   Daytime work yields `DAY_WORK_BONUS` more to make up for all the time off;
+   workers are busy about 60% of daylight.
 9. Events (`sim/events.ts`): once the market stands, a merchant caravan visits
    every 5–10 minutes and pays gold at the stalls. Once six flammable buildings
    stand, a fire breaks out every so often; the nearest workers form a bucket

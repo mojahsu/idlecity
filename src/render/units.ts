@@ -107,29 +107,68 @@ function load(ctx: CanvasRenderingContext2D, w: Worker): void {
   }
 }
 
+/** A little speech bubble above a head: "…" for chatter, "!" for excitement, "~" for a tipsy hum. */
+function bubble(ctx: CanvasRenderingContext2D, px: number, py: number, text: string, alpha: number): void {
+  if (alpha <= 0) return;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#fffaf0'; ctx.beginPath(); ctx.roundRect(px - 5, py - 7, 10, 7, 2); ctx.fill();
+  poly(ctx, [px - 2, py, px + 1, py, px - 1, py + 2], '#fffaf0');
+  ctx.font = 'bold 6px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#3a2a1a'; ctx.fillText(text, px, py - 1.5);
+  ctx.globalAlpha = 1;
+}
+
+function sleepZ(ctx: CanvasRenderingContext2D, w: Worker, env: Env, dir: number): void {
+  const zt = (env.clock * 0.6 + w.id * 0.37) % 1;
+  if (zt < 0.7) { ctx.font = 'bold 6px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = `rgba(230,235,255,${0.8 * (1 - zt / 0.7)})`; ctx.fillText('z', w.x * TILE + TILE / 2 + dir * 5 + zt * 4, w.y * TILE + TILE / 2 - 6 - zt * 10); }
+}
+
 export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): void {
   const moving = w.path.length > 0;
   const working = !!w.task && 'phase' in w.task && w.task.phase === 'work';
   const sleeping = w.task?.kind === 'sleep' && w.task.phase === 'sleep';
   const dousing = w.task?.kind === 'douse';
-  const p = pose(moving, working, env.clock, w.id);
-  const dir = facing(w.x, w.path, w.id);
+  const rest = w.task?.kind === 'rest' && w.task.phase === 'do' ? w.task : null;
+  const p = pose(moving, working || rest?.activity === 'feed', env.clock, w.id);
+  let dir = rest ? rest.dir : facing(w.x, w.path, w.id);
   const skin = SKIN[Math.floor(hash(w.id, 1) * SKIN.length)], hair = HAIR[Math.floor(hash(w.id, 2) * HAIR.length)];
-  if (sleeping) {
-    // Dozing by the campfire: sat down, head nodding, the odd "z".
+  const tunic = JOBS[w.job].color;
+  const px = w.x * TILE + TILE / 2, py = w.y * TILE + TILE / 2;
+  const sit = { walk: 0, bob: 0, swing: 0 };
+  if (sleeping || rest?.activity === 'nap') {
+    // Dozing: sat down, head nodding, the odd "z".
     const nod = Math.sin(env.clock * 1.5 + w.id) * 0.6;
-    withUnit(ctx, w.x, w.y, dir, 3 + nod, () => { body(ctx, JOBS[w.job].color, skin, hair, { walk: 0, bob: 0, swing: 0 }, true); hat(ctx, w.job); });
-    const zt = (env.clock * 0.6 + w.id * 0.37) % 1;
-    if (zt < 0.7) { ctx.font = 'bold 6px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = `rgba(230,235,255,${0.8 * (1 - zt / 0.7)})`; ctx.fillText('z', w.x * TILE + TILE / 2 + dir * 5 + zt * 4, w.y * TILE + TILE / 2 - 6 - zt * 10); }
+    withUnit(ctx, w.x, w.y, dir, 3 + nod, () => { body(ctx, tunic, skin, hair, sit, true); hat(ctx, w.job); });
+    sleepZ(ctx, w, env, dir);
     return;
   }
-  withUnit(ctx, w.x, w.y, dir, p.bob, () => {
+  if (rest?.activity === 'lunch') {
+    withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true); hat(ctx, w.job); ellipse(ctx, 3.5, -5.5, 2.4, 1.4, '#8a6a3a'); ellipse(ctx, 3.5, -6, 1.8, 0.8, '#d8b060'); const sp = Math.sin(env.clock * 3 + w.id) > 0.3 ? -2 : 0; line(ctx, 4.5, -6, 5.5, -9 + sp, '#e0d0b0', 0.8); });
+    return;
+  }
+  if (rest?.activity === 'fish') {
+    withUnit(ctx, w.x, w.y, dir, 3, () => {
+      body(ctx, tunic, skin, hair, sit, true); hat(ctx, w.job);
+      const tug = Math.sin(env.clock * 1.2 + w.id) > 0.95 ? 2 : 0;
+      line(ctx, 3, -7, 12, -16, '#6b4a2b', 1); line(ctx, 12, -16, 14 + tug, 2, 'rgba(255,255,255,0.6)', 0.5);
+    });
+    return;
+  }
+  // Standing about: chatting, strolling, feeding the hens, watching something.
+  const tipsy = (w.tipsy ?? 0) > 0;
+  const wobble = tipsy && moving ? Math.sin(env.clock * 5 + w.id) * 2.2 : 0;
+  if (tipsy && moving) dir = Math.sin(env.clock * 2.5 + w.id) > -0.6 ? dir : -dir;
+  withUnit(ctx, w.x + wobble / TILE, w.y, dir, p.bob + (tipsy ? Math.sin(env.clock * 5 + w.id) : 0), () => {
     load(ctx, w);
-    body(ctx, JOBS[w.job].color, skin, hair, p);
+    body(ctx, tunic, skin, hair, p);
     hat(ctx, w.job);
+    if (tipsy) { circle(ctx, 1.2, -12, 1.1, 'rgba(240,80,80,0.55)'); circle(ctx, -1.6, -12, 1.1, 'rgba(240,80,80,0.55)'); }
     if (dousing) bucket(ctx, env, (w.task as { phase: 'fetch' | 'carry' | 'throw' }).phase, w.id);
-    else if (working || !w.carrying) tool(ctx, w, p);
+    else if (rest?.activity === 'feed') { ellipse(ctx, -4.5, -6, 2.6, 1.8, '#b08a52'); }
+    else if (!rest && (working || !w.carrying)) tool(ctx, w, p);
   });
+  if (rest?.activity === 'chat') { const k = (env.clock * 0.5 + (w.id % 2) * 0.5) % 1; bubble(ctx, px + dir * 2, py - 20, '…', k < 0.45 ? 1 : 0); }
+  else if (rest?.activity === 'watch') { const k = (env.clock * 0.3 + w.id * 0.13) % 1; bubble(ctx, px + dir * 2, py - 20, '!', k < 0.25 ? 1 : 0); }
+  else if (tipsy) { const k = (env.clock * 0.4 + w.id * 0.21) % 1; bubble(ctx, px + dir * 2, py - 20, '~', k < 0.35 ? 1 : 0); }
 }
 
 // ---- townsfolk (ambient, not in the simulation) ---------------------------------

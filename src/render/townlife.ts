@@ -279,7 +279,7 @@ export class TownLife {
 
   private updateWalkers(s: GameState, env: Env, dt: number): void {
     const homes = s.buildings.filter((b) => b.built && (b.type === 'house' || b.type === 'hut')).length;
-    let want = env.dark < 0.5 && !env.night ? Math.min(4, Math.floor(homes / 2)) : 0;
+    let want = env.dark < 0.5 && !env.night ? Math.min(env.holiday ? 8 : 4, Math.floor(homes / 2) * (env.holiday ? 2 : 1)) : 0;
     if (env.rainy || env.snowy) want = Math.floor(want / 2);
     if (this.walkers.length < want && Math.random() < dt * 0.4) { const w = this.spawnWalker(s, false, 0.9 + Math.random() * 0.3); if (w) this.walkers.push(w); }
     for (const w of this.walkers) {

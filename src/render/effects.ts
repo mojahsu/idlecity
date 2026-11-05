@@ -150,7 +150,8 @@ export class Effects {
   private emitWork(s: GameState, env: Env, dt: number): void {
     const seen = new Set<number>();
     for (const w of s.workers) {
-      if (!w.task || !('phase' in w.task) || w.task.phase !== 'work') continue;
+      const feeding = w.task?.kind === 'rest' && w.task.activity === 'feed' && w.task.phase === 'do';
+      if (!feeding && (!w.task || !('phase' in w.task) || w.task.phase !== 'work')) continue;
       seen.add(w.id);
       const t = (this.workTimers.get(w.id) ?? 0.3) - dt;
       if (t > 0) { this.workTimers.set(w.id, t); continue; }
@@ -163,6 +164,7 @@ export class Effects {
   private workDebris(w: Worker, env: Env): void {
     const px = w.x * TILE + TILE / 2 + 6, py = w.y * TILE + TILE / 2;
     const task = w.task!;
+    if (task.kind === 'rest') { for (let i = 0; i < 3; i++) this.spawn('chip', px - 4, py - 6, (Math.random() - 0.3) * 30 + 10, -10 - Math.random() * 20, 0.6, 1, '#e8d080'); return; }
     const res = task.kind === 'gather' ? task.resource : task.kind === 'farm' ? 'food' : 'build';
     if (res === 'wood') for (let i = 0; i < 4; i++) this.spawn('chip', px, py - 2, (Math.random() - 0.3) * 40, -30 - Math.random() * 30, 0.6, 1.4, i % 2 ? '#d6a86c' : '#8a5a30');
     else if (res === 'stone' || res === 'iron') { for (let i = 0; i < 3; i++) this.spawn('chip', px, py, (Math.random() - 0.3) * 40, -20 - Math.random() * 30, 0.5, 1.2, '#a8a8a4'); this.spawn('spark', px, py - 2, (Math.random() - 0.5) * 50, -40, 0.25, 1.2, '#ffe080'); }
@@ -191,6 +193,9 @@ export class Effects {
       const f = farms[Math.floor(i / 2)];
       if (!f) return;
       c.timer -= dt;
+      // A worker scattering feed at this farm draws the flock over.
+      const feeder = s.workers.find((w) => w.task?.kind === 'rest' && w.task.activity === 'feed' && w.task.phase === 'do' && w.task.buildingId === f.id);
+      if (feeder && c.timer <= 0) { c.timer = 0.8 + Math.random(); c.tx = feeder.x + (i % 2 ? 0.45 : -0.45) + (Math.random() - 0.5) * 0.3; c.ty = feeder.y + 0.35 + Math.random() * 0.3; c.peck = 1; return; }
       if (c.timer <= 0) { c.timer = 1.5 + Math.random() * 3; c.tx = f.x + 0.5 + (Math.random() - 0.5) * 1.6; c.ty = f.y + 0.9 + (Math.random() - 0.3) * 1.2; c.peck = Math.random() < 0.6 ? 1.2 : 0; }
       const dx = c.tx - c.x, dy = c.ty - c.y, d = Math.hypot(dx, dy);
       if (d > 0.02 && env.dark < 0.7) { const sp = Math.min(d, 0.45 * dt); c.x += dx / d * sp; c.y += dy / d * sp; }
