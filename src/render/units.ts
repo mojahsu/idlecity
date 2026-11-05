@@ -6,6 +6,11 @@ import { TILE } from './constants';
 import { circle, ellipse, poly, rect, line, groundShadow, shade, rgba, hash, type Env } from './palette';
 import { drawMonster } from './monsters';
 
+/** People are drawn small relative to buildings; adventurers a touch larger than townsfolk. */
+export const WORKER_SCALE = 0.6;
+export const HERO_SCALE = 0.7;
+const OUTLINE = 'rgba(20,15,10,0.45)';
+
 const SKIN = ['#f2c9a0', '#e8b88a', '#c98f62', '#8d5a3b'];
 const HAIR = ['#2b1d12', '#5a3a1e', '#a8702a', '#d9b65a', '#8a8a8a', '#b03a2a'];
 
@@ -33,22 +38,23 @@ function body(ctx: CanvasRenderingContext2D, tunic: string, skin: string, hair: 
   if (!robe) {
     rect(ctx, -2.6 + legA * 0.3, -4, 2.2, 4, '#4a3a2a'); rect(ctx, 0.4 + legB * 0.3, -4, 2.2, 4, '#3f3222');
   }
-  // Tunic / robe.
-  if (robe) poly(ctx, [-4.5, 0, -3, -10, 3, -10, 4.5, 0], tunic);
-  else { rect(ctx, -3.2, -10.5, 6.4, 7, tunic); rect(ctx, -3.2, -5, 6.4, 1.2, shade(tunic, -0.35)); }
+  // Tunic / robe, with a thin outline so small figures still read against grass.
+  ctx.lineWidth = 1; ctx.strokeStyle = OUTLINE;
+  if (robe) { poly(ctx, [-4.5, 0, -3, -10, 3, -10, 4.5, 0], tunic); ctx.stroke(); }
+  else { rect(ctx, -3.2, -10.5, 6.4, 7, tunic); ctx.strokeRect(-3.2, -10.5, 6.4, 7); rect(ctx, -3.2, -5, 6.4, 1.2, shade(tunic, -0.35)); }
   rect(ctx, -3.2, -10.5, 6.4, 1.2, shade(tunic, 0.2));
   // Arms.
   rect(ctx, -4.4, -9.5, 1.6, 4.5, tunic); rect(ctx, 2.8, -9.5, 1.6, 4.5, tunic);
   // Head.
-  circle(ctx, 0, -13, 3.4, skin);
+  circle(ctx, 0, -13, 3.4, skin); ctx.strokeStyle = OUTLINE; ctx.lineWidth = 0.8; ctx.stroke();
   ctx.fillStyle = hair; ctx.beginPath(); ctx.arc(0, -13.6, 3.4, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
   rect(ctx, 1.2, -13.4, 0.9, 0.9, '#2a1a1a');
 }
 
-function withUnit(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number, bob: number, draw: () => void): void {
-  const px = x * TILE + TILE / 2, py = y * TILE + TILE / 2 + 7;
-  groundShadow(ctx, px, py + 0.5, 4.5, 2, 0.25);
-  ctx.save(); ctx.translate(px, py + bob); ctx.scale(dir, 1);
+function withUnit(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number, bob: number, draw: () => void, scale = WORKER_SCALE): void {
+  const px = x * TILE + TILE / 2, py = y * TILE + TILE / 2 + 5;
+  groundShadow(ctx, px, py + 0.5, 4.5 * scale + 1, 2 * scale + 0.5, 0.3);
+  ctx.save(); ctx.translate(px, py + bob * scale); ctx.scale(dir * scale, scale);
   draw();
   ctx.restore();
 }
@@ -161,10 +167,10 @@ export function drawClassFigure(ctx: CanvasRenderingContext2D, cls: AdventurerCl
 export function drawAdventurer(ctx: CanvasRenderingContext2D, a: Adventurer, env: Env, x = a.x, y = a.y, moving = a.path.length > 0): void {
   const p = pose(moving, false, env.clock, a.id);
   const dir = facing(a.x, a.path, a.id);
-  withUnit(ctx, x, y, dir, p.bob, () => classArt(ctx, a.cls, p, moving, env, a.level));
+  withUnit(ctx, x, y, dir, p.bob, () => classArt(ctx, a.cls, p, moving, env, a.level), HERO_SCALE);
   if (a.status === 'resting' && a.hp < a.maxHp * 0.6) {
-    const px = x * TILE + TILE / 2, py = y * TILE + TILE / 2 - 16;
-    rect(ctx, px - 6, py, 12, 2, '#3a1a1a'); rect(ctx, px - 6, py, 12 * (a.hp / a.maxHp), 2, '#7ad07a');
+    const px = x * TILE + TILE / 2, py = y * TILE + TILE / 2 - 12;
+    rect(ctx, px - 5, py, 10, 1.5, '#3a1a1a'); rect(ctx, px - 5, py, 10 * (a.hp / a.maxHp), 1.5, '#7ad07a');
   }
 }
 
@@ -176,16 +182,16 @@ export function drawParty(ctx: CanvasRenderingContext2D, s: GameState, p: Party,
   team.forEach((a, i) => {
     const ox = ((i % 2) * 0.42 - 0.21) * dir - i * 0.08 * dir, oy = Math.floor(i / 2) * 0.32 - 0.16;
     const pz = pose(true, false, env.clock, a.id);
-    withUnit(ctx, p.x + ox, p.y + oy, dir, pz.bob, () => classArt(ctx, a.cls, pz, true, env, a.level));
+    withUnit(ctx, p.x + ox, p.y + oy, dir, pz.bob, () => classArt(ctx, a.cls, pz, true, env, a.level), HERO_SCALE);
   });
   // Banner carried by the leader.
-  const bx = px + dir * 7, by = py - 4;
-  rect(ctx, bx - 0.6, by - 24, 1.2, 24, '#5a3a1e');
-  const wave = Math.sin(env.clock * 7 + p.id) * 1.5;
+  const bx = px + dir * 6, by = py - 2;
+  rect(ctx, bx - 0.5, by - 18, 1, 18, '#5a3a1e');
+  const wave = Math.sin(env.clock * 7 + p.id) * 1.2;
   const c = p.phase === 'return' ? '#f0d050' : '#8a3ad0';
-  poly(ctx, [bx, by - 24, bx + dir * 9, by - 22 + wave, bx + dir * 7, by - 19, bx + dir * 9, by - 16 + wave, bx, by - 15], c);
-  circle(ctx, bx + dir * 3.5, by - 19.5, 1.3, shade(c, 0.5));
-  if (p.phase === 'return') { ellipse(ctx, px - dir * 6, py + 2, 3.5, 2.8, '#b08a52'); circle(ctx, px - dir * 6, py + 1.5, 1, '#e0b040'); }
+  poly(ctx, [bx, by - 18, bx + dir * 7, by - 16.5 + wave, bx + dir * 5.5, by - 14, bx + dir * 7, by - 11.5 + wave, bx, by - 11], c);
+  circle(ctx, bx + dir * 2.8, by - 14.5, 1, shade(c, 0.5));
+  if (p.phase === 'return') { ellipse(ctx, px - dir * 5, py + 3, 2.6, 2, '#b08a52'); circle(ctx, px - dir * 5, py + 2.6, 0.8, '#e0b040'); }
 }
 
 // ---- raiders ---------------------------------------------------------------------
@@ -201,9 +207,9 @@ export function drawRaid(ctx: CanvasRenderingContext2D, r: Raid, env: Env): void
   const dir = facing(r.x, r.path, 7);
   for (let i = 0; i < n; i++) {
     const ox = ((i % 3) * 0.42 - 0.42) * dir, oy = Math.floor(i / 3) * 0.4 - 0.3;
-    withUnit(ctx, r.x + ox, r.y + oy, dir, Math.abs(Math.sin(env.clock * 10 + i)) * -1.5, () => raiderArt(ctx, r.monster, i, env, r.phase === 'fight'));
+    withUnit(ctx, r.x + ox, r.y + oy, dir, Math.abs(Math.sin(env.clock * 10 + i)) * -1.5, () => raiderArt(ctx, r.monster, i, env, r.phase === 'fight'), HERO_SCALE);
   }
-  const px = r.x * TILE + TILE / 2, py = r.y * TILE - 8;
+  const px = r.x * TILE + TILE / 2, py = r.y * TILE - 4;
   rect(ctx, px - 15, py - 1, 30, 4, 'rgba(0,0,0,0.6)');
   rect(ctx, px - 14, py, 28 * Math.max(0, r.hp / r.maxHp), 2, '#e04040');
 }

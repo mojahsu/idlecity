@@ -11,6 +11,8 @@ import { circle, ellipse, rect, line, poly, rgba, hash, type Env } from './palet
 
 export const PANEL_W = 270;
 export const PANEL_H = 104;
+/** The panel is laid out at PANEL_W x PANEL_H and drawn this many times larger. */
+export const PANEL_SCALE = 1.6;
 
 interface Num { x: number; y: number; text: string; color: string; ttl: number }
 interface Spark { x: number; y: number; vx: number; vy: number; ttl: number; color: string }
@@ -137,8 +139,9 @@ export class DungeonView {
     for (const p of s.parties) {
       const v = this.views.get(p.id);
       if (!v) continue;
-      const x = 8, y = H - 8 - PANEL_H - k * (PANEL_H + 6);
+      const x = 8, y = H - 8 - PANEL_H * PANEL_SCALE - k * (PANEL_H * PANEL_SCALE + 6);
       ctx.save(); ctx.translate(x + (v.shake > 0 ? Math.sin(env.clock * 70) * v.shake * 10 : 0), y + (v.shake > 0 ? Math.cos(env.clock * 90) * v.shake * 6 : 0));
+      ctx.scale(PANEL_SCALE, PANEL_SCALE);
       this.drawPanel(ctx, s, p, v, env);
       ctx.restore();
       k++;

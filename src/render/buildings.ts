@@ -9,8 +9,27 @@ import { PALETTE, circle, ellipse, poly, rect, line, roundRect, groundShadow, sh
 export interface LightSource { x: number; y: number; r: number; color: string; flicker: number }
 export interface SmokeSource { x: number; y: number; rate: number; color: string; size: number }
 
+/**
+ * Buildings are drawn at tile scale and then stretched upward from the ground
+ * line so people (drawn at ~60%) look about a quarter of a house tall.
+ * [horizontal, vertical] factors per type; flat things stay as they are.
+ */
+const STRETCH: Partial<Record<Building['type'], [number, number]>> = {
+  hut: [1.05, 1.35], house: [1.05, 1.5], lumberCamp: [1.05, 1.3], granary: [1.05, 1.5], tavern: [1.05, 1.55],
+  blacksmith: [1.05, 1.45], market: [1.05, 1.3], chapel: [1.05, 1.5], guildHall: [1.05, 1.55], walls: [1, 1.5],
+  keep: [1.08, 1.5], well: [1, 1.25], mine: [1, 1.2], quarry: [1, 1.15],
+};
+
+function stretchOf(type: Building['type']): [number, number] { return STRETCH[type] ?? [1, 1]; }
+
+/** Map a y drawn in tile space to where the stretch puts it on screen. */
+function stretchY(type: Building['type'], py: number, y: number): number {
+  const ground = py + TILE;
+  return ground - (ground - y) * stretchOf(type)[1];
+}
+
 /** Full height above the tile top a building may occupy (used for the build reveal). */
-const REVEAL_H = TILE + 34;
+const REVEAL_H = (TILE + 34) * 1.55;
 
 export function drawBuilding(ctx: CanvasRenderingContext2D, s: GameState, b: Building, env: Env): void {
   const px = b.x * TILE, py = b.y * TILE;
@@ -121,6 +140,15 @@ function torch(ctx: CanvasRenderingContext2D, x: number, y: number, env: Env): v
 // ---- per-type art -----------------------------------------------------------
 
 function drawBuilt(ctx: CanvasRenderingContext2D, s: GameState, b: Building, env: Env, px: number, py: number): void {
+  const [sx, sy] = stretchOf(b.type);
+  if (sx === 1 && sy === 1) { drawBuiltArt(ctx, s, b, env, px, py); return; }
+  ctx.save();
+  ctx.translate(px + TILE / 2, py + TILE); ctx.scale(sx, sy); ctx.translate(-(px + TILE / 2), -(py + TILE));
+  drawBuiltArt(ctx, s, b, env, px, py);
+  ctx.restore();
+}
+
+function drawBuiltArt(ctx: CanvasRenderingContext2D, s: GameState, b: Building, env: Env, px: number, py: number): void {
   const def = BUILDINGS[b.type];
   const cx = px + TILE / 2, cy = py + TILE / 2;
   const bottom = py + TILE - 2;
@@ -386,14 +414,15 @@ export function lightSources(s: GameState, env: Env): LightSource[] {
   for (const b of s.buildings) {
     if (!b.built) continue;
     const def = BUILDINGS[b.type];
-    const cx = b.x * TILE + TILE / 2, cy = b.y * TILE + TILE / 2;
+    const px = b.x * TILE, py = b.y * TILE;
+    const cx = px + TILE / 2, cy = stretchY(b.type, py, py + TILE / 2);
     if (b.type === 'campfire') out.push({ x: cx, y: cy, r: 46, color: '#ffa040', flicker: 0.12 });
-    else if (b.type === 'blacksmith') out.push({ x: cx - 3, y: cy + 8, r: 24, color: '#ff8030', flicker: 0.2 });
-    else if (b.type === 'keep') out.push({ x: cx, y: cy, r: 44, color: '#ffc070', flicker: 0.05 });
-    else if (b.type === 'walls') out.push({ x: b.x * TILE + TILE - 4, y: cy - 8, r: 18, color: '#ffa040', flicker: 0.15 });
-    else if (b.type === 'mine') out.push({ x: cx, y: cy - 1, r: 12, color: '#ffc050', flicker: 0.1 });
-    else if (b.type === 'chapel') out.push({ x: cx, y: cy, r: 30, color: '#ffc080', flicker: 0.03 });
-    else if (def.light) out.push({ x: cx, y: cy, r: b.type === 'tavern' || b.type === 'guildHall' || b.type === 'market' ? 30 : 24, color: '#ffd080', flicker: 0.04 });
+    else if (b.type === 'blacksmith') out.push({ x: cx - 3, y: py + TILE - 4, r: 26, color: '#ff8030', flicker: 0.2 });
+    else if (b.type === 'keep') out.push({ x: cx, y: cy, r: 50, color: '#ffc070', flicker: 0.05 });
+    else if (b.type === 'walls') out.push({ x: px + TILE - 4, y: stretchY(b.type, py, py + 2), r: 20, color: '#ffa040', flicker: 0.15 });
+    else if (b.type === 'mine') out.push({ x: cx, y: stretchY(b.type, py, py + TILE / 2 - 1), r: 12, color: '#ffc050', flicker: 0.1 });
+    else if (b.type === 'chapel') out.push({ x: cx, y: cy, r: 34, color: '#ffc080', flicker: 0.03 });
+    else if (def.light) out.push({ x: cx, y: cy, r: b.type === 'tavern' || b.type === 'guildHall' || b.type === 'market' ? 34 : 28, color: '#ffd080', flicker: 0.04 });
   }
   for (const d of s.dungeons) {
     if (d.id === 'darkTower' && d.unlocked) out.push({ x: d.x * TILE + TILE / 2, y: d.y * TILE + TILE / 2 - 6, r: 34, color: s.victory ? '#f0d050' : '#a040e0', flicker: 0.25 });
@@ -411,11 +440,11 @@ export function smokeSources(s: GameState, env: Env): SmokeSource[] {
     const px = b.x * TILE, py = b.y * TILE;
     switch (b.type) {
       case 'campfire': out.push({ x: px + TILE / 2, y: py + TILE / 2 - 8, rate: 2.5, color: '#d8d0c8', size: 2.2 }); break;
-      case 'house': out.push({ x: px + TILE - 6, y: py - 4, rate: cold ? 1.2 : 0.5, color: '#e8e4e0', size: 1.6 }); break;
-      case 'hut': if (cold) out.push({ x: px + TILE / 2 + 4, y: py - 2, rate: 0.6, color: '#e8e4e0', size: 1.3 }); break;
-      case 'tavern': out.push({ x: px + 6, y: py - 6, rate: 1.6, color: '#ece8e4', size: 1.8 }); break;
-      case 'guildHall': out.push({ x: px + 6, y: py - 5, rate: cold ? 1.2 : 0.6, color: '#e8e4e0', size: 1.6 }); break;
-      case 'blacksmith': out.push({ x: px + TILE - 6, y: py - 2, rate: 3, color: '#55504e', size: 2 }); break;
+      case 'house': out.push({ x: px + TILE - 6, y: stretchY(b.type, py, py - 4), rate: cold ? 1.2 : 0.5, color: '#e8e4e0', size: 1.6 }); break;
+      case 'hut': if (cold) out.push({ x: px + TILE / 2 + 4, y: stretchY(b.type, py, py - 2), rate: 0.6, color: '#e8e4e0', size: 1.3 }); break;
+      case 'tavern': out.push({ x: px + 6, y: stretchY(b.type, py, py - 6), rate: 1.6, color: '#ece8e4', size: 1.8 }); break;
+      case 'guildHall': out.push({ x: px + 6, y: stretchY(b.type, py, py - 5), rate: cold ? 1.2 : 0.6, color: '#e8e4e0', size: 1.6 }); break;
+      case 'blacksmith': out.push({ x: px + TILE - 6, y: stretchY(b.type, py, py - 2), rate: 3, color: '#55504e', size: 2 }); break;
     }
   }
   return out;
