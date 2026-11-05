@@ -100,6 +100,10 @@ export interface Adventurer {
   partyId: number;
   kills: number;
   bossKills: number;
+  /** What a resting adventurer is up to in town. Optional for old saves. */
+  pastime?: 'wander' | 'train' | 'drink' | 'sit' | 'sally';
+  /** Seconds left of the current pastime. */
+  pastimeTimer?: number;
 }
 
 export type DungeonId = 'goblinCave' | 'ancientRuins' | 'darkTower';
@@ -155,6 +159,8 @@ export interface Raid {
   path: Point[];
   phase: 'march' | 'fight';
   timer: number;
+  /** Seconds until the next exchange of blows. Optional for old saves. */
+  roundTimer?: number;
 }
 
 /** A merchant caravan visiting the market. */

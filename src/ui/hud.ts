@@ -151,6 +151,8 @@ export class Hud {
     const list = [...s.adventurers].sort((a, b) => (a.status === 'dead' ? 1 : 0) - (b.status === 'dead' ? 1 : 0) || b.level - a.level).slice(0, 14);
     const html = list.map((a) => {
       let status = t(`ui.${a.status}`);
+      if (a.status === 'resting' && a.pastime === 'sally') status = t('ui.defending');
+      else if (a.status === 'resting' && a.pastime === 'train') status = t('ui.training');
       if (a.status === 'questing') {
         const p = s.parties.find((x) => x.id === a.partyId);
         if (p?.encounter) status = t('ui.fighting', { monster: `monster.${p.encounter.monster}` });

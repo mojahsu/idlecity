@@ -12,6 +12,8 @@
   "ui.events": "事件",
   "ui.party": "隊伍",
   "ui.resting": "休息中",
+  "ui.defending": "保衛城鎮中！",
+  "ui.training": "訓練中",
   "ui.questing": "探索{dungeon} 第 {floor} 層",
   "ui.fighting": "與{monster}戰鬥中",
   "ui.dead": "已陣亡",

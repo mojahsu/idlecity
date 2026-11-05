@@ -18,6 +18,14 @@ export const WORKER_SPEED = 1.4;      // tiles per second: a stroll you can foll
 export const PARTY_SPEED = 2.2;
 export const RAID_SPEED = 1.1;
 
+// Fights are paced to be watched: one exchange of blows every FIGHT_ROUND seconds.
+export const FIGHT_ROUND = 2.2;
+/** Rewards per kill are scaled by this so slower fights keep xp and gold per hour roughly where they were. */
+export const FIGHT_REWARD = 1.5;
+export const RAID_ROUND = 2;
+export const RAID_TIME_LIMIT = 90;     // seconds of fighting before the raiders break through
+export const EXPLORE_TIME = 5;
+
 export const GATHER_TIME = 4;         // seconds per gathering action
 export const GATHER_AMOUNT = 5;
 export const FARM_TIME = 8;

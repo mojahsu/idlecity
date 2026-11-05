@@ -7,10 +7,8 @@ import { chance, pick, random } from './rng';
 import { findBuildSpot, findPath, moveAlong } from './world';
 import { countBuildings, placeBuilding } from './buildings';
 import { chronicle, log } from './log';
-import { PARTY_SPEED } from './constants';
+import { EXPLORE_TIME, FIGHT_REWARD, FIGHT_ROUND, PARTY_SPEED } from './constants';
 import { gainXp, tavernPos } from './adventurers';
-
-const EXPLORE_TIME = 4;
 
 function members(s: GameState, p: Party): Adventurer[] {
   return p.memberIds.map((id) => s.adventurers.find((a) => a.id === id)!).filter((a) => a && a.status === 'questing');
@@ -38,7 +36,7 @@ function updateParty(s: GameState, p: Party, dt: number): void {
       return;
     case 'fight':
       p.timer += dt;
-      while (p.timer >= 1) { p.timer -= 1; fightRound(s, p); if (p.phase !== 'fight') return; }
+      while (p.timer >= FIGHT_ROUND) { p.timer -= FIGHT_ROUND; fightRound(s, p); if (p.phase !== 'fight') return; }
       return;
     case 'return':
       if (moveAlong(p, PARTY_SPEED, dt)) arriveHome(s, p);
@@ -133,10 +131,10 @@ function onMonsterSlain(s: GameState, p: Party): void {
   const dungeon = s.dungeons.find((d) => d.id === p.dungeon)!;
   const team = members(s, p);
   s.stats.monstersSlain++;
-  p.loot.gold += m.gold * 0.5 * (0.8 + random(s) * 0.4);
+  p.loot.gold += m.gold * 0.5 * FIGHT_REWARD * (0.8 + random(s) * 0.4);
   p.loot.iron += m.iron ?? 0;
   if (chance(s, 0.15)) { const g = 10 + p.floor * 4; p.loot.gold += g; s.fx.push({ kind: 'treasure', partyId: p.id, gold: g }); log(s, 'adventure', 'log.treasure', { leader: team[0].name }); }
-  for (const a of team) { a.kills++; gainXp(s, a, m.xp / team.length + p.floor); }
+  for (const a of team) { a.kills++; gainXp(s, a, (m.xp / team.length + p.floor) * FIGHT_REWARD); }
   if (p.floor > dungeon.deepestFloor) dungeon.deepestFloor = p.floor;
 
   if (e.boss) {

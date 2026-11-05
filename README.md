@@ -190,9 +190,18 @@ tests/        bun tests
     (a 12 ms slice of simulation per timer tick, `runCatchUp` in main.ts) with a "catching up" toast,
     so the town appears at once instead of the page freezing.
 
+17. Fights are paced to be watched. Underground, blows are exchanged every
+    `FIGHT_ROUND` seconds (rewards per kill are scaled by the same factor so
+    xp and gold per hour are unchanged). Raids are fought in rounds too: only
+    adventurers who have run out to the raiders (`pastime: 'sally'`) deal
+    damage, walls and townsfolk count for a little, and raiders scale with the
+    heroes' level so a raid lasts twenty to forty seconds. Between expeditions
+    adventurers spar at the guild's training posts, drink, sit by the fire and
+    wander the streets instead of standing still.
+
 Rough pacing at 1x: hamlet in minutes, village ~15 min, town ~40 min, city ~2 h,
 first dungeon ~45 min, Dark Tower after the Keep (~3 h), Demon Lord falls
-around hour 5–7 with a few deaths (0–5 over 10 h on eight seeds).
+around hour 3–5 with a few deaths (0–2 over 10 h on eight seeds).
 Parties never randomly revisit a dungeon above their level, turn back at a
 boss's door when under-levelled (`daresBossFloor`), and break off a boss
 fight as soon as anyone is badly hurt; bosses keep their wounds between

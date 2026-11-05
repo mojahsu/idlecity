@@ -17,6 +17,8 @@ import { Spotlight } from './spotlight';
 import { Lighting, drawVignette } from './lighting';
 import { DungeonView } from './dungeonView';
 import { isIndoors } from '../sim/workers';
+import { trainingPosts } from '../sim/adventurers';
+import { drawTrainingPost } from './units/trainingPost';
 
 export { TILE };
 
@@ -84,9 +86,11 @@ export class Renderer {
     lampPosts(s).forEach((l, i) => items.push({ y: l.y + 0.3, draw: (c, e) => drawLampPost(c, l.x, l.y, e, i) }));
     for (const w of s.workers) if (!isIndoors(s, w)) items.push({ y: w.y + 0.8, draw: (c, e) => drawWorker(c, w, e) });
     if (s.caravan) { const cv = s.caravan; items.push({ y: cv.y + 0.9, draw: (c, e) => drawCaravan(c, cv, e) }); }
-    for (const a of s.adventurers) if (a.status === 'resting' || a.status === 'arriving') items.push({ y: a.y + 0.8, draw: (c, e) => drawAdventurer(c, a, e, s.equipment) });
+    const raidPos = s.raid && s.raid.phase === 'fight' ? { x: s.raid.x, y: s.raid.y } : null;
+    for (const a of s.adventurers) if (a.status === 'resting' || a.status === 'arriving') items.push({ y: a.y + 0.8, draw: (c, e) => drawAdventurer(c, a, e, s.equipment, a.x, a.y, a.path.length > 0, raidPos) });
+    for (const p of trainingPosts(s)) items.push({ y: p.y + 0.7, draw: (c, e) => drawTrainingPost(c, p.x, p.y, e) });
     for (const p of s.parties) if (p.phase === 'travel' || p.phase === 'return') items.push({ y: p.y + 0.9, draw: (c, e) => drawParty(c, s, p, e) });
-    if (s.raid) { const r = s.raid; items.push({ y: r.y + 0.9, draw: (c, e) => drawRaid(c, r, e) }); }
+    if (s.raid) { const r = s.raid; const defenders = s.adventurers.filter((a) => a.status === 'resting' && a.pastime === 'sally').map((a) => ({ x: a.x, y: a.y })); items.push({ y: r.y + 0.9, draw: (c, e) => drawRaid(c, r, e, defenders) }); }
     for (const g of this.effects.groundActors()) items.push(g);
     for (const g of this.townLife.groundActors(s, env)) items.push(g);
     items.sort((a, b) => a.y - b.y);

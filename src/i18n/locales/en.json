@@ -12,6 +12,8 @@
   "ui.events": "Events",
   "ui.party": "Party",
   "ui.resting": "Resting",
+  "ui.defending": "Defending the town!",
+  "ui.training": "Training",
   "ui.questing": "In {dungeon}, floor {floor}",
   "ui.fighting": "Fighting {monster}",
   "ui.dead": "Fallen",
