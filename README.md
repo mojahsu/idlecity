@@ -73,7 +73,8 @@ src/
                     funerals, weddings, the harvest festival, level-up stars,
                     forge sparks, wolves, deer, a fishing boat, the hero statue
     lighting.ts     Night darkness with light pools, dawn/dusk tint, fog, vignette
-    dungeonView.ts  Inset panel showing a party fighting floor by floor
+    dungeonView.ts  Inset panel showing a party fighting floor by floor: parallax
+                    backdrops per dungeon, floor reflections, banners, chests
   ui/         HUD (DOM), stylesheet
   platform/   Save storage interface + localStorage impl, save/load, offline progress
   main.ts     Browser entry: game loop, autosave, hotkeys

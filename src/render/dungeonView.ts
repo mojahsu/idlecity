@@ -58,6 +58,10 @@ interface ViewState {
   bossIntro: number;
   /** A chest popping open. */
   chest: number;
+  /** Dust hanging in the air. */
+  motes: { x: number; y: number; vx: number; vy: number; ttl: number; life: number }[];
+  /** Puffs of dust kicked up at the feet. */
+  puffs: { x: number; y: number; ttl: number }[];
 }
 
 export class DungeonView {
@@ -69,7 +73,7 @@ export class DungeonView {
       if (p.phase !== 'explore' && p.phase !== 'fight') continue;
       seen.add(p.id);
       let v = this.views.get(p.id);
-      if (!v) { v = { lastHp: new Map(), lastEncHp: 0, hadEncounter: false, monster: '', boss: false, floor: p.floor, attacker: 0, heroLunge: 0, heroIdx: 0, monsterLunge: 0, monsterHurt: 0, heroHurt: new Map(), heal: new Map(), death: 0, deathMonster: '', deathBoss: false, floorFlash: 0.8, shake: 0, nums: [], sparks: [], scroll: 0, shots: [], taunt: 0, tauntIdx: 0, frozen: 0, beam: 0, beamIdx: 0, block: 0, blockIdx: 0, revive: 0, reviveIdx: 0, casting: 0, castIdx: 0, banner: null, bossIntro: 0, chest: 0 }; this.views.set(p.id, v); }
+      if (!v) { v = { lastHp: new Map(), lastEncHp: 0, hadEncounter: false, monster: '', boss: false, floor: p.floor, attacker: 0, heroLunge: 0, heroIdx: 0, monsterLunge: 0, monsterHurt: 0, heroHurt: new Map(), heal: new Map(), death: 0, deathMonster: '', deathBoss: false, floorFlash: 0.8, shake: 0, nums: [], sparks: [], scroll: 0, shots: [], taunt: 0, tauntIdx: 0, frozen: 0, beam: 0, beamIdx: 0, block: 0, blockIdx: 0, revive: 0, reviveIdx: 0, casting: 0, castIdx: 0, banner: null, bossIntro: 0, chest: 0, motes: [], puffs: [] }; this.views.set(p.id, v); }
       this.step(s, p, v, env, dt);
     }
     for (const k of [...this.views.keys()]) if (!seen.has(k)) this.views.delete(k);
@@ -111,6 +115,7 @@ export class DungeonView {
       const dmg = Math.round(v.lastEncHp - e.hp);
       v.heroIdx = team.length ? v.attacker % team.length : 0; v.attacker++;
       v.heroLunge = 0.35; v.monsterHurt = 0.25;
+      v.puffs.push({ x: heroX(v.heroIdx) - 4, y: floorY + 1, ttl: 0.45 });
       v.nums.push({ x: PANEL_W * 0.74 + (Math.random() - 0.5) * 12, y: PANEL_H - 34 - monsterHeight(e.monster) * (e.boss ? 1.5 : 1), text: `-${dmg}`, color: '#ffe080', ttl: 1 });
       this.burst(v, PANEL_W * 0.72, PANEL_H - 30 - monsterHeight(e.monster) * 0.5, '#ffe080', 6);
       if (e.boss) v.shake = 0.15;
@@ -120,7 +125,7 @@ export class DungeonView {
     team.forEach((a, i) => {
       const last = v.lastHp.get(a.id);
       if (last !== undefined) {
-        if (a.hp < last - 0.01) { v.monsterLunge = 0.35; v.heroHurt.set(a.id, 0.3); v.nums.push({ x: heroX(i), y: PANEL_H - 44, text: `-${Math.round(last - a.hp)}`, color: '#ff7070', ttl: 1 }); if (a.hp <= 1) v.shake = Math.max(v.shake, 0.2); }
+        if (a.hp < last - 0.01) { v.monsterLunge = 0.35; v.heroHurt.set(a.id, 0.3); v.puffs.push({ x: mx + 6, y: floorY + 1, ttl: 0.45 }); v.nums.push({ x: heroX(i), y: PANEL_H - 44, text: `-${Math.round(last - a.hp)}`, color: '#ff7070', ttl: 1 }); if (a.hp <= 1) v.shake = Math.max(v.shake, 0.2); }
         else if (a.hp > last + 0.01 && a.hp < a.maxHp) { v.heal.set(a.id, 0.5); if (a.hp - last > 1.5) v.nums.push({ x: heroX(i), y: PANEL_H - 46, text: `+${Math.round(a.hp - last)}`, color: '#90f090', ttl: 0.9 }); }
       }
       v.lastHp.set(a.id, a.hp);
@@ -139,6 +144,9 @@ export class DungeonView {
     for (const [k, val] of v.heal) { if (val - dt <= 0) v.heal.delete(k); else v.heal.set(k, val - dt); }
     v.nums = v.nums.filter((n) => (n.ttl -= dt) > 0); for (const n of v.nums) n.y -= 18 * dt;
     v.sparks = v.sparks.filter((sp) => (sp.ttl -= dt) > 0); for (const sp of v.sparks) { sp.x += sp.vx * dt; sp.y += sp.vy * dt; sp.vy += 60 * dt; }
+    v.puffs = v.puffs.filter((q) => (q.ttl -= dt) > 0);
+    if (v.motes.length < 14 && Math.random() < dt * 3) v.motes.push({ x: Math.random() * PANEL_W, y: 6 + Math.random() * (floorY - 10), vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 2, ttl: 4 + Math.random() * 4, life: 8 });
+    v.motes = v.motes.filter((m) => (m.ttl -= dt) > 0); for (const m of v.motes) { m.x += (m.vx - (p.phase === 'explore' ? 10 : 0)) * dt; m.y += m.vy * dt + Math.sin(env.clock + m.x) * 0.3 * dt; }
     void env;
   }
 
@@ -167,56 +175,55 @@ export class DungeonView {
     const e = p.encounter;
     const floorY = PANEL_H - 22;
     // Frame.
-    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.roundRect(-3, -3, PANEL_W + 6, PANEL_H + 6, 6); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.roundRect(-4, -4, PANEL_W + 8, PANEL_H + 8, 7); ctx.fill();
     ctx.save(); ctx.beginPath(); ctx.roundRect(0, 0, PANEL_W, PANEL_H, 4); ctx.clip();
     this.drawBackdrop(ctx, p.dungeon, v, env, floorY);
-    // Heroes.
+    // Dust in the air.
+    for (const m of v.motes) { const a = Math.min(1, m.ttl, m.life - m.ttl) * 0.5; circle(ctx, m.x, m.y, 0.9, `rgba(255,240,200,${a})`); }
+    {
+      const mx0 = PANEL_W * 0.74;
+      // Mirror image on the polished floor (strongest in the tower, faint in the cave).
+      const mirrorA = p.dungeon === 'darkTower' ? 0.22 : p.dungeon === 'ancientRuins' ? 0.12 : 0.07;
+      ctx.save(); ctx.beginPath(); ctx.rect(0, floorY + 1, PANEL_W, PANEL_H - floorY); ctx.clip();
+      ctx.translate(0, 2 * floorY + 3); ctx.scale(1, -0.55); ctx.globalAlpha = mirrorA;
+      this.drawFigures(ctx, s, p, v, env, floorY, team, mx0);
+      ctx.restore();
+      // Dust puffs at the feet.
+      for (const q of v.puffs) { const k = 1 - q.ttl / 0.45; ctx.globalAlpha = (1 - k) * 0.5; circle(ctx, q.x - k * 6, q.y - k * 3, 2 + k * 5, '#c8b8a0'); circle(ctx, q.x + k * 5, q.y - k * 2, 1.5 + k * 4, '#c8b8a0'); }
+      ctx.globalAlpha = 1;
+      if (e && e.boss) {
+        // Boss aura: a pulsing pool of light on the floor and embers drifting up.
+        const col = e.monster === 'demonLord' ? '#ff3060' : e.monster === 'dragon' ? '#ff8030' : '#c060ff';
+        const pulse = 0.6 + 0.4 * Math.sin(env.clock * 4);
+        const g = ctx.createRadialGradient(mx0, floorY, 0, mx0, floorY, 34); g.addColorStop(0, rgba(col, 0.35 * pulse)); g.addColorStop(1, rgba(col, 0));
+        ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(mx0, floorY + 1, 34, 10, 0, 0, Math.PI * 2); ctx.fill();
+        for (let i = 0; i < 7; i++) { const tt = (env.clock * 0.6 + i * 0.37) % 1; circle(ctx, mx0 - 16 + ((i * 53) % 32) + Math.sin(env.clock * 2 + i) * 3, floorY - tt * 46, 1.2 * (1 - tt) + 0.3, rgba(col, 0.8 * (1 - tt))); }
+      }
+      this.drawFigures(ctx, s, p, v, env, floorY, team, mx0);
+    }
+    // Hero HP bars and names (figures are drawn by drawFigures).
     team.forEach((a, i) => {
-      const hx = heroX(i), lunge = v.heroIdx === i && v.heroLunge > 0 ? Math.sin((v.heroLunge / 0.35) * Math.PI) * 22 : 0;
-      const hurt = v.heroHurt.get(a.id) ?? 0, heal = v.heal.get(a.id) ?? 0;
-      ellipse(ctx, hx, floorY + 1, 6, 2.5, 'rgba(0,0,0,0.4)');
-      if (heal > 0) circle(ctx, hx, floorY - 10, 9 * (1 - heal), rgba('#90f090', heal * 0.5));
-      drawClassFigure(ctx, a.cls, a.level, env, p.phase === 'explore', hx + lunge, floorY, 1, 1.35, hurt > 0, s.equipment);
-      if (lunge > 8) { ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(hx + lunge + 10, floorY - 14, 8, -1.2, 0.6); ctx.stroke(); }
-      if (v.taunt > 0 && v.tauntIdx === i) { ctx.font = 'bold 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#ff6060'; ctx.fillText('!', hx, floorY - 34 - Math.sin(v.taunt * 12) * 2); }
-      if (v.beam > 0 && v.beamIdx === i) { const g = ctx.createLinearGradient(0, 0, 0, floorY); g.addColorStop(0, `rgba(255,240,160,${0.7 * v.beam})`); g.addColorStop(1, `rgba(255,240,160,${0.15 * v.beam})`); ctx.fillStyle = g; ctx.fillRect(hx - 7, 0, 14, floorY); for (let k = 0; k < 4; k++) circle(ctx, hx - 8 + k * 5.5, floorY - 8 - ((env.clock * 40 + k * 9) % 30), 1.2, rgba('#fff8c0', v.beam)); }
-      if (v.block > 0 && v.blockIdx === i) { ctx.strokeStyle = `rgba(200,220,255,${v.block * 2})`; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(hx + 9, floorY - 12, 9, -1.4, 1.4); ctx.stroke(); }
-      if (v.revive > 0 && v.reviveIdx === i) { circle(ctx, hx, floorY - 12, 16 * (1.2 - v.revive) + 4, rgba('#ffffff', v.revive * 0.5)); }
-      if (v.casting > 0 && v.castIdx === i) circle(ctx, hx + 8, floorY - 18, 5, rgba('#ffa040', v.casting * 2));
-      // HP bar + name.
-      const w = 24, hp = Math.max(0, a.hp / a.maxHp);
-      rect(ctx, hx - w / 2, floorY + 6, w, 3, 'rgba(0,0,0,0.6)'); rect(ctx, hx - w / 2, floorY + 6, w * hp, 3, hp > 0.5 ? '#7ad07a' : hp > 0.25 ? '#e0b040' : '#e05050');
+      const hx = heroX(i);
+      const w = 26, hp = Math.max(0, a.hp / a.maxHp);
+      hpBar(ctx, hx - w / 2, floorY + 6, w, 3.5, hp, hp > 0.5 ? '#7ad07a' : hp > 0.25 ? '#e0b040' : '#e05050');
       ctx.textAlign = 'center'; ctx.fillStyle = CLASSES[a.cls].color;
-      fitText(ctx, a.name, hx, floorY + 17, HERO_GAP - 4);
+      fitText(ctx, a.name, hx, floorY + 18, HERO_GAP - 4);
     });
     // Monster.
     const mx = PANEL_W * 0.74;
     if (v.chest > 0) this.drawChest(ctx, mx - 30, floorY, v.chest, env);
     if (e) {
-      const sc = e.boss ? (e.monster === 'demonLord' ? 1.8 : 1.5) : 1.15;
-      const lunge = v.monsterLunge > 0 ? Math.sin((v.monsterLunge / 0.35) * Math.PI) : 0;
-      ellipse(ctx, mx, floorY + 1, 9 * sc, 3 * sc, 'rgba(0,0,0,0.45)');
-      ctx.save(); ctx.translate(mx, floorY); ctx.scale(-1, 1);
-      drawMonster(ctx, e.monster, env, sc, v.monsterHurt, v.frozen > 0 ? 0 : lunge);
-      ctx.restore();
-      if (v.frozen > 0) {
-        const h = monsterHeight(e.monster) * sc, a = Math.min(1, v.frozen * 2);
-        ctx.fillStyle = `rgba(140,210,255,${0.35 * a})`; ctx.beginPath(); ctx.ellipse(mx, floorY - h / 2, 12 * sc, h / 2 + 4, 0, 0, Math.PI * 2); ctx.fill();
-        for (let k = 0; k < 5; k++) { const cx = mx - 10 * sc + k * 5 * sc, cy = floorY - h * 0.2 - (k % 2) * h * 0.5; poly(ctx, [cx, cy - 5, cx + 2.5, cy, cx, cy + 3, cx - 2.5, cy], rgba('#dff4ff', 0.9 * a)); }
-      }
-      // HP bar with name.
+      // HP bar with name; bosses get a wide segmented bar.
       const w = e.boss ? 120 : 60, hp = Math.max(0, e.hp / e.maxHp);
       const bx = PANEL_W - 8 - w, by = 8;
-      rect(ctx, bx, by, w, e.boss ? 6 : 4, 'rgba(0,0,0,0.65)');
-      rect(ctx, bx, by, w * hp, e.boss ? 6 : 4, e.boss ? '#e040c0' : '#e04040');
-      ctx.font = `${e.boss ? 'bold 10px' : '9px'} system-ui, sans-serif`; ctx.textAlign = 'right'; ctx.fillStyle = e.boss ? '#ffb0f0' : '#f0e0e0';
-      ctx.fillText(t(`monster.${e.monster}`), PANEL_W - 8, by + (e.boss ? 18 : 15));
+      hpBar(ctx, bx, by, w, e.boss ? 6 : 4, hp, e.boss ? '#e040c0' : '#e04040');
+      if (e.boss) for (let k = 1; k < 4; k++) rect(ctx, bx + w * k / 4, by, 1, 6, 'rgba(0,0,0,0.5)');
+      ctx.font = `${e.boss ? 'bold 10px' : '9px'} system-ui, sans-serif`; ctx.textAlign = 'right';
+      ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(t(`monster.${e.monster}`), PANEL_W - 8, by + (e.boss ? 18 : 15));
+      ctx.fillStyle = e.boss ? '#ffb0f0' : '#f0e0e0'; ctx.fillText(t(`monster.${e.monster}`), PANEL_W - 8, by + (e.boss ? 18 : 15));
     } else if (v.death > 0) {
-      // Slain monster fading away.
-      ctx.save(); ctx.translate(mx, floorY); ctx.scale(-1, 1); ctx.globalAlpha = v.death; ctx.translate(0, (0.9 - v.death) * 10);
-      drawMonster(ctx, v.deathMonster, env, v.deathBoss ? 1.5 : 1.15, 1);
-      ctx.restore();
-      ctx.font = 'bold 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = `rgba(255,224,128,${Math.min(1, v.death * 2)})`; ctx.fillText(t('ui.slain'), mx, floorY - 30 - (0.9 - v.death) * 10);
+      ctx.font = 'bold 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(t('ui.slain'), mx, floorY - 30 - (0.9 - v.death) * 10);
+      ctx.fillStyle = `rgba(255,224,128,${Math.min(1, v.death * 2)})`; ctx.fillText(t('ui.slain'), mx, floorY - 30 - (0.9 - v.death) * 10);
     } else if (p.phase === 'explore') {
       ctx.font = '9px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,0.7)';
       const dots = '.'.repeat(1 + Math.floor(env.clock * 2) % 3);
@@ -265,7 +272,53 @@ export class DungeonView {
       ctx.fillStyle = b.color; ctx.fillText(b.text, PANEL_W / 2 + slide, PANEL_H / 2 + (b.big ? 5 : 4));
       ctx.globalAlpha = 1;
     }
+    // Inner vignette so the edges fall into darkness.
+    const vg = ctx.createRadialGradient(PANEL_W / 2, PANEL_H / 2, PANEL_H * 0.5, PANEL_W / 2, PANEL_H / 2, PANEL_W * 0.62);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, PANEL_W, PANEL_H);
     ctx.restore();
+    // Ornate frame: double line with gold corner studs.
+    ctx.strokeStyle = '#6a5030'; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(-1, -1, PANEL_W + 2, PANEL_H + 2, 4); ctx.stroke();
+    ctx.strokeStyle = '#c8a050'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.roundRect(-2.5, -2.5, PANEL_W + 5, PANEL_H + 5, 5); ctx.stroke();
+    for (const [cx, cy] of [[0, 0], [PANEL_W, 0], [0, PANEL_H], [PANEL_W, PANEL_H]]) { circle(ctx, cx, cy, 2.6, '#8a6a30'); circle(ctx, cx - 0.6, cy - 0.6, 1.3, '#f0d080'); }
+  }
+
+  /** Heroes and the monster (figures only). Called twice: once mirrored for the floor reflection. */
+  private drawFigures(ctx: CanvasRenderingContext2D, s: GameState, p: Party, v: ViewState, env: Env, floorY: number, team: Adventurer[], mx: number): void {
+    const e = p.encounter;
+    team.forEach((a, i) => {
+      const hx = heroX(i), lunge = v.heroIdx === i && v.heroLunge > 0 ? Math.sin((v.heroLunge / 0.35) * Math.PI) * 22 : 0;
+      const hurt = v.heroHurt.get(a.id) ?? 0, heal = v.heal.get(a.id) ?? 0;
+      ellipse(ctx, hx + lunge * 0.5, floorY + 1, 6, 2.5, 'rgba(0,0,0,0.4)');
+      if (heal > 0) circle(ctx, hx, floorY - 10, 9 * (1 - heal), rgba('#90f090', heal * 0.5));
+      if (lunge > 4) { const ga = ctx.globalAlpha; ctx.globalAlpha = ga * 0.3; drawClassFigure(ctx, a.cls, a.level, env, false, hx + lunge * 0.45, floorY, 1, 1.35, false, s.equipment); ctx.globalAlpha = ga; }
+      drawClassFigure(ctx, a.cls, a.level, env, p.phase === 'explore', hx + lunge, floorY, 1, 1.35, hurt > 0, s.equipment);
+      if (lunge > 8) { ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(hx + lunge + 10, floorY - 14, 8, -1.2, 0.6); ctx.stroke(); }
+      if (v.taunt > 0 && v.tauntIdx === i) { ctx.font = 'bold 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#ff6060'; ctx.fillText('!', hx, floorY - 34 - Math.sin(v.taunt * 12) * 2); }
+      if (v.beam > 0 && v.beamIdx === i) { const g = ctx.createLinearGradient(0, 0, 0, floorY); g.addColorStop(0, `rgba(255,240,160,${0.7 * v.beam})`); g.addColorStop(1, `rgba(255,240,160,${0.15 * v.beam})`); ctx.fillStyle = g; ctx.fillRect(hx - 7, 0, 14, floorY); for (let k = 0; k < 4; k++) circle(ctx, hx - 8 + k * 5.5, floorY - 8 - ((env.clock * 40 + k * 9) % 30), 1.2, rgba('#fff8c0', v.beam)); }
+      if (v.block > 0 && v.blockIdx === i) { ctx.strokeStyle = `rgba(200,220,255,${v.block * 2})`; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(hx + 9, floorY - 12, 9, -1.4, 1.4); ctx.stroke(); }
+      if (v.revive > 0 && v.reviveIdx === i) { circle(ctx, hx, floorY - 12, 16 * (1.2 - v.revive) + 4, rgba('#ffffff', v.revive * 0.5)); }
+      if (v.casting > 0 && v.castIdx === i) circle(ctx, hx + 8, floorY - 18, 5, rgba('#ffa040', v.casting * 2));
+      // The mage's staff and the priest's halo throw a little light.
+      if (a.cls === 'mage') circle(ctx, hx + 6, floorY - 22, 9, rgba('#80c0ff', 0.12 + 0.05 * Math.sin(env.clock * 4)));
+      if (a.cls === 'priest') circle(ctx, hx, floorY - 24, 8, rgba('#ffe890', 0.1 + 0.04 * Math.sin(env.clock * 3)));
+    });
+    if (e) {
+      const sc = e.boss ? (e.monster === 'demonLord' ? 1.8 : 1.5) : 1.15;
+      const lunge = v.monsterLunge > 0 ? Math.sin((v.monsterLunge / 0.35) * Math.PI) : 0;
+      ellipse(ctx, mx - lunge * 4, floorY + 1, 9 * sc, 3 * sc, 'rgba(0,0,0,0.45)');
+      ctx.save(); ctx.translate(mx, floorY); ctx.scale(-1, 1);
+      drawMonster(ctx, e.monster, env, sc, v.monsterHurt, v.frozen > 0 ? 0 : lunge);
+      ctx.restore();
+      if (v.frozen > 0) {
+        const h = monsterHeight(e.monster) * sc, a = Math.min(1, v.frozen * 2);
+        ctx.fillStyle = `rgba(140,210,255,${0.35 * a})`; ctx.beginPath(); ctx.ellipse(mx, floorY - h / 2, 12 * sc, h / 2 + 4, 0, 0, Math.PI * 2); ctx.fill();
+        for (let k = 0; k < 5; k++) { const cx = mx - 10 * sc + k * 5 * sc, cy = floorY - h * 0.2 - (k % 2) * h * 0.5; poly(ctx, [cx, cy - 5, cx + 2.5, cy, cx, cy + 3, cx - 2.5, cy], rgba('#dff4ff', 0.9 * a)); }
+      }
+    } else if (v.death > 0) {
+      ctx.save(); ctx.translate(mx, floorY); ctx.scale(-1, 1); ctx.globalAlpha *= v.death; ctx.translate(0, (0.9 - v.death) * 10);
+      drawMonster(ctx, v.deathMonster, env, v.deathBoss ? 1.5 : 1.15, 1);
+      ctx.restore();
+    }
   }
 
   /** A chest flipping open with a glow, next to the party. */
@@ -278,31 +331,106 @@ export class DungeonView {
   }
 
   private drawBackdrop(ctx: CanvasRenderingContext2D, id: string, v: ViewState, env: Env, floorY: number): void {
-    const off = v.scroll % 60;
+    // Three parallax layers: far walls crawl, the middle ground walks, the floor runs.
+    const far = (v.scroll * 0.35) % 90, mid = (v.scroll * 0.7) % 60, near = v.scroll % 45;
+    const c = env.clock;
     if (id === 'goblinCave') {
-      ctx.fillStyle = '#3a2c22'; ctx.fillRect(0, 0, PANEL_W, PANEL_H);
-      ctx.fillStyle = '#4a3a2e'; for (let i = -1; i < 6; i++) { const x = i * 60 - off; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 14, 22 + hash(i, 1) * 10); ctx.lineTo(x + 28, 0); ctx.fill(); ctx.beginPath(); ctx.moveTo(x + 30, 0); ctx.lineTo(x + 40, 14 + hash(i, 2) * 8); ctx.lineTo(x + 52, 0); ctx.fill(); }
+      const g = ctx.createLinearGradient(0, 0, 0, PANEL_H); g.addColorStop(0, '#241a14'); g.addColorStop(1, '#3e2e24'); ctx.fillStyle = g; ctx.fillRect(0, 0, PANEL_W, PANEL_H);
+      // Far rock masses.
+      for (let i = -1; i < 5; i++) { const x = i * 90 - far; ctx.fillStyle = '#2e2219'; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 10, 30 + hash(i, 7) * 14); ctx.lineTo(x + 26, 8); ctx.lineTo(x + 40, 36 + hash(i, 8) * 12); ctx.lineTo(x + 58, 4); ctx.lineTo(x + 72, 26 + hash(i, 9) * 10); ctx.lineTo(x + 90, 0); ctx.closePath(); ctx.fill(); }
+      // Mid stalactites with a lit edge, hanging roots, glowing mushrooms, bones.
+      for (let i = -1; i < 6; i++) {
+        const x = i * 60 - mid, h = 18 + hash(i, 1) * 12;
+        poly(ctx, [x, 0, x + 7, h, x + 14, 0], '#4a3a2e'); poly(ctx, [x, 0, x + 7, h, x + 4, 0], '#5a4a3c');
+        poly(ctx, [x + 30, 0, x + 38, h * 0.7, x + 46, 0], '#4a3a2e'); poly(ctx, [x + 30, 0, x + 38, h * 0.7, x + 34, 0], '#5a4a3c');
+        ctx.strokeStyle = '#5a4a3a'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x + 22, 0); ctx.quadraticCurveTo(x + 18 + Math.sin(c + i) * 2, 14, x + 24, 24 + hash(i, 4) * 10); ctx.stroke();
+        const mxs = x + 12 + hash(i, 5) * 30;
+        for (let k = 0; k < 3; k++) { const gm = 0.6 + 0.4 * Math.sin(c * 2 + i + k); circle(ctx, mxs + k * 4, floorY - 2 - (k % 2) * 2, 4, rgba('#60c0ff', 0.12 * gm)); rect(ctx, mxs + k * 4 - 0.5, floorY - 4 + (k % 2), 1, 3, '#c8d8e8'); circle(ctx, mxs + k * 4, floorY - 4 + (k % 2), 1.6, rgba('#8ae0ff', 0.7 + 0.3 * gm)); }
+        if (hash(i, 6) > 0.5) { rect(ctx, x + 44, floorY - 1.5, 7, 1.2, '#e8e4d8'); circle(ctx, x + 44, floorY - 1.2, 1.2, '#e8e4d8'); circle(ctx, x + 51, floorY - 1.2, 1.2, '#e8e4d8'); }
+        if (hash(i, 10) > 0.7) { circle(ctx, x + 6, floorY - 2.5, 2.6, '#e8e4d8'); rect(ctx, x + 4.5, floorY - 3.5, 1, 1, '#1a1410'); rect(ctx, x + 6.5, floorY - 3.5, 1, 1, '#1a1410'); }
+      }
+      // Floor: packed earth, pebbles, puddles.
       rect(ctx, 0, floorY, PANEL_W, PANEL_H - floorY, '#2a1e16'); rect(ctx, 0, floorY, PANEL_W, 2, '#5a4a3a');
-      for (let i = -1; i < 6; i++) { const x = i * 60 - off + 20; ellipse(ctx, x, floorY + 10, 6, 2, '#3a2e26'); circle(ctx, x + 25, floorY + 14, 2, '#4a3e36'); }
+      for (let i = -1; i < 8; i++) { const x = i * 45 - near; ellipse(ctx, x + 20, floorY + 12, 9, 2.5, rgba('#4a6a8a', 0.5)); ellipse(ctx, x + 18, floorY + 11.5, 3, 0.8, rgba('#ffffff', 0.25)); circle(ctx, x + 36, floorY + 8 + hash(i, 11) * 8, 1.6, '#4a3e36'); circle(ctx, x + 6, floorY + 16, 1.2, '#4a3e36'); }
     } else if (id === 'ancientRuins') {
-      ctx.fillStyle = '#2a2e3e'; ctx.fillRect(0, 0, PANEL_W, PANEL_H);
-      for (let i = -1; i < 6; i++) { const x = i * 60 - off; rect(ctx, x + 8, 6, 10, floorY - 6, '#4a5068'); rect(ctx, x + 8, 6, 2, floorY - 6, '#6a7088'); rect(ctx, x + 6, 4, 14, 4, '#5a6078'); circle(ctx, x + 12, 30 + hash(i, 3) * 20, 4, rgba('#4f9a3f', 0.6)); }
-      rect(ctx, 0, floorY, PANEL_W, PANEL_H - floorY, '#3a3e50'); for (let i = 0; i < 10; i++) rect(ctx, i * 30 - off / 2, floorY, 28, 1.2, '#5a5e70');
-      rect(ctx, 0, floorY, PANEL_W, 2, '#6a6e80');
+      const g = ctx.createLinearGradient(0, 0, 0, PANEL_H); g.addColorStop(0, '#1a1e30'); g.addColorStop(1, '#2e3246'); ctx.fillStyle = g; ctx.fillRect(0, 0, PANEL_W, PANEL_H);
+      // Far broken walls with arches.
+      for (let i = -1; i < 5; i++) { const x = i * 90 - far; rect(ctx, x, 20 + hash(i, 12) * 10, 90, floorY, '#262a3c'); ctx.fillStyle = '#1a1e30'; ctx.beginPath(); ctx.roundRect(x + 28, 36, 24, floorY, [12, 12, 0, 0]); ctx.fill(); rect(ctx, x + 60, 12 + hash(i, 13) * 14, 14, 20, '#262a3c'); }
+      // A shaft of moonlight through the broken roof.
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const ml = ctx.createLinearGradient(0, 0, 0, floorY); ml.addColorStop(0, 'rgba(180,200,255,0.16)'); ml.addColorStop(1, 'rgba(180,200,255,0.03)');
+      ctx.fillStyle = ml; ctx.beginPath(); ctx.moveTo(120 - mid * 0.3, 0); ctx.lineTo(160 - mid * 0.3, 0); ctx.lineTo(200 - mid * 0.3, floorY); ctx.lineTo(110 - mid * 0.3, floorY); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      // Mid columns, vines, glowing runes, a fallen statue head.
+      for (let i = -1; i < 6; i++) {
+        const x = i * 60 - mid, broken = hash(i, 14) > 0.6, top = broken ? 30 + hash(i, 15) * 20 : 6;
+        rect(ctx, x + 8, top, 11, floorY - top, '#4a5068'); rect(ctx, x + 8, top, 2.5, floorY - top, '#6a7088'); rect(ctx, x + 16.5, top, 2.5, floorY - top, '#3a4058');
+        if (!broken) rect(ctx, x + 5, 3, 17, 4, '#5a6078'); else poly(ctx, [x + 8, top, x + 12, top - 5, x + 19, top], '#4a5068');
+        rect(ctx, x + 5, floorY - 4, 17, 4, '#5a6078');
+        ctx.strokeStyle = '#3f7f33'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x + 10, top + 4); ctx.quadraticCurveTo(x + 4 + Math.sin(c * 0.7 + i) * 2, top + 24, x + 12, top + 44); ctx.stroke();
+        for (let k = 0; k < 4; k++) circle(ctx, x + 7 + (k % 2) * 4, top + 10 + k * 9, 1.8, k % 2 ? '#4f9a3f' : '#5fb04a');
+        if (hash(i, 16) > 0.5) { const ra = 0.5 + 0.5 * Math.sin(c * 1.5 + i); for (let k = 0; k < 3; k++) rect(ctx, x + 32 + k * 6, 40 + (k % 2) * 6, 3, 3, rgba('#60e0e0', 0.3 + 0.5 * ra)); circle(ctx, x + 38, 44, 10, rgba('#60e0e0', 0.08 * ra)); }
+        if (hash(i, 17) > 0.75) { ctx.save(); ctx.translate(x + 42, floorY - 4); ctx.rotate(0.6); rect(ctx, -4, -4, 8, 8, '#6a7088'); rect(ctx, -2.5, -1.5, 1.5, 1.5, '#262a3c'); rect(ctx, 1, -1.5, 1.5, 1.5, '#262a3c'); ctx.restore(); }
+      }
+      // Floor: flagstones with moss and rubble.
+      rect(ctx, 0, floorY, PANEL_W, PANEL_H - floorY, '#3a3e50'); rect(ctx, 0, floorY, PANEL_W, 2, '#6a6e80');
+      for (let r = 0; r < 3; r++) for (let i = -1; i < 10; i++) { const x = i * 30 - near + (r % 2) * 15, y = floorY + 3 + r * 7; rect(ctx, x, y, 28, 6, hash(i, 20 + r) > 0.5 ? '#40445a' : '#363a4e'); if (hash(i, 25 + r) > 0.7) ellipse(ctx, x + 8 + hash(i, r) * 12, y + 3, 4, 1.6, rgba('#4f9a3f', 0.5)); }
+      for (let i = -1; i < 7; i++) { const x = i * 45 - near; circle(ctx, x + 10, floorY + 5, 2, '#5a5e70'); circle(ctx, x + 14, floorY + 6, 1.4, '#6a6e80'); }
     } else {
-      ctx.fillStyle = '#1a1026'; ctx.fillRect(0, 0, PANEL_W, PANEL_H);
-      const g = ctx.createLinearGradient(0, 0, 0, PANEL_H); g.addColorStop(0, 'rgba(120,40,200,0.25)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, PANEL_W, PANEL_H);
-      for (let i = -1; i < 6; i++) { const x = i * 60 - off; ctx.fillStyle = '#2a1a3a'; ctx.beginPath(); ctx.roundRect(x + 14, 10, 14, floorY - 20, [7, 7, 0, 0]); ctx.fill(); ctx.fillStyle = `rgba(200,80,255,${0.35 + 0.2 * Math.sin(env.clock * 3 + i)})`; ctx.beginPath(); ctx.roundRect(x + 17, 14, 8, floorY - 30, [4, 4, 0, 0]); ctx.fill(); }
+      const g = ctx.createLinearGradient(0, 0, 0, PANEL_H); g.addColorStop(0, '#14081e'); g.addColorStop(1, '#241236'); ctx.fillStyle = g; ctx.fillRect(0, 0, PANEL_W, PANEL_H);
+      // Far: tall stained-glass windows glowing, chandeliers.
+      for (let i = -1; i < 5; i++) {
+        const x = i * 90 - far + 20, gl = 0.5 + 0.3 * Math.sin(c * 1.2 + i);
+        ctx.fillStyle = '#2a1a3a'; ctx.beginPath(); ctx.roundRect(x, 6, 26, floorY - 14, [13, 13, 0, 0]); ctx.fill();
+        const panes: [string, number, number, number, number][] = [['#8030c0', 3, 10, 9, 18], ['#c03060', 14, 10, 9, 18], ['#3050c0', 3, 30, 9, 14], ['#c0a030', 14, 30, 9, 14], ['#8030c0', 3, 46, 20, 14]];
+        for (const [col, px, py, w, h] of panes) rect(ctx, x + px, py, w, Math.min(h, floorY - 16 - py), rgba(col, 0.35 + 0.35 * gl));
+        rect(ctx, x + 12.5, 10, 1.2, floorY - 24, '#1a0c26'); rect(ctx, x + 3, 28, 20, 1.2, '#1a0c26'); rect(ctx, x + 3, 44, 20, 1.2, '#1a0c26');
+        circle(ctx, x + 13, 40, 22, rgba('#a060e0', 0.06 * gl));
+        const cx = x + 58, sw = Math.sin(c * 0.8 + i) * 1.5;
+        line(ctx, cx, 0, cx + sw, 14, '#5a4a3a', 0.8); rect(ctx, cx - 9 + sw, 14, 18, 2, '#6a5030');
+        for (let k = 0; k < 3; k++) { const kx = cx - 7 + k * 7 + sw, f = 1 + 0.3 * Math.sin(c * 9 + k + i); rect(ctx, kx - 0.6, 10, 1.2, 4, '#e8dcc0'); ellipse(ctx, kx, 9 - f, 1, 2 * f, '#c070ff'); circle(ctx, kx, 9, 6, rgba('#c070ff', 0.1)); }
+      }
+      // Mid: tapestries with gold trim, candelabras, floating runes.
+      for (let i = -1; i < 6; i++) {
+        const x = i * 60 - mid;
+        if (hash(i, 30) > 0.45) {
+          poly(ctx, [x + 10, 8, x + 30, 8, x + 30, 40, x + 20, 48, x + 10, 40], '#4a1a3a'); poly(ctx, [x + 12, 10, x + 28, 10, x + 28, 39, x + 20, 45, x + 12, 39], '#5a2448');
+          rect(ctx, x + 10, 8, 20, 1.5, '#c8a050'); circle(ctx, x + 20, 24, 4, rgba('#c8a050', 0.8)); circle(ctx, x + 20, 24, 2, '#5a2448');
+        } else {
+          rect(ctx, x + 19, floorY - 22, 2, 22, '#5a4a3a'); rect(ctx, x + 12, floorY - 22, 16, 1.5, '#6a5030');
+          for (let k = 0; k < 3; k++) { const kx = x + 13 + k * 7, f = 1 + 0.35 * Math.sin(c * 10 + k * 2 + i); rect(ctx, kx - 0.6, floorY - 27, 1.2, 5, '#e8dcc0'); ellipse(ctx, kx, floorY - 28 - f, 1.1, 2.4 * f, '#d080ff'); ellipse(ctx, kx, floorY - 27.5 - f * 0.5, 0.5, 1.2 * f, '#ffffff'); circle(ctx, kx, floorY - 28, 7, rgba('#d080ff', 0.12)); }
+        }
+        const ra = c * 0.8 + i;
+        for (let k = 0; k < 3; k++) { const rx = x + 42 + Math.cos(ra + k * 2.1) * 7, ry = 34 + Math.sin(ra + k * 2.1) * 5; ctx.strokeStyle = rgba('#d080ff', 0.5 + 0.3 * Math.sin(c * 3 + k)); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(rx, ry, 2, 0, Math.PI * 1.5); ctx.stroke(); }
+      }
+      // The throne behind a boss.
+      if (v.boss && v.hadEncounter) { const tx = PANEL_W * 0.74 + 18; rect(ctx, tx - 10, floorY - 34, 20, 34, '#2a1230'); poly(ctx, [tx - 12, floorY - 34, tx, floorY - 44, tx + 12, floorY - 34], '#3a1a40'); rect(ctx, tx - 8, floorY - 30, 16, 26, '#4a1a3a'); for (let k = -1; k <= 1; k++) circle(ctx, tx + k * 6, floorY - 36, 1.5, '#c8a050'); }
+      // Floor: checkered polished stone with a red carpet.
       rect(ctx, 0, floorY, PANEL_W, PANEL_H - floorY, '#140c1e'); rect(ctx, 0, floorY, PANEL_W, 2, '#4a2a6a');
-      for (let i = 0; i < 6; i++) { const rx = (i * 47 + env.clock * 8) % PANEL_W, ry = floorY - 4 - ((env.clock * 10 + i * 30) % 60); circle(ctx, rx, ry, 1, rgba('#d080ff', 0.5)); }
+      for (let r = 0; r < 3; r++) for (let i = -1; i < 12; i++) { const x = i * 24 - (near % 48) + (r % 2) * 12, y = floorY + 2 + r * 7; rect(ctx, x, y, 12, 7, ((i + r) % 2) ? '#1c1228' : '#241a30'); }
+      rect(ctx, 0, floorY + 9, PANEL_W, 6, 'rgba(140,20,40,0.55)'); rect(ctx, 0, floorY + 9, PANEL_W, 1, 'rgba(200,160,80,0.5)'); rect(ctx, 0, floorY + 14, PANEL_W, 1, 'rgba(200,160,80,0.5)');
+      for (let i = 0; i < 6; i++) { const rx = (i * 47 + c * 8) % PANEL_W, ry = floorY - 4 - ((c * 10 + i * 30) % 60); circle(ctx, rx, ry, 1, rgba('#d080ff', 0.5)); }
     }
-    // Torches.
-    for (const tx of [40, PANEL_W - 40]) {
-      rect(ctx, tx - 1, 18, 2, 8, '#5a3a1e');
-      const f = 1 + 0.3 * Math.sin(env.clock * 12 + tx);
-      const g = ctx.createRadialGradient(tx, 16, 0, tx, 16, 40); g.addColorStop(0, 'rgba(255,170,60,0.35)'); g.addColorStop(1, 'rgba(255,170,60,0)'); ctx.fillStyle = g; ctx.fillRect(tx - 40, -24, 80, 80);
-      ellipse(ctx, tx, 15 - 2 * f, 2.2, 4 * f, '#ff9a30'); ellipse(ctx, tx, 16 - f, 1.1, 2 * f, '#ffe080');
+    // Torches on the walls of the cave and the ruins.
+    if (id !== 'darkTower') for (const tx of [40, PANEL_W - 40]) {
+      rect(ctx, tx - 4, 22, 8, 2, '#4a3a2a'); rect(ctx, tx - 1, 18, 2, 8, '#5a3a1e');
+      const f = 1 + 0.3 * Math.sin(c * 12 + tx);
+      const g = ctx.createRadialGradient(tx, 16, 0, tx, 16, 44); g.addColorStop(0, 'rgba(255,170,60,0.38)'); g.addColorStop(1, 'rgba(255,170,60,0)'); ctx.fillStyle = g; ctx.fillRect(tx - 44, -28, 88, 88);
+      ellipse(ctx, tx, 15 - 2 * f, 2.4, 4.5 * f, '#ff9a30'); ellipse(ctx, tx, 16 - f, 1.1, 2 * f, '#ffe080');
+      for (let k = 0; k < 2; k++) { const tt = (c * 0.8 + k * 0.5 + tx) % 1; circle(ctx, tx + Math.sin(c * 5 + k) * 2, 12 - tt * 14, 0.8, rgba('#ffb040', 1 - tt)); }
     }
+    // Low fog drifting along the floor.
+    for (let i = 0; i < 4; i++) { const fx = ((c * 6 + i * 80) % (PANEL_W + 60)) - 30; const fg = ctx.createRadialGradient(fx, floorY + 2, 0, fx, floorY + 2, 28); fg.addColorStop(0, 'rgba(200,200,230,0.12)'); fg.addColorStop(1, 'rgba(200,200,230,0)'); ctx.fillStyle = fg; ctx.beginPath(); ctx.ellipse(fx, floorY + 2, 28, 7, 0, 0, Math.PI * 2); ctx.fill(); }
+  }
+}
+
+/** A health bar with a dark rim, a gradient fill and a highlight line. */
+function hpBar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, k: number, color: string): void {
+  ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.beginPath(); ctx.roundRect(x - 1, y - 1, w + 2, h + 2, 2); ctx.fill();
+  if (k > 0) {
+    const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, color); g.addColorStop(1, rgba(color, 0.6));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(x, y, w * k, h, 1.5); ctx.fill();
+    rect(ctx, x, y, w * k, h * 0.35, 'rgba(255,255,255,0.3)');
   }
 }
 
