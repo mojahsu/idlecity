@@ -1,4 +1,4 @@
-import type { JobId, ResourceId } from '../sim/types';
+import type { JobId, ResourceId, Terrain } from '../sim/types';
 
 export interface JobDef {
   id: JobId;
@@ -21,4 +21,9 @@ export const GATHER_JOB: Record<ResourceId, JobId | null> = {
   food: 'forager',
   iron: 'miner',
   gold: null,
+};
+
+/** Which terrain each gathered resource comes from. */
+export const GATHER_TERRAIN: Record<ResourceId, Terrain | null> = {
+  wood: 'forest', stone: 'rock', food: 'bush', iron: 'ore', gold: null,
 };

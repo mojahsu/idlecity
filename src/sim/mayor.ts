@@ -2,9 +2,9 @@
 import type { BuildingTypeId, GameState, JobId, ResourceId } from './types';
 import { BUILDINGS, BUILD_ORDER } from '../data/buildings';
 import { tierIndex } from '../data/tiers';
-import { GATHER_JOB } from '../data/jobs';
+import { GATHER_JOB, GATHER_TERRAIN } from '../data/jobs';
 import { canAfford, constructionSite, countBuildings, hasBuilding, housingCapacity, pay, placeBuilding } from './buildings';
-import { findBuildSpot } from './world';
+import { availableTiles, findBuildSpot } from './world';
 import { log } from './log';
 
 export function updateMayor(s: GameState, dt: number): void {
@@ -102,6 +102,19 @@ function assignJobs(s: GameState): void {
   for (const sh of shares) { const f = Math.floor(sh[1]); desired[sh[0]] = (desired[sh[0]] ?? 0) + f; assigned += f; sh[1] -= f; }
   shares.sort((a, b) => b[1] - a[1]);
   for (let i = 0; i < shares.length && assigned < remaining; i++, assigned++) desired[shares[i][0]] = (desired[shares[i][0]] ?? 0) + 1;
+
+  // No more gatherers per resource than there are tiles to gather from
+  // (ore is scarce); the overflow goes to whichever resource has room.
+  const cap: Partial<Record<JobId, number>> = {};
+  for (const r in score) { const job = GATHER_JOB[r as ResourceId]!; cap[job] = availableTiles(s, GATHER_TERRAIN[r as ResourceId]!); }
+  let overflow = 0;
+  for (const job in cap) { const j = job as JobId; const over = (desired[j] ?? 0) - cap[j]!; if (over > 0) { desired[j] = cap[j]; overflow += over; } }
+  while (overflow > 0) {
+    let bestJob: JobId | null = null, room = 0;
+    for (const job in cap) { const j = job as JobId; const r = cap[j]! - (desired[j] ?? 0); if (r > room) { room = r; bestJob = j; } }
+    if (!bestJob) break; // nowhere to gather: the rest idle until tiles regrow
+    desired[bestJob] = (desired[bestJob] ?? 0) + 1; overflow--;
+  }
 
   // Keep workers whose job is still wanted, reassign the rest. Current trips finish first.
   const left: Partial<Record<JobId, number>> = { ...desired };

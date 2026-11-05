@@ -82,17 +82,34 @@ export function dungeonCorner(corner: 'ne' | 'se' | 'nw' | 'sw', w: number, h: n
 }
 
 /** Nearest tile of a terrain with remaining amount, by straight-line distance. */
-export function findNearestTile(s: GameState, from: Point, terrain: Terrain): Point | null {
+/**
+ * Nearest reachable tile of a terrain with resources left. Tiles in `busy`
+ * (index → number of other workers already claiming it) are skipped so
+ * gatherers spread out; if every tile is claimed, the least crowded one wins.
+ */
+export function findNearestTile(s: GameState, from: Point, terrain: Terrain, busy?: Map<number, number>): Point | null {
   const mask = reachableMask(s);
   let best: Point | null = null, bestD = Infinity;
+  let fallback: Point | null = null, fallbackN = Infinity, fallbackD = Infinity;
   for (let y = 0; y < s.height; y++) for (let x = 0; x < s.width; x++) {
-    const t = s.tiles[y * s.width + x];
+    const i = y * s.width + x;
+    const t = s.tiles[i];
     if (t.terrain !== terrain || t.amount < 1 || t.building >= 0) continue;
-    if (!mask[y * s.width + x]) continue;
+    if (!mask[i]) continue;
     const d = Math.hypot(x - from.x, y - from.y);
+    const n = busy?.get(i) ?? 0;
+    if (n > 0) { if (n < fallbackN || (n === fallbackN && d < fallbackD)) { fallbackN = n; fallbackD = d; fallback = { x, y }; } continue; }
     if (d < bestD) { bestD = d; best = { x, y }; }
   }
-  return best;
+  return best ?? fallback;
+}
+
+/** How many reachable tiles of a terrain still have resources (one gatherer each is plenty). */
+export function availableTiles(s: GameState, terrain: Terrain): number {
+  const mask = reachableMask(s);
+  let n = 0;
+  for (let i = 0; i < s.tiles.length; i++) { const t = s.tiles[i]; if (t.terrain === terrain && t.amount >= 1 && t.building < 0 && mask[i]) n++; }
+  return n;
 }
 
 /**

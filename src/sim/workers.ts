@@ -1,15 +1,12 @@
 // Worker behaviour: walk, gather, carry back, build, farm.
 import type { GameState, ResourceId, Terrain, Worker } from './types';
 import { BUILDINGS } from '../data/buildings';
-import { JOBS } from '../data/jobs';
+import { GATHER_TERRAIN, JOBS } from '../data/jobs';
 import { findNearestTile, findPath, isReachable, moveAlong, tileAt } from './world';
 import { completeBuilding, constructionSite, gatherBonus } from './buildings';
 import { pick } from './rng';
 import { FARM_AMOUNT, FARM_TIME, GATHER_AMOUNT, GATHER_TIME, WORKER_SPEED, TILE_REGEN_PER_SEC } from './constants';
 
-const TERRAIN_FOR: Record<ResourceId, Terrain | null> = {
-  wood: 'forest', stone: 'rock', food: 'bush', iron: 'ore', gold: null,
-};
 
 export function updateWorkers(s: GameState, dt: number): void {
   for (const w of s.workers) updateWorker(s, w, dt);
@@ -100,14 +97,21 @@ function assignTask(s: GameState, w: Worker): void {
   if (w.job === 'farmer') {
     const farms = s.buildings.filter((b) => b.built && b.type === 'farm');
     if (!farms.length) return;
-    const farm = pick(s, farms);
+    // Least-crowded farm, so farmers spread out instead of piling onto one field.
+    const load = new Map<number, number>();
+    for (const o of s.workers) if (o !== w && o.task?.kind === 'farm' && o.task.phase !== 'return') load.set(o.task.buildingId, (load.get(o.task.buildingId) ?? 0) + 1);
+    const min = Math.min(...farms.map((f) => load.get(f.id) ?? 0));
+    const farm = pick(s, farms.filter((f) => (load.get(f.id) ?? 0) === min));
     w.task = { kind: 'farm', buildingId: farm.id, phase: 'go' };
     w.path = findPath(s, w, farm);
     return;
   }
   if (job.gathers) {
-    const terrain = TERRAIN_FOR[job.gathers];
-    const target = terrain ? findNearestTile(s, w, terrain) : null;
+    const terrain = GATHER_TERRAIN[job.gathers];
+    // Tiles other gatherers are already heading to or working on.
+    const busy = new Map<number, number>();
+    for (const o of s.workers) if (o !== w && o.task?.kind === 'gather' && o.task.phase !== 'return') { const i = o.task.ty * s.width + o.task.tx; busy.set(i, (busy.get(i) ?? 0) + 1); }
+    const target = terrain ? findNearestTile(s, w, terrain, busy) : null;
     if (!target) return;
     w.task = { kind: 'gather', resource: job.gathers, tx: target.x, ty: target.y, phase: 'go' };
     w.path = findPath(s, w, target);
