@@ -19,8 +19,8 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
 #topbar .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
 #topbar .next { margin-left: auto; color: var(--muted); font-style: italic; }
 #stage { grid-area: stage; position: relative; display: flex; align-items: center; justify-content: center; background: #0f1a0c; overflow: hidden; }
-#game { max-width: 100%; max-height: 100%; aspect-ratio: 40 / 26; width: auto; height: auto; image-rendering: auto; }
-#stage > canvas { width: min(100%, calc(100vh - 110px) * 40 / 26); }
+#game { max-width: 100%; max-height: 100%; aspect-ratio: var(--aspect, 1.5); width: auto; height: auto; image-rendering: auto; }
+#stage > canvas { width: min(100%, calc((100vh - 110px) * var(--aspect, 1.5))); }
 #banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: rgba(0,0,0,0.75); color: var(--accent); padding: 8px 16px; border: 1px solid var(--accent); border-radius: 6px; font-weight: 700; pointer-events: none; }
 #banner.danger { color: var(--danger); border-color: var(--danger); }
 #side { grid-area: side; display: flex; flex-direction: column; background: var(--panel); border-left: 1px solid #000; overflow: hidden; }

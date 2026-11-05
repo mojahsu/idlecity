@@ -4,9 +4,9 @@ import { TILE } from '../constants';
 import { circle, poly, rect, groundShadow, shade, hash } from '../palette';
 
 /** People are drawn small relative to buildings; adventurers a touch larger than townsfolk. */
-export const WORKER_SCALE = 0.6;
+export const WORKER_SCALE = 0.8;
 
-export const HERO_SCALE = 0.7;
+export const HERO_SCALE = 0.9;
 
 export const OUTLINE = 'rgba(20,15,10,0.45)';
 

@@ -63,14 +63,22 @@ function makeEncounter(s: GameState, p: Party): Encounter {
   const boss = p.floor === def.floors && !(p.dungeon === FINAL_DUNGEON && s.victory);
   const m = MONSTERS[boss ? def.boss : pick(s, def.monsters)];
   const scale = 1 + 0.3 * (p.floor - 1);
-  return { monster: m.id, hp: Math.round(m.hp * scale), maxHp: Math.round(m.hp * scale), atk: Math.round(m.atk * (1 + 0.1 * (p.floor - 1))), boss };
+  const maxHp = Math.round(m.hp * scale);
+  let hp = maxHp;
+  if (boss) {
+    // Bosses carry their wounds over from the last attempt, recovering a quarter in between,
+    // so a town wears its Demon Lord down over several expeditions instead of feeding it.
+    const d = s.dungeons.find((x) => x.id === p.dungeon)!;
+    if (d.bossHp !== undefined) hp = Math.round(Math.min(maxHp, d.bossHp + maxHp * 0.25));
+  }
+  return { monster: m.id, hp, maxHp, atk: Math.round(m.atk * (1 + 0.1 * (p.floor - 1))), boss };
 }
 
 function fightRound(s: GameState, p: Party): void {
   const team = members(s, p);
   const e = p.encounter!;
-  // A boss fight going badly ends in a retreat, not a wipe: two members under a third and the boss far from dead.
-  if (e.boss && team.length >= 3 && team.filter((a) => a.hp < a.maxHp * 0.35).length >= 2 && e.hp > e.maxHp * 0.25) {
+  // A boss fight going badly ends in a retreat, not a wipe: anyone under 40% while the boss is still far from dead.
+  if (e.boss && team.length >= 3 && team.some((a) => a.hp < a.maxHp * 0.4) && e.hp > e.maxHp * 0.3) {
     log(s, 'adventure', 'log.bossRetreat', { leader: team[0].name, dungeon: `dungeon.${p.dungeon}` });
     startReturn(s, p);
     return;
@@ -133,6 +141,7 @@ function onMonsterSlain(s: GameState, p: Party): void {
 
   if (e.boss) {
     for (const a of team) a.bossKills++;
+    dungeon.bossHp = undefined;
     if (!dungeon.bossDefeated) {
       dungeon.bossDefeated = true;
       chronicle(s, 'adventure', 'log.bossSlain', { leader: team[0].name, monster: `monster.${m.id}`, dungeon: `dungeon.${def.id}` });
@@ -188,6 +197,7 @@ function onMemberDown(s: GameState, p: Party, a: Adventurer): void {
 }
 
 function startReturn(s: GameState, p: Party): void {
+  if (p.encounter?.boss) { const d = s.dungeons.find((x) => x.id === p.dungeon); if (d) d.bossHp = p.encounter.hp; }
   p.phase = 'return';
   p.encounter = null;
   p.path = findPath(s, p, tavernPos(s));

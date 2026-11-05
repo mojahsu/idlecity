@@ -140,6 +140,8 @@ export interface Dungeon {
   deepestFloor: number;
   bossDefeated: boolean;
   runs: number;
+  /** The boss keeps its wounds between attempts (recovering a little each time). Optional for old saves. */
+  bossHp?: number;
 }
 
 export interface Raid {

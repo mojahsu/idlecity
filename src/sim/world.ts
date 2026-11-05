@@ -2,8 +2,8 @@
 import type { GameState, Point, Terrain, Tile } from './types';
 import { random, randInt, chance } from './rng';
 
-export const MAP_W = 40;
-export const MAP_H = 26;
+export const MAP_W = 30;
+export const MAP_H = 20;
 
 export function tileAt(s: GameState, x: number, y: number): Tile | null {
   if (x < 0 || y < 0 || x >= s.width || y >= s.height) return null;
@@ -56,16 +56,18 @@ export function generateTiles(s: Pick<GameState, 'seed'>, w: number, h: number):
       }
     }
   };
-  blob('forest', 14, 12, 5, 40);
-  blob('rock', 6, 8, 7, 40);
-  blob('bush', 8, 6, 4, 25);
-  blob('ore', 3, 6, 11, 60);
+  // Counts are for a 30x20 map; scale with the area so bigger maps stay as dense.
+  const k = (w * h) / 600;
+  blob('forest', Math.round(9 * k), 12, 5, 40);
+  blob('rock', Math.round(4 * k), 8, 7, 40);
+  blob('bush', Math.round(5 * k), 6, 4, 25);
+  blob('ore', 3, 5, 10, 60);
   // Keep the corners free for dungeon entrances and a clear ring for the town.
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     if (!farFromCenter(x, y, 2.5) && tiles[y * w + x].terrain !== 'water') set(x, y, 'grass', 0);
   }
   // A few scattered trees for flavour.
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < Math.round(18 * k); i++) {
     const x = randInt(s, 3, w - 1), y = randInt(s, 0, h - 1);
     if (tiles[y * w + x].terrain === 'grass' && farFromCenter(x, y, 4) && chance(s, 0.7)) set(x, y, 'forest', 20);
   }

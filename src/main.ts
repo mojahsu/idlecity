@@ -28,7 +28,7 @@ const soundtrack = new Soundtrack(audio);
 const hud = new Hud({
   onSpeed(sp) { speed = sp; hud.setSpeed(sp); settings.speed = sp; saveSettings(storage, settings); },
   onLocale(l) { setLocale(l); settings.locale = l; saveSettings(storage, settings); },
-  onReset() { clearSave(storage); state = newGame(); },
+  onReset() { clearSave(storage); state = newGame(); fitStage(); },
   onFullscreen() { void fullscreen.toggle(); },
   onMute() { toggleMute(); },
 });
@@ -63,6 +63,10 @@ hud.setSpeed(speed);
     }), 12);
   }
 }
+
+/** The canvas keeps the map's aspect ratio; the map size lives in the save, so older towns keep their shape. */
+function fitStage(): void { document.documentElement.style.setProperty('--aspect', String(state.width / state.height)); }
+fitStage();
 
 let last = performance.now();
 let acc = 0;

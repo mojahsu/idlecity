@@ -30,9 +30,9 @@ export interface SmokeSource { x: number; y: number; rate: number; color: string
  * [horizontal, vertical] factors per type; flat things stay as they are.
  */
 export const STRETCH: Partial<Record<Building['type'], [number, number]>> = {
-  hut: [1.05, 1.35], house: [1.05, 1.5], lumberCamp: [1.05, 1.3], granary: [1.05, 1.5], tavern: [1.05, 1.55],
-  blacksmith: [1.05, 1.45], market: [1.05, 1.3], chapel: [1.05, 1.5], guildHall: [1.05, 1.55], walls: [1, 1.5],
-  keep: [1.08, 1.5], well: [1, 1.25], mine: [1, 1.2], quarry: [1, 1.15],
+  hut: [1.15, 1.4], house: [1.15, 1.55], lumberCamp: [1.12, 1.3], granary: [1.15, 1.55], tavern: [1.15, 1.6],
+  blacksmith: [1.15, 1.5], market: [1.12, 1.3], chapel: [1.15, 1.55], guildHall: [1.15, 1.6], walls: [1.05, 1.5],
+  keep: [1.15, 1.55], well: [1.05, 1.25], mine: [1.05, 1.2], quarry: [1, 1.15],
 };
 
 export function stretchOf(type: Building['type']): [number, number] { return STRETCH[type] ?? [1, 1]; }

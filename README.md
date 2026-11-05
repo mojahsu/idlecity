@@ -5,6 +5,9 @@ around it on its own. Once the tavern and the Adventurers' Guild stand,
 adventurers arrive, form parties, and raid dungeons. The game is won when a
 party slays the Demon Lord in the Dark Tower. It keeps running after that.
 
+The map is 30x20 tiles (`sim/world.ts`); the canvas keeps the saved map's
+aspect ratio, so towns from before a size change keep their shape.
+
 Designed to sit on a second screen. The only controls are speed (pause, 1x, 2x,
 4x), language, and "new town".
 
@@ -168,11 +171,13 @@ tests/        bun tests
 
 Rough pacing at 1x: hamlet in minutes, village ~15 min, town ~40 min, city ~2 h,
 first dungeon ~45 min, Dark Tower after the Keep (~3 h), Demon Lord falls
-around hour 5–8 with a handful of deaths (0–7 over 10 h on eight seeds).
+around hour 5.5–6.5 with a few deaths (0–4 over 10 h on eight seeds).
 Parties never randomly revisit a dungeon above their level, turn back at a
 boss's door when under-levelled (`daresBossFloor`), and break off a boss
-fight that is going badly; without those three rules one unlucky wipe starts
-a death spiral. Check with a headless run of
+fight as soon as anyone is badly hurt; bosses keep their wounds between
+attempts (recovering a quarter each time, `Dungeon.bossHp`), so a town wears
+its Demon Lord down over several expeditions instead of feeding it. Without
+those rules one unlucky wipe starts a death spiral. Check with a headless run of
 `advance()` over several seeds before and after touching any numbers.
 
 ## Steam / desktop port
