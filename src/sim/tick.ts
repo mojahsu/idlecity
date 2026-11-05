@@ -7,6 +7,7 @@ import { regenerateTiles, updateWorkers } from './workers';
 import { updateAdventurers } from './adventurers';
 import { updateParties } from './parties';
 import { updateRaids } from './raids';
+import { updateEvents } from './events';
 import { hasBuilding } from './buildings';
 import { log } from './log';
 
@@ -20,6 +21,7 @@ export function step(s: GameState, dt = TICK): void {
   updateAdventurers(s, dt);
   updateParties(s, dt);
   updateRaids(s, dt);
+  updateEvents(s, dt);
   if (s.tick % 10 === 0) { regenerateTiles(s); forge(s); }
 }
 

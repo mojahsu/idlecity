@@ -12,7 +12,21 @@ export const GATHER_TIME = 4;         // seconds per gathering action
 export const GATHER_AMOUNT = 5;
 export const FARM_TIME = 8;
 export const FARM_AMOUNT = 8;
-export const BUILD_RATE = 0.08;       // progress per second per builder, divided by build time
+/**
+ * Workers sleep through the night (about a third of each day), so daytime
+ * work yields this much more to keep the overall pacing where it was.
+ */
+export const DAY_WORK_BONUS = 1.5;
+
+export const CARAVAN_INTERVAL: [number, number] = [300, 600];
+export const CARAVAN_TRADE_TIME = 24;
+export const FIRE_INTERVAL: [number, number] = [480, 900];
+export const FIRE_CHANCE = 0.5;
+export const FIRE_COLLAPSE = 14;       // seconds at full blaze before the building is lost
+export const FIRE_BRIGADE = 5;         // workers who drop everything to fetch water (+1 per 15 people)
+export const FIRE_GROWTH = 0.1;        // intensity per second while it burns (varies per fire)
+export const FIRE_BUCKET = 0.07;       // intensity removed by one thrown bucket
+export const FIRE_MIN_BUILDINGS = 6;   // flammable buildings before fires can start
 
 export const FOOD_PER_PERSON_PER_DAY = 1;
 export const TILE_REGEN_PER_SEC = 0.02;

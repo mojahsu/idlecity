@@ -1,12 +1,13 @@
-// Ambient life and particles: chimney smoke, embers, weather, seasonal drift,
-// work debris, birds, farm chickens, a market cart, floating text and
-// fireworks. All state here is cosmetic and never saved.
+// Ambient life and particles: chimney smoke, embers, weather, lightning,
+// rainbows, shooting stars, the aurora, seasonal drift, work debris, birds,
+// farm chickens, a market cart, floating text and fireworks. All state here is
+// cosmetic and never saved.
 import type { GameState, Worker } from '../sim/types';
 import { TILE } from './constants';
 import { smokeSources } from './buildings';
 import { circle, ellipse, poly, rect, line, groundShadow, hash, rgba, type Env } from './palette';
 
-type Kind = 'smoke' | 'ember' | 'spark' | 'leaf' | 'petal' | 'firefly' | 'rain' | 'snow' | 'splash' | 'chip' | 'dust' | 'rocket' | 'burst' | 'clash' | 'coin';
+type Kind = 'smoke' | 'ember' | 'spark' | 'leaf' | 'petal' | 'firefly' | 'rain' | 'snow' | 'splash' | 'chip' | 'dust' | 'rocket' | 'burst' | 'clash' | 'coin' | 'drop' | 'meteor';
 
 interface Particle {
   kind: Kind; x: number; y: number; vx: number; vy: number; ttl: number; life: number; size: number; color: string; spin: number;
@@ -16,6 +17,7 @@ interface FloatText { x: number; y: number; text: string; color: string; ttl: nu
 interface Bird { x: number; y: number; vx: number; phase: number }
 interface Chicken { x: number; y: number; tx: number; ty: number; home: number; timer: number; peck: number }
 interface Cart { x: number; y: number; tx: number; ty: number; px: number; py: number; wheel: number }
+interface Bolt { pts: number[]; ttl: number }
 
 const MAX_PARTICLES = 900;
 
@@ -33,6 +35,11 @@ export class Effects {
   private ambientAcc = 0;
   private victorySeen = -1;
   private fireworkTimer = 0;
+  private boltTimer = 6;
+  private bolts: Bolt[] = [];
+  private flash = 0;
+  private meteorTimer = 20;
+  private fireAcc = 0;
 
   // ---- update -----------------------------------------------------------------
 
@@ -47,6 +54,8 @@ export class Effects {
     this.updateChickens(s, env, dt);
     this.updateCart(s, env, dt);
     this.updateFireworks(s, env, dt);
+    this.updateSky(env, dt, W, H);
+    this.emitBlaze(s, env, dt);
     // Integrate particles.
     const keep: Particle[] = [];
     for (const p of this.particles) {
@@ -58,7 +67,7 @@ export class Effects {
         case 'leaf': case 'petal': p.vx += Math.sin(env.clock * 2 + p.spin) * 6 * dt; p.vy = Math.min(p.vy + 10 * dt, p.kind === 'leaf' ? 14 : 8); p.spin += dt * 4; break;
         case 'firefly': p.vx += (Math.sin(env.clock * 1.3 + p.spin) * 4 - p.vx * 0.5) * dt; p.vy += (Math.cos(env.clock * 1.1 + p.spin * 2) * 4 - p.vy * 0.5) * dt; break;
         case 'snow': p.vx = Math.sin(env.clock * 1.2 + p.spin) * 6; break;
-        case 'chip': case 'coin': p.vy += 60 * dt; break;
+        case 'chip': case 'coin': case 'drop': p.vy += 60 * dt; break;
         case 'burst': p.vy += 18 * dt; p.vx *= 0.985; p.vy *= 0.985; break;
         case 'rocket': p.vx += Math.sin(env.clock * 10 + p.spin) * 2 * dt; break;
         case 'dust': p.size += 3 * dt; break;
@@ -81,6 +90,10 @@ export class Effects {
       else if (f.kind === 'hit') {
         const px = f.x * TILE + TILE / 2, py = f.y * TILE + TILE / 2 - 6;
         for (let i = 0; i < 5; i++) { const a = Math.random() * 6.28, sp = 30 + Math.random() * 40; this.spawn('clash', px, py, Math.cos(a) * sp, Math.sin(a) * sp, 0.3, 1.5, '#ffe080'); }
+      } else if (f.kind === 'water') {
+        const px = f.x * TILE + TILE / 2, py = f.y * TILE + TILE / 2 - 4;
+        for (let i = 0; i < 4; i++) this.spawn('drop', px + (Math.random() - 0.5) * 12, py - Math.random() * 10, (Math.random() - 0.5) * 30, -20 - Math.random() * 30, 0.5 + Math.random() * 0.3, 1.3, '#7ac0f0');
+        if (Math.random() < 0.5) this.spawn('smoke', px + (Math.random() - 0.5) * 10, py - 6, (Math.random() - 0.5) * 4, -14, 1.2, 2.5, '#e8e8f0');
       }
     }
   }
@@ -229,6 +242,53 @@ export class Effects {
     this.spawn('rocket', ox, oy + 10, (Math.random() - 0.5) * 10, -120 - Math.random() * 40, 0.7 + Math.random() * 0.4, 1.5, colors[Math.floor(Math.random() * colors.length)]);
   }
 
+  /** Embers and black smoke pour out of a burning building. */
+  private emitBlaze(s: GameState, env: Env, dt: number): void {
+    const f = s.fire;
+    if (!f) return;
+    const b = s.buildings.find((x) => x.id === f.buildingId);
+    if (!b) return;
+    this.fireAcc += (6 + 30 * f.intensity) * dt;
+    const px = b.x * TILE, py = b.y * TILE;
+    while (this.fireAcc >= 1) {
+      this.fireAcc -= 1;
+      this.spawn('ember', px + 2 + Math.random() * (TILE - 4), py + TILE - 4 - Math.random() * 20 * f.intensity, (Math.random() - 0.5) * 14, -20 - Math.random() * 30, 0.7 + Math.random() * 0.8, 1.4, Math.random() < 0.3 ? '#ffe080' : '#ff8030');
+    }
+    void env;
+  }
+
+  /** Lightning in storms, shooting stars on clear nights. */
+  private updateSky(env: Env, dt: number, W: number, H: number): void {
+    this.flash = Math.max(0, this.flash - dt * 4);
+    this.bolts = this.bolts.filter((b) => (b.ttl -= dt) > 0);
+    if (env.storm) {
+      this.boltTimer -= dt;
+      if (this.boltTimer <= 0) {
+        this.boltTimer = 6 + Math.random() * 18;
+        this.flash = 1;
+        const pts: number[] = [];
+        let x = 60 + Math.random() * (W - 120), y = -10;
+        const endY = H * (0.25 + Math.random() * 0.5);
+        while (y < endY) { pts.push(x, y); x += (Math.random() - 0.5) * 28; y += 12 + Math.random() * 16; }
+        pts.push(x, endY);
+        this.bolts.push({ pts, ttl: 0.28 });
+        // A short side branch.
+        const k = 2 * Math.floor(pts.length / 4);
+        const bp = [pts[k], pts[k + 1], pts[k] + (Math.random() - 0.5) * 50, pts[k + 1] + 30 + Math.random() * 30];
+        this.bolts.push({ pts: bp, ttl: 0.18 });
+      }
+    } else this.boltTimer = Math.min(this.boltTimer, 4);
+    if (env.clearNight) {
+      this.meteorTimer -= dt;
+      if (this.meteorTimer <= 0) {
+        this.meteorTimer = 14 + Math.random() * 40;
+        const x = Math.random() * W, y = Math.random() * H * 0.45;
+        const a = 0.5 + Math.random() * 0.6, sp = 260 + Math.random() * 120, d = Math.random() < 0.5 ? 1 : -1;
+        this.spawn('meteor', x, y, Math.cos(a) * sp * d, Math.sin(a) * sp * 0.5, 0.45 + Math.random() * 0.3, 1.6, '#fff8e0');
+      }
+    }
+  }
+
   private burst(x: number, y: number, color: string): void {
     const n = 26;
     for (let i = 0; i < n; i++) { const a = (i / n) * 6.283 + Math.random() * 0.2, sp = 45 + Math.random() * 25; this.spawn('burst', x, y, Math.cos(a) * sp, Math.sin(a) * sp, 1 + Math.random() * 0.5, 1.6, i % 3 ? color : '#ffffff'); }
@@ -255,6 +315,7 @@ export class Effects {
       const a = Math.min(1, p.ttl / p.life * 2);
       switch (p.kind) {
         case 'chip': case 'coin': ctx.fillStyle = p.color; ctx.globalAlpha = a; ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size); break;
+        case 'drop': ctx.globalAlpha = a * 0.9; circle(ctx, p.x, p.y, p.size * 0.8, p.color); break;
         case 'dust': ctx.globalAlpha = a * 0.6; circle(ctx, p.x, p.y, p.size, p.color); break;
         case 'spark': case 'clash': ctx.globalAlpha = a; line(ctx, p.x, p.y, p.x - p.vx * 0.03, p.y - p.vy * 0.03, p.color, 1.5); break;
         default: continue;
@@ -282,11 +343,64 @@ export class Effects {
   }
 
   drawWeather(ctx: CanvasRenderingContext2D): void {
+    for (const b of this.bolts) {
+      const a = Math.min(1, b.ttl * 5);
+      ctx.lineJoin = 'round';
+      for (const [w, c] of [[6, `rgba(180,200,255,${0.25 * a})`], [2.4, `rgba(220,230,255,${0.8 * a})`], [1, `rgba(255,255,255,${a})`]] as [number, string][]) {
+        ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(b.pts[0], b.pts[1]);
+        for (let i = 2; i < b.pts.length; i += 2) ctx.lineTo(b.pts[i], b.pts[i + 1]);
+        ctx.stroke();
+      }
+    }
     for (const p of this.particles) {
       if (p.kind === 'rain') line(ctx, p.x, p.y, p.x + p.vx * 0.03, p.y + p.vy * 0.03, p.color, 1);
       else if (p.kind === 'snow') circle(ctx, p.x, p.y, p.size, p.color);
       else if (p.kind === 'splash') { const k = 1 - p.ttl / p.life; ctx.strokeStyle = `rgba(220,235,255,${0.6 * (1 - k)})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(p.x, p.y, 2 + 4 * k, 1 + 2 * k, 0, 0, Math.PI * 2); ctx.stroke(); }
     }
+  }
+
+  /** A rainbow after the rain, drawn before the lighting pass. */
+  drawRainbow(ctx: CanvasRenderingContext2D, env: Env, W: number, H: number): void {
+    if (env.rainbow <= 0) return;
+    const cx = W * 0.55, cy = H * 1.15, r0 = H * 0.95;
+    const colors = ['#ff4040', '#ff9a30', '#f7e040', '#50c850', '#40a0ff', '#8060e0'];
+    ctx.save(); ctx.globalAlpha = 0.22 * env.rainbow; ctx.lineWidth = 5;
+    colors.forEach((c, i) => { ctx.strokeStyle = c; ctx.beginPath(); ctx.arc(cx, cy, r0 - i * 5, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke(); });
+    ctx.restore();
+  }
+
+  /** Things in the sky that must stay bright at night: the storm flash, shooting stars, the aurora. */
+  drawSky(ctx: CanvasRenderingContext2D, env: Env, W: number, H: number): void {
+    if (this.flash > 0) { ctx.fillStyle = `rgba(235,240,255,${0.55 * this.flash * this.flash})`; ctx.fillRect(0, 0, W, H); }
+    if (env.clearNight && env.season === 'winter' && env.day % 2 === 0) this.drawAurora(ctx, env, W, H);
+    for (const p of this.particles) {
+      if (p.kind !== 'meteor') continue;
+      const k = p.ttl / p.life;
+      ctx.globalAlpha = Math.min(1, k * 2);
+      const tail = 0.12;
+      const g = ctx.createLinearGradient(p.x, p.y, p.x - p.vx * tail, p.y - p.vy * tail);
+      g.addColorStop(0, 'rgba(255,250,230,0.95)'); g.addColorStop(1, 'rgba(255,250,230,0)');
+      ctx.strokeStyle = g; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * tail, p.y - p.vy * tail); ctx.stroke();
+      circle(ctx, p.x, p.y, 1.4, '#ffffff');
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  private drawAurora(ctx: CanvasRenderingContext2D, env: Env, W: number, H: number): void {
+    const a = Math.min(1, (env.dark - 0.6) / 0.4) * 0.5;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const bands: [string, number, number][] = [['#40e090', 0, 0.9], ['#60c0ff', 36, 0.6], ['#c070e0', 64, 0.45]];
+    for (const [col, off, str] of bands) {
+      const g = ctx.createLinearGradient(0, 0, 0, 110);
+      g.addColorStop(0, rgba(col, 0)); g.addColorStop(0.3, rgba(col, 0.22 * a * str)); g.addColorStop(1, rgba(col, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      for (let x = -20; x <= W + 20; x += 16) { const y = 10 + off + Math.sin(x * 0.012 + env.clock * 0.35 + off) * 18 + Math.sin(x * 0.031 - env.clock * 0.2) * 8; if (x === -20) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+      for (let x = W + 20; x >= -20; x -= 16) { const y = 10 + off + Math.sin(x * 0.012 + env.clock * 0.35 + off) * 18 + Math.sin(x * 0.031 - env.clock * 0.2) * 8; ctx.lineTo(x, y + 90 + Math.sin(x * 0.02 + env.clock * 0.5) * 12); }
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+    void H;
   }
 
   drawBirds(ctx: CanvasRenderingContext2D, env: Env): void {
@@ -318,6 +432,7 @@ export class Effects {
       if (p.kind === 'firefly') out.push({ x: p.x, y: p.y, r: 10, color: '#e8ff80', a: 0.5 });
       else if (p.kind === 'burst') out.push({ x: p.x, y: p.y, r: 8, color: p.color, a: 0.5 * p.ttl / p.life });
       else if (p.kind === 'rocket') out.push({ x: p.x, y: p.y, r: 10, color: '#ffe0a0', a: 0.6 });
+      else if (p.kind === 'ember' && p.life > 0.65) out.push({ x: p.x, y: p.y, r: 6, color: '#ff9040', a: 0.35 * p.ttl / p.life });
     }
     return out;
   }

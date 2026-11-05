@@ -131,5 +131,9 @@
   "log.raidRepelled": "The {monster} are driven off. {gold} gold recovered.",
   "log.raidWon": "The {monster} ransack the town and burn the {building}.",
   "log.raidWonNoDamage": "The {monster} loot the stores and flee.",
+  "log.caravanArrives": "A merchant caravan rolls in to trade at the market ({gold} gold).",
+  "log.fireStart": "Fire! The {building} is burning. Fetch water!",
+  "log.fireOut": "The fire at the {building} is out.",
+  "log.fireBurned": "The {building} burned to the ground.",
   "log.victory": "{leader}'s party has slain the Demon Lord! Heroes of the realm: {names}."
 }

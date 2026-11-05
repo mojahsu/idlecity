@@ -51,6 +51,7 @@ src/
     adventurers.ts arrivals, resting, party formation, dungeon unlocks
     parties.ts    dungeon runs, combat, loot, death, the final boss
     raids.ts      monster attacks on the town
+    events.ts     merchant caravans and house fires (bucket brigade)
   data/       Content as plain data: buildings, tiers, jobs, classes, monsters, dungeons, names
   i18n/       t() + one JSON per language (en, zh-TW)
   render/     Canvas renderer. Reads state, never writes it.
@@ -61,8 +62,11 @@ src/
                     light + smoke sources
     units.ts        Workers (tools, loads), adventurer classes, parties, raiders
     monsters.ts     Monster art shared by raids and the dungeon view
-    effects.ts      Particles (smoke, weather, leaves, fireflies, debris, fireworks),
-                    birds, chickens, the market cart, floating text
+    effects.ts      Particles (smoke, weather, lightning, rainbow, shooting stars,
+                    aurora, leaves, fireflies, debris, fireworks), birds, chickens,
+                    the market cart, floating text
+    townlife.ts     Render-only townsfolk: strollers, children, a dog, roof cats,
+                    wall guards, tavern music, the chapel bell
     lighting.ts     Night darkness with light pools, dawn/dusk tint, fog, vignette
     dungeonView.ts  Inset panel showing a party fighting floor by floor
   ui/         HUD (DOM), stylesheet
@@ -99,6 +103,21 @@ tests/        bun tests
    freeze), priests cast Holy Light on anyone under 30% HP (then revive one
    fallen companion per run). Fights run once per second in `sim/parties.ts`;
    every skill emits a `skill` fx the dungeon view animates.
+
+8. Townsfolk sleep: at sunset workers finish their trip and go home (a bed in a
+   hut or house, otherwise the campfire); windows light up as they arrive and go
+   dark one by one late at night; everyone is back out a little after sunrise.
+   Daytime work yields `DAY_WORK_BONUS` more to make up for the night off.
+9. Events (`sim/events.ts`): once the market stands, a merchant caravan visits
+   every 5–10 minutes and pays gold at the stalls. Once six flammable buildings
+   stand, a fire breaks out every so often; the nearest workers form a bucket
+   brigade between the well (or the river) and the blaze. Rain helps. A blaze
+   that stays near full strength for `FIRE_COLLAPSE` seconds burns the building
+   down to a half-finished site the builders then restore.
+10. Weather is decided per day in `sim/time.ts` (`dayWeather`) so the sim and
+    the renderer agree: rain falls from late morning to mid afternoon and a
+    rainbow follows; storm days add lightning; clear nights have shooting
+    stars, and even-numbered clear winter nights the aurora.
 
 Rough pacing at 1x: hamlet in minutes, village ~15 min, town ~40 min, city ~2 h,
 first dungeon ~45 min, Dark Tower after the Keep (~3 h), Demon Lord falls

@@ -28,3 +28,29 @@ export function darkness(s: GameState): number {
   if (f > 0.74) return (f - 0.74) / 0.1;
   return 0;
 }
+
+/** Townsfolk are indoors between these day fractions (sunset to just before sunrise). */
+export function isNight(s: GameState): boolean {
+  const f = dayFraction(s);
+  return f > 0.8 || f < 0.17;
+}
+
+export type Weather = 'clear' | 'rain' | 'storm' | 'snow';
+
+/** The weather of a day is fixed by its index so the renderer and the sim agree. */
+export function dayWeather(day: number, sea: (typeof SEASONS)[number]): Weather {
+  if (sea === 'winter') return (day * 7919) % 3 !== 0 ? 'snow' : 'clear';
+  if ((day * 7919) % 5 !== 0) return 'clear';
+  return (day * 31) % 2 === 0 ? 'storm' : 'rain';
+}
+
+/** Rain (and storms) fall from late morning to mid afternoon; a rainbow follows. */
+export const RAIN_FROM = 0.25;
+export const RAIN_TO = 0.62;
+
+export function isRaining(s: GameState): boolean {
+  const w = dayWeather(currentDay(s), season(s));
+  if (w !== 'rain' && w !== 'storm') return false;
+  const f = dayFraction(s);
+  return f >= RAIN_FROM && f <= RAIN_TO;
+}

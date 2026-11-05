@@ -40,7 +40,11 @@ export type WorkerTask =
   | { kind: 'gather'; resource: ResourceId; tx: number; ty: number; phase: 'go' | 'work' | 'return' }
   | { kind: 'build'; buildingId: number; phase: 'go' | 'work' }
   | { kind: 'farm'; buildingId: number; phase: 'go' | 'work' | 'return' }
-  | { kind: 'arrive' };
+  | { kind: 'arrive' }
+  /** Night: walk home (or to the campfire) and sleep until dawn. `inside` = hidden indoors. */
+  | { kind: 'sleep'; buildingId: number; phase: 'go' | 'sleep' }
+  /** Bucket brigade: fetch water at the well (or river), carry it to the blaze, throw, repeat. */
+  | { kind: 'douse'; buildingId: number; phase: 'fetch' | 'carry' | 'throw' };
 
 export interface Worker {
   id: number;
@@ -130,6 +134,30 @@ export interface Raid {
   timer: number;
 }
 
+/** A merchant caravan visiting the market. */
+export interface Caravan {
+  x: number;
+  y: number;
+  path: Point[];
+  phase: 'arrive' | 'trade' | 'leave';
+  timer: number;
+  /** Gold still to be paid out while trading. */
+  gold: number;
+}
+
+/** A building on fire. Workers form a bucket brigade; rain helps. */
+export interface Fire {
+  buildingId: number;
+  /** 0..1 how fierce the blaze is. */
+  intensity: number;
+  /** Seconds since it started. */
+  age: number;
+  /** Seconds spent at full intensity; the building is lost past FIRE_COLLAPSE. */
+  fullFor: number;
+  /** How fast this one spreads (intensity per second); dry timber burns faster. */
+  growth: number;
+}
+
 export type LogKind = 'info' | 'build' | 'people' | 'adventure' | 'danger' | 'victory';
 
 export interface LogEntry {
@@ -146,6 +174,8 @@ export type TierId = 'camp' | 'hamlet' | 'village' | 'town' | 'city';
 export type Fx =
   | { kind: 'float'; x: number; y: number; text: string; color?: string }
   | { kind: 'hit'; x: number; y: number }
+  /** A bucket of water thrown at a burning building. */
+  | { kind: 'water'; x: number; y: number }
   /** A class skill fired inside a dungeon; the renderer animates it. */
   | { kind: 'skill'; partyId: number; actorId: number; skill: string; targetId?: number; amount?: number };
 
@@ -166,6 +196,9 @@ export interface GameState {
   parties: Party[];
   dungeons: Dungeon[];
   raid: Raid | null;
+  /** Optional for saves from before these events existed. */
+  caravan?: Caravan | null;
+  fire?: Fire | null;
   nextId: number;
   log: LogEntry[];
   chronicle: LogEntry[];
@@ -175,7 +208,7 @@ export interface GameState {
   ironForged: number;
   victory: boolean;
   mayor: { want: BuildingTypeId | null; jobTimer: number; buildTimer: number };
-  timers: { immigrant: number; adventurer: number; raid: number; chapel: number };
+  timers: { immigrant: number; adventurer: number; raid: number; chapel: number; caravan?: number; fire?: number };
   stats: { built: number; monstersSlain: number; dungeonRuns: number; deaths: number; immigrants: number };
   /** Transient, cleared each tick. Not saved. */
   fx: Fx[];

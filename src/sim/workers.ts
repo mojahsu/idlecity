@@ -1,11 +1,13 @@
-// Worker behaviour: walk, gather, carry back, build, farm.
-import type { GameState, ResourceId, Terrain, Worker } from './types';
+// Worker behaviour: walk, gather, carry back, build, farm, sleep at night,
+// and run for water when something burns.
+import type { Building, GameState, Point, ResourceId, Terrain, Worker } from './types';
 import { BUILDINGS } from '../data/buildings';
 import { GATHER_TERRAIN, JOBS } from '../data/jobs';
 import { findNearestTile, findPath, isReachable, moveAlong, tileAt } from './world';
 import { completeBuilding, constructionSite, gatherBonus } from './buildings';
 import { pick } from './rng';
-import { FARM_AMOUNT, FARM_TIME, GATHER_AMOUNT, GATHER_TIME, WORKER_SPEED, TILE_REGEN_PER_SEC } from './constants';
+import { DAY_WORK_BONUS, FARM_AMOUNT, FARM_TIME, FIRE_BRIGADE, FIRE_BUCKET, GATHER_AMOUNT, GATHER_TIME, WORKER_SPEED, TILE_REGEN_PER_SEC } from './constants';
+import { dayFraction, isNight } from './time';
 
 
 export function updateWorkers(s: GameState, dt: number): void {
@@ -24,6 +26,7 @@ function updateWorker(s: GameState, w: Worker, dt: number): void {
 
     case 'gather':
       if (t.phase === 'go') {
+        if (isNight(s)) { w.task = null; return; } // sunset: turn back before starting
         if (moveAlong(w, WORKER_SPEED, dt)) { t.phase = 'work'; w.timer = GATHER_TIME; }
       } else if (t.phase === 'work') {
         w.timer -= dt;
@@ -32,7 +35,7 @@ function updateWorker(s: GameState, w: Worker, dt: number): void {
           const taken = tile ? Math.floor(Math.min(GATHER_AMOUNT, tile.amount)) : 0;
           if (tile) tile.amount -= taken;
           w.carrying = t.resource;
-          w.carryAmount = Math.round(taken * gatherBonus(s, t.resource));
+          w.carryAmount = Math.round(taken * gatherBonus(s, t.resource) * DAY_WORK_BONUS);
           t.phase = 'return';
           w.path = findPath(s, w, s.center);
         }
@@ -44,12 +47,40 @@ function updateWorker(s: GameState, w: Worker, dt: number): void {
     case 'build': {
       const b = s.buildings.find((x) => x.id === t.buildingId);
       if (!b || b.built) { w.task = null; return; }
+      if (isNight(s)) { w.task = null; return; } // tools down at sunset
       if (t.phase === 'go') {
         if (moveAlong(w, WORKER_SPEED, dt)) t.phase = 'work';
       } else {
         const def = BUILDINGS[b.type];
-        b.progress += dt / Math.max(1, def.buildTime);
+        b.progress += dt * DAY_WORK_BONUS / Math.max(1, def.buildTime);
         if (b.progress >= 1) completeBuilding(s, b);
+      }
+      return;
+    }
+
+    case 'sleep': {
+      // Everyone wakes a little after sunrise, staggered so the street fills gradually.
+      if (!isNight(s) && dayFraction(s) > 0.17 + ((w.id * 37) % 10) * 0.006) { w.task = null; return; }
+      if (t.phase === 'go' && moveAlong(w, WORKER_SPEED, dt)) t.phase = 'sleep';
+      return;
+    }
+
+    case 'douse': {
+      const f = s.fire;
+      const b = f && s.buildings.find((x) => x.id === f.buildingId);
+      if (!f || !b || b.id !== t.buildingId) { w.task = null; return; }
+      if (t.phase === 'fetch') {
+        if (moveAlong(w, WORKER_SPEED * 1.25, dt)) { t.phase = 'carry'; w.path = findPath(s, w, b); }
+      } else if (t.phase === 'carry') {
+        if (moveAlong(w, WORKER_SPEED * 1.1, dt)) { t.phase = 'throw'; w.timer = 0.6; }
+      } else {
+        w.timer -= dt;
+        if (w.timer <= 0) {
+          f.intensity = Math.max(0, f.intensity - FIRE_BUCKET);
+          s.fx.push({ kind: 'water', x: b.x, y: b.y });
+          t.phase = 'fetch';
+          w.path = findPath(s, w, waterSource(s, w));
+        }
       }
       return;
     }
@@ -58,12 +89,13 @@ function updateWorker(s: GameState, w: Worker, dt: number): void {
       const b = s.buildings.find((x) => x.id === t.buildingId);
       if (!b) { w.task = null; return; }
       if (t.phase === 'go') {
+        if (isNight(s)) { w.task = null; return; }
         if (moveAlong(w, WORKER_SPEED, dt)) { t.phase = 'work'; w.timer = FARM_TIME; }
       } else if (t.phase === 'work') {
         w.timer -= dt;
         if (w.timer <= 0) {
           w.carrying = 'food';
-          w.carryAmount = Math.round(FARM_AMOUNT * gatherBonus(s, 'food'));
+          w.carryAmount = Math.round(FARM_AMOUNT * gatherBonus(s, 'food') * DAY_WORK_BONUS);
           t.phase = 'return';
           w.path = findPath(s, w, s.center);
         }
@@ -86,6 +118,8 @@ function deposit(s: GameState, w: Worker): void {
 }
 
 function assignTask(s: GameState, w: Worker): void {
+  if (s.fire && dousers(s) < brigadeSize(s)) { draftToFire(s, w); return; }
+  if (isNight(s)) { goHome(s, w); return; }
   const job = JOBS[w.job];
   if (w.job === 'builder') {
     const site = constructionSite(s);
@@ -117,6 +151,75 @@ function assignTask(s: GameState, w: Worker): void {
     w.path = findPath(s, w, target);
     if (!w.path.length && (Math.round(w.x) !== target.x || Math.round(w.y) !== target.y)) unstick(s, w);
   }
+}
+
+/** Workers currently fetching water for the fire. */
+export function dousers(s: GameState): number {
+  let n = 0;
+  for (const w of s.workers) if (w.task?.kind === 'douse') n++;
+  return n;
+}
+
+/** Bigger towns muster a bigger bucket brigade. */
+export function brigadeSize(s: GameState): number {
+  return FIRE_BRIGADE + Math.floor(s.workers.length / 15);
+}
+
+/** Where buckets get filled: the well if there is one, otherwise the nearest stretch of river. */
+export function waterSource(s: GameState, from: Point): Point {
+  const well = s.buildings.find((b) => b.built && b.type === 'well');
+  if (well) return well;
+  let best: Point = s.center, bestD = Infinity;
+  for (let y = 0; y < s.height; y++) for (let x = 0; x < s.width; x++) {
+    if (s.tiles[y * s.width + x].terrain !== 'water') continue;
+    const d = Math.hypot(x - from.x, y - from.y);
+    if (d < bestD) { bestD = d; best = { x, y }; }
+  }
+  return best;
+}
+
+/** Drop everything, grab a bucket and run for water. */
+export function draftToFire(s: GameState, w: Worker): void {
+  const f = s.fire;
+  const b = f && s.buildings.find((x) => x.id === f.buildingId);
+  if (!b) return;
+  w.carrying = null; w.carryAmount = 0;
+  w.task = { kind: 'douse', buildingId: b.id, phase: 'fetch' };
+  w.path = findPath(s, w, waterSource(s, w));
+}
+
+/**
+ * Each worker has a bed in a hut or house (in building order); the rest sleep
+ * by the campfire. Only built homes count.
+ */
+export function homeOf(s: GameState, w: Worker): Building | null {
+  const idx = s.workers.indexOf(w);
+  let beds = 0;
+  for (const b of s.buildings) {
+    if (!b.built) continue;
+    const h = BUILDINGS[b.type].housing ?? 0;
+    if (!h) continue;
+    beds += h;
+    if (idx < beds) return b;
+  }
+  return s.buildings.find((b) => b.type === 'campfire') ?? null;
+}
+
+/** True while the worker is asleep inside a house (not drawn). */
+export function isIndoors(s: GameState, w: Worker): boolean {
+  if (w.task?.kind !== 'sleep' || w.task.phase !== 'sleep') return false;
+  const b = s.buildings.find((x) => x.id === (w.task as { buildingId: number }).buildingId);
+  return !!b && b.type !== 'campfire';
+}
+
+function goHome(s: GameState, w: Worker): void {
+  const home = homeOf(s, w);
+  if (!home) return;
+  w.task = { kind: 'sleep', buildingId: home.id, phase: 'go' };
+  // Sit at the fire's edge rather than on it.
+  const target = home.type === 'campfire' ? { x: home.x + ((w.id % 3) - 1), y: home.y + 1 } : home;
+  w.path = findPath(s, w, target);
+  if (!w.path.length) w.task.phase = 'sleep';
 }
 
 /** A worker who cannot reach anything (e.g. boxed in by new walls) walks or hops back to the campfire. */

@@ -131,5 +131,9 @@
   "log.raidRepelled": "{monster}被擊退了，繳獲 {gold} 金幣。",
   "log.raidWon": "{monster}洗劫了城鎮，燒毀了{building}。",
   "log.raidWonNoDamage": "{monster}搶走了物資後逃走。",
+  "log.caravanArrives": "商隊抵達市集交易（帶來 {gold} 金幣）。",
+  "log.fireStart": "失火了！{building}正在燃燒，快去提水！",
+  "log.fireOut": "{building}的火勢已撲滅。",
+  "log.fireBurned": "{building}被燒成了廢墟。",
   "log.victory": "{leader} 的隊伍擊敗了大魔王！王國的英雄：{names}。"
 }

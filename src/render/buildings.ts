@@ -4,7 +4,7 @@
 import type { Building, GameState } from '../sim/types';
 import { BUILDINGS } from '../data/buildings';
 import { TILE } from './constants';
-import { PALETTE, circle, ellipse, poly, rect, line, roundRect, groundShadow, shade, rgba, hash, type Env } from './palette';
+import { PALETTE, circle, ellipse, poly, rect, line, roundRect, groundShadow, shade, rgba, hash, glow, type Env } from './palette';
 
 export interface LightSource { x: number; y: number; r: number; color: string; flicker: number }
 export interface SmokeSource { x: number; y: number; rate: number; color: string; size: number }
@@ -28,6 +28,23 @@ function stretchY(type: Building['type'], py: number, y: number): number {
   return ground - (ground - y) * stretchOf(type)[1];
 }
 
+/**
+ * Whether a building's windows glow. Homes light up when someone is inside and
+ * go dark one by one late at night; shops and halls keep their lamps burning.
+ */
+export function isLit(b: Building, env: Env): boolean {
+  const def = BUILDINGS[b.type];
+  if (!def.light || env.dark <= 0.35) return false;
+  const f = env.dayFrac, h = hash(b.x, b.y, 61);
+  if (b.type === 'hut' || b.type === 'house') {
+    if (!env.indoors.has(b.id)) return false;
+    return f >= 0.1 + h * 0.05 && !(f > 0.92 + h * 0.06 && f < 1) ;
+  }
+  if (b.type === 'market') return f > 0.5 && f < 0.9;
+  if (b.type === 'chapel') return f > 0.5 && f < 0.96;
+  return true;
+}
+
 /** Full height above the tile top a building may occupy (used for the build reveal). */
 const REVEAL_H = (TILE + 34) * 1.55;
 
@@ -35,6 +52,25 @@ export function drawBuilding(ctx: CanvasRenderingContext2D, s: GameState, b: Bui
   const px = b.x * TILE, py = b.y * TILE;
   if (!b.built) { drawConstruction(ctx, s, b, env, px, py); return; }
   drawBuilt(ctx, s, b, env, px, py);
+  if (s.fire && s.fire.buildingId === b.id) drawBlaze(ctx, b, s.fire.intensity, env, px, py);
+}
+
+/** Flames licking up a burning building, with a warm glow even by day. */
+function drawBlaze(ctx: CanvasRenderingContext2D, b: Building, k: number, env: Env, px: number, py: number): void {
+  const cx = px + TILE / 2, ground = py + TILE;
+  const top = ground - (TILE + 10) * stretchOf(b.type)[1] * Math.min(1, 0.4 + k);
+  // Scorching darkens the walls as it spreads.
+  ctx.fillStyle = `rgba(20,10,5,${0.35 * k})`; ctx.fillRect(px - 2, top, TILE + 4, ground - top);
+  glow(ctx, cx, ground - 12, 34 + 20 * k, '#ff8020', 0.25 + 0.3 * k);
+  const n = 3 + Math.round(k * 5);
+  for (let i = 0; i < n; i++) {
+    const h = hash(b.x, b.y, 70 + i);
+    const fx = px + 2 + h * (TILE - 4), base = ground - 2 - h * 6 - (i % 2) * 8 * k;
+    const f = 1 + 0.35 * Math.sin(env.clock * (9 + i) + h * 20);
+    const hgt = (8 + 16 * k) * f * (0.6 + h * 0.6);
+    poly(ctx, [fx - 4, base, fx - 1.5, base - hgt * 0.55, fx + 0.5 + Math.sin(env.clock * 7 + i) * 2, base - hgt, fx + 2, base - hgt * 0.5, fx + 4, base], 'rgba(255,110,30,0.85)');
+    poly(ctx, [fx - 2, base, fx, base - hgt * 0.6, fx + 2, base], 'rgba(255,220,120,0.9)');
+  }
 }
 
 function drawConstruction(ctx: CanvasRenderingContext2D, s: GameState, b: Building, env: Env, px: number, py: number): void {
@@ -152,7 +188,7 @@ function drawBuiltArt(ctx: CanvasRenderingContext2D, s: GameState, b: Building, 
   const def = BUILDINGS[b.type];
   const cx = px + TILE / 2, cy = py + TILE / 2;
   const bottom = py + TILE - 2;
-  const o: Opts = { lit: env.dark > 0.35 && !!def.light, env };
+  const o: Opts = { lit: isLit(b, env), env };
   const snow = env.season === 'winter';
   const v = hash(b.x, b.y, 50);
 
@@ -285,8 +321,8 @@ function drawBuiltArt(ctx: CanvasRenderingContext2D, s: GameState, b: Building, 
       const sw = Math.sin(env.clock * 2.2 + 1) * 1.5;
       rect(ctx, px + TILE - 2, py + 9, 6, 1.2, '#3a2a1a');
       rect(ctx, px + TILE + 1 + sw * 0.3, py + 10, 5, 5, '#8a5a2a'); rect(ctx, px + TILE + 2.2 + sw * 0.3, py + 11, 2.6, 3, '#e0c060');
-      // Lantern by the door at night.
-      if (o.lit) { circle(ctx, cx + 5, py + TILE - 10, 1.4, '#ffd070'); }
+      // Lantern by the door at night, and light spilling out of the open door.
+      if (o.lit) { circle(ctx, cx + 5, py + TILE - 10, 1.4, '#ffd070'); rect(ctx, cx - 2.5, py + TILE - 9.5, 5, 7, 'rgba(255,200,110,0.55)'); }
       return;
     }
     case 'blacksmith': {
@@ -339,7 +375,9 @@ function drawBuiltArt(ctx: CanvasRenderingContext2D, s: GameState, b: Building, 
       roofShingles(ctx, px + 1, py + 5, px + TILE - 1, py + 5, cx, py - 4, snow ? '#e9edf0' : '#6a5a8a');
       // Steeple with bell.
       rect(ctx, cx - 3, py - 13, 6, 10, '#e8e0d0'); poly(ctx, [cx - 4, py - 13, cx, py - 20, cx + 4, py - 13], snow ? '#e9edf0' : '#6a5a8a');
-      rect(ctx, cx - 1.5, py - 11, 3, 4, '#2a2a3a'); circle(ctx, cx + Math.sin(env.clock * 3) * 0.6, py - 9, 1.1, '#e0c060');
+      rect(ctx, cx - 1.5, py - 11, 3, 4, '#2a2a3a');
+      const swing = env.bell ? Math.sin(env.clock * 9) * 2.2 : Math.sin(env.clock * 3) * 0.6;
+      circle(ctx, cx + swing, py - 9, 1.1, '#e0c060');
       rect(ctx, cx - 0.5, py - 24, 1, 5, '#f0e060'); rect(ctx, cx - 2, py - 22.5, 4, 1, '#f0e060');
       // Arched stained windows.
       for (const wx of [px + 6, px + TILE - 9]) {
@@ -422,12 +460,12 @@ export function lightSources(s: GameState, env: Env): LightSource[] {
     else if (b.type === 'walls') out.push({ x: px + TILE - 4, y: stretchY(b.type, py, py + 2), r: 20, color: '#ffa040', flicker: 0.15 });
     else if (b.type === 'mine') out.push({ x: cx, y: stretchY(b.type, py, py + TILE / 2 - 1), r: 12, color: '#ffc050', flicker: 0.1 });
     else if (b.type === 'chapel') out.push({ x: cx, y: cy, r: 34, color: '#ffc080', flicker: 0.03 });
-    else if (def.light) out.push({ x: cx, y: cy, r: b.type === 'tavern' || b.type === 'guildHall' || b.type === 'market' ? 34 : 28, color: '#ffd080', flicker: 0.04 });
+    else if (def.light && isLit(b, env)) out.push({ x: cx, y: cy, r: b.type === 'tavern' || b.type === 'guildHall' || b.type === 'market' ? 34 : 28, color: '#ffd080', flicker: 0.04 });
+    if (s.fire && s.fire.buildingId === b.id) out.push({ x: cx, y: py + TILE - 10, r: 40 + 40 * s.fire.intensity, color: '#ff8030', flicker: 0.3 });
   }
   for (const d of s.dungeons) {
     if (d.id === 'darkTower' && d.unlocked) out.push({ x: d.x * TILE + TILE / 2, y: d.y * TILE + TILE / 2 - 6, r: 34, color: s.victory ? '#f0d050' : '#a040e0', flicker: 0.25 });
   }
-  void env;
   return out;
 }
 
@@ -435,13 +473,16 @@ export function lightSources(s: GameState, env: Env): LightSource[] {
 export function smokeSources(s: GameState, env: Env): SmokeSource[] {
   const out: SmokeSource[] = [];
   const cold = env.season === 'winter' || env.dark > 0.5;
+  // Breakfast fires: every chimney puffs hard just after sunrise.
+  const dawn = env.dayFrac > 0.1 && env.dayFrac < 0.3;
   for (const b of s.buildings) {
     if (!b.built) continue;
     const px = b.x * TILE, py = b.y * TILE;
+    if (s.fire && s.fire.buildingId === b.id) { out.push({ x: px + TILE / 2, y: stretchY(b.type, py, py + 4), rate: 4 + 8 * s.fire.intensity, color: '#3a3330', size: 2.6 }); continue; }
     switch (b.type) {
       case 'campfire': out.push({ x: px + TILE / 2, y: py + TILE / 2 - 8, rate: 2.5, color: '#d8d0c8', size: 2.2 }); break;
-      case 'house': out.push({ x: px + TILE - 6, y: stretchY(b.type, py, py - 4), rate: cold ? 1.2 : 0.5, color: '#e8e4e0', size: 1.6 }); break;
-      case 'hut': if (cold) out.push({ x: px + TILE / 2 + 4, y: stretchY(b.type, py, py - 2), rate: 0.6, color: '#e8e4e0', size: 1.3 }); break;
+      case 'house': out.push({ x: px + TILE - 6, y: stretchY(b.type, py, py - 4), rate: dawn && env.indoors.has(b.id) ? 1.8 : cold ? 1.2 : 0.5, color: '#e8e4e0', size: 1.6 }); break;
+      case 'hut': if (cold || dawn) out.push({ x: px + TILE / 2 + 4, y: stretchY(b.type, py, py - 2), rate: dawn ? 1 : 0.6, color: '#e8e4e0', size: 1.3 }); break;
       case 'tavern': out.push({ x: px + 6, y: stretchY(b.type, py, py - 6), rate: 1.6, color: '#ece8e4', size: 1.8 }); break;
       case 'guildHall': out.push({ x: px + 6, y: stretchY(b.type, py, py - 5), rate: cold ? 1.2 : 0.6, color: '#e8e4e0', size: 1.6 }); break;
       case 'blacksmith': out.push({ x: px + TILE - 6, y: stretchY(b.type, py, py - 2), rate: 3, color: '#55504e', size: 2 }); break;

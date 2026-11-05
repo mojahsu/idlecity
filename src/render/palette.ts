@@ -1,7 +1,7 @@
 // Colours, deterministic noise and small drawing helpers shared by the
 // render modules. Everything here is pure; no canvas state is kept.
 import type { GameState } from '../sim/types';
-import { darkness, dayFraction, season } from '../sim/time';
+import { RAIN_TO, currentDay, darkness, dayFraction, dayWeather, isNight, isRaining, season } from '../sim/time';
 
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
 
@@ -17,18 +17,39 @@ export interface Env {
   /** In-game day index. */
   day: number;
   rainy: boolean;
+  /** Rain with lightning. */
+  storm: boolean;
   snowy: boolean;
   foggy: boolean;
+  /** 0..1 strength of the rainbow after the rain. */
+  rainbow: number;
+  /** Clear night sky: shooting stars, and in winter the aurora. */
+  clearNight: boolean;
+  /** Townsfolk are home (sunset to sunrise). */
+  night: boolean;
+  /** 0..1 while the chapel bell rings (morning and evening). */
+  bell: number;
+  /** Ids of houses with someone asleep inside. */
+  indoors: Set<number>;
 }
 
 export function makeEnv(s: GameState, clock: number): Env {
   const sea = season(s) as Season;
-  const day = Math.floor(s.time / 60);
+  const day = currentDay(s);
   const f = dayFraction(s);
-  const rainy = sea !== 'winter' && (day * 7919) % 5 === 0;
-  const snowy = sea === 'winter' && (day * 7919) % 3 !== 0;
-  const foggy = !rainy && !snowy && (sea === 'autumn' || sea === 'spring') && (day * 104729) % 3 === 0 && f > 0.2 && f < 0.36;
-  return { season: sea, dark: darkness(s), dayFrac: f, clock, day, rainy, snowy, foggy };
+  const weather = dayWeather(day, sea);
+  const rainy = isRaining(s);
+  const storm = rainy && weather === 'storm';
+  const snowy = weather === 'snow';
+  const wet = weather === 'rain' || weather === 'storm';
+  const rainbow = wet && f > RAIN_TO && f < RAIN_TO + 0.14 ? Math.max(0, Math.min(1, (f - RAIN_TO) / 0.03, (RAIN_TO + 0.14 - f) / 0.04)) : 0;
+  const foggy = weather === 'clear' && (sea === 'autumn' || sea === 'spring') && (day * 104729) % 3 === 0 && f > 0.2 && f < 0.36;
+  const dark = darkness(s);
+  const clearNight = dark > 0.6 && !rainy && !snowy && !foggy;
+  const bell = f > 0.24 && f < 0.275 ? 1 : f > 0.765 && f < 0.8 ? 1 : 0;
+  const indoors = new Set<number>();
+  for (const w of s.workers) if (w.task?.kind === 'sleep' && w.task.phase === 'sleep') indoors.add(w.task.buildingId);
+  return { season: sea, dark, dayFrac: f, clock, day, rainy, storm, snowy, foggy, rainbow, clearNight, night: isNight(s), bell, indoors };
 }
 
 /** Deterministic 0..1 noise from integer coordinates and a salt. */

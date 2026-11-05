@@ -1,5 +1,5 @@
 // People and creatures on the map: workers, adventurers, parties, raiders.
-import type { Adventurer, AdventurerClass, GameState, Party, Raid, Worker } from '../sim/types';
+import type { Adventurer, AdventurerClass, Caravan, GameState, Party, Raid, Worker } from '../sim/types';
 import { JOBS } from '../data/jobs';
 import { CLASSES } from '../data/adventurers';
 import { TILE } from './constants';
@@ -74,6 +74,16 @@ function tool(ctx: CanvasRenderingContext2D, w: Worker, p: Pose): void {
   ctx.restore();
 }
 
+/** A wooden bucket: empty on the way to the well, full and sloshing on the way back, tipped when thrown. */
+function bucket(ctx: CanvasRenderingContext2D, env: Env, phase: 'fetch' | 'carry' | 'throw', id: number): void {
+  ctx.save(); ctx.translate(3.6, -6);
+  ctx.rotate(phase === 'throw' ? -1.4 + 0.6 * Math.sin(env.clock * 12 + id) : phase === 'carry' ? 0.1 + 0.15 * Math.sin(env.clock * 9 + id) : 0.25);
+  line(ctx, 0, 0, 0, 3, '#5a3a1e', 0.8);
+  poly(ctx, [-2.5, 3, 2.5, 3, 2, 8, -2, 8], '#8a6a3a'); rect(ctx, -2.5, 3, 5, 1, '#6b4a2b');
+  if (phase !== 'fetch') ellipse(ctx, 0, 3.5, 2, 0.9, '#5aa0e0');
+  ctx.restore();
+}
+
 function hat(ctx: CanvasRenderingContext2D, job: string): void {
   switch (job) {
     case 'farmer': ellipse(ctx, 0, -15.5, 5.5, 1.6, '#d8b860'); ellipse(ctx, 0, -16.5, 3, 2, '#e0c468'); break;
@@ -100,15 +110,102 @@ function load(ctx: CanvasRenderingContext2D, w: Worker): void {
 export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): void {
   const moving = w.path.length > 0;
   const working = !!w.task && 'phase' in w.task && w.task.phase === 'work';
+  const sleeping = w.task?.kind === 'sleep' && w.task.phase === 'sleep';
+  const dousing = w.task?.kind === 'douse';
   const p = pose(moving, working, env.clock, w.id);
   const dir = facing(w.x, w.path, w.id);
   const skin = SKIN[Math.floor(hash(w.id, 1) * SKIN.length)], hair = HAIR[Math.floor(hash(w.id, 2) * HAIR.length)];
+  if (sleeping) {
+    // Dozing by the campfire: sat down, head nodding, the odd "z".
+    const nod = Math.sin(env.clock * 1.5 + w.id) * 0.6;
+    withUnit(ctx, w.x, w.y, dir, 3 + nod, () => { body(ctx, JOBS[w.job].color, skin, hair, { walk: 0, bob: 0, swing: 0 }, true); hat(ctx, w.job); });
+    const zt = (env.clock * 0.6 + w.id * 0.37) % 1;
+    if (zt < 0.7) { ctx.font = 'bold 6px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = `rgba(230,235,255,${0.8 * (1 - zt / 0.7)})`; ctx.fillText('z', w.x * TILE + TILE / 2 + dir * 5 + zt * 4, w.y * TILE + TILE / 2 - 6 - zt * 10); }
+    return;
+  }
   withUnit(ctx, w.x, w.y, dir, p.bob, () => {
     load(ctx, w);
     body(ctx, JOBS[w.job].color, skin, hair, p);
     hat(ctx, w.job);
-    if (working || !w.carrying) tool(ctx, w, p);
+    if (dousing) bucket(ctx, env, (w.task as { phase: 'fetch' | 'carry' | 'throw' }).phase, w.id);
+    else if (working || !w.carrying) tool(ctx, w, p);
   });
+}
+
+// ---- townsfolk (ambient, not in the simulation) ---------------------------------
+
+const TUNICS = ['#b85a4a', '#6a8ab8', '#8a9a5a', '#b8a060', '#9a6a9a', '#7a8a8a', '#c08a5a', '#5a8a7a'];
+
+/**
+ * A generic villager at absolute tile coordinates. `seed` picks the colours;
+ * `child` draws a half-height figure. Used by the ambient town life layer.
+ */
+export function drawTownsfolk(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number, moving: boolean, env: Env, seed: number, child = false, basket = false): void {
+  const p = pose(moving, false, env.clock, seed);
+  const skin = SKIN[Math.floor(hash(seed, 1) * SKIN.length)], hair = HAIR[Math.floor(hash(seed, 2) * HAIR.length)];
+  const tunic = TUNICS[Math.floor(hash(seed, 4) * TUNICS.length)];
+  withUnit(ctx, x, y, dir, p.bob, () => {
+    body(ctx, tunic, skin, hair, p, hash(seed, 5) > 0.5 && !child);
+    if (!child && hash(seed, 6) > 0.6) { ctx.fillStyle = shade(tunic, -0.3); ctx.beginPath(); ctx.arc(0, -13.4, 3.9, Math.PI * 0.95, Math.PI * 2.05); ctx.fill(); }
+    if (basket) { ellipse(ctx, 4.5, -5, 2.6, 1.8, '#b08a52'); circle(ctx, 3.8, -6, 0.9, '#d83a4a'); circle(ctx, 5.4, -6.2, 0.9, '#8fcf7a'); }
+  }, child ? WORKER_SCALE * 0.68 : WORKER_SCALE);
+}
+
+/** A town guard pacing a wall: grey tunic, kettle helmet, spear, torch after dark. */
+export function drawGuard(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number, moving: boolean, env: Env, seed: number): void {
+  const p = pose(moving, false, env.clock, seed);
+  withUnit(ctx, x, y, dir, p.bob, () => {
+    body(ctx, '#7a7a86', '#e8b88a', '#3a2a1a', p);
+    rect(ctx, -3.2, -9.5, 6.4, 3, '#9aa0a8');
+    ctx.fillStyle = '#8a9098'; ctx.beginPath(); ctx.arc(0, -14, 3.8, Math.PI, 0); ctx.fill(); ellipse(ctx, 0, -14, 5, 1.2, '#7a8088');
+    line(ctx, 4.5, 2, 4.5, -18, '#8a6a3a', 1.2); poly(ctx, [3.6, -18, 4.5, -22, 5.4, -18], '#d8dde3');
+    if (env.dark > 0.25) { line(ctx, -4.5, -6, -4.5, -12, '#5a3a1e', 1.2); const f = 1 + 0.3 * Math.sin(env.clock * 11 + seed); ellipse(ctx, -4.5, -13.5 * f, 1.8, 2.6 * f, '#ff9a30'); ellipse(ctx, -4.5, -13 * f, 0.9, 1.4 * f, '#ffe080'); }
+  });
+}
+
+/** Merchant on foot, two laden mules and a covered wagon. */
+export function drawCaravan(ctx: CanvasRenderingContext2D, c: Caravan, env: Env): void {
+  const moving = c.phase !== 'trade';
+  const dir = facing(c.x, c.path, 11);
+  const px = c.x * TILE + TILE / 2, py = c.y * TILE + TILE / 2 + 6;
+  const step = moving ? env.clock * 10 : 0;
+  // Wagon (behind), then mules, then the merchant leading.
+  for (let i = 1; i >= 0; i--) {
+    const mx = px - dir * (14 + i * 11), my = py - 1 + (i ? 1 : -1);
+    const trot = moving ? Math.sin(step + i * 2) * 1.2 : 0;
+    groundShadow(ctx, mx, my + 1, 7, 2, 0.25);
+    ctx.save(); ctx.translate(mx, my); ctx.scale(dir, 1);
+    for (let k = 0; k < 4; k++) rect(ctx, -4 + k * 2.6, -4, 1.2, 4 + (k % 2 ? trot : -trot), '#5a4a3a');
+    ellipse(ctx, 0, -6.5, 5.5, 3, '#8a7a6a'); rect(ctx, 4, -10.5, 2.6, 5, '#8a7a6a'); poly(ctx, [4, -10.5, 4.5, -13.5, 5.5, -10.5], '#8a7a6a'); poly(ctx, [6, -10.5, 6.5, -13.5, 7.2, -10.5], '#8a7a6a');
+    poly(ctx, [-5, -7, -7.5, -9, -6, -5], '#4a3a2a');
+    // Packs.
+    rect(ctx, -3.5, -11.5, 7, 4.5, i ? '#b85a4a' : '#5a7ab0'); rect(ctx, -3.5, -11.5, 7, 1, i ? '#d88a7a' : '#8aa0d0'); line(ctx, 0, -11.5, 0, -7, '#3a2a1a', 0.8);
+    ctx.restore();
+  }
+  if (c.phase === 'trade') {
+    // Spread a rug with wares next to the wagon.
+    rect(ctx, px + dir * 4 - 8, py + 2, 16, 6, '#b84040'); rect(ctx, px + dir * 4 - 7, py + 3, 14, 4, '#d8a040');
+    circle(ctx, px + dir * 4 - 4, py + 4.5, 1.4, '#5aa0e0'); circle(ctx, px + dir * 4, py + 4.5, 1.4, '#f0d050'); circle(ctx, px + dir * 4 + 4, py + 4.5, 1.4, '#8fcf7a');
+  }
+  // Merchant leads on foot with a staff and a wide hat.
+  const p = pose(moving, false, env.clock, 11);
+  withUnit(ctx, c.x + dir * 0.05, c.y, dir, p.bob, () => {
+    body(ctx, '#7a4a8a', '#e8b88a', '#2b1d12', p, true);
+    ellipse(ctx, 0, -15.5, 6, 1.8, '#5a3a2a'); ellipse(ctx, 0, -16.5, 3.2, 2.2, '#6a4a3a');
+    line(ctx, 4.5, 0, 4.5, -14, '#8a6a3a', 1.2);
+    ellipse(ctx, -4.5, -6, 2.4, 2, '#b08a52');
+  });
+  // Covered wagon at the back.
+  const wx = px - dir * 34, wy = py;
+  groundShadow(ctx, wx, wy + 1, 12, 3, 0.25);
+  ctx.save(); ctx.translate(wx, wy); ctx.scale(dir, 1);
+  const wheel = moving ? env.clock * 4 : 0;
+  rect(ctx, -11, -9, 22, 6, '#8a6a3a'); rect(ctx, -11, -9, 22, 1.2, '#b08a52');
+  ctx.fillStyle = '#e8dcc0'; ctx.beginPath(); ctx.moveTo(-10, -9); ctx.quadraticCurveTo(-10, -20, 0, -20); ctx.quadraticCurveTo(10, -20, 10, -9); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 1; for (let k = -1; k <= 1; k++) { ctx.beginPath(); ctx.moveTo(k * 5, -9); ctx.quadraticCurveTo(k * 5, -17, k * 4, -19.5); ctx.stroke(); }
+  for (const x of [-6, 6]) { circle(ctx, x, -2, 3, '#3a2a1a'); ctx.strokeStyle = '#8a6a3a'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(x - Math.cos(wheel) * 2.5, -2 - Math.sin(wheel) * 2.5); ctx.lineTo(x + Math.cos(wheel) * 2.5, -2 + Math.sin(wheel) * 2.5); ctx.moveTo(x - Math.sin(wheel) * 2.5, -2 + Math.cos(wheel) * 2.5); ctx.lineTo(x + Math.sin(wheel) * 2.5, -2 - Math.cos(wheel) * 2.5); ctx.stroke(); }
+  if (env.dark > 0.3) { rect(ctx, 11, -14, 1, 5, '#5a3a1e'); circle(ctx, 11.5, -15, 1.4, '#ffd070'); }
+  ctx.restore();
 }
 
 // ---- adventurers -------------------------------------------------------------

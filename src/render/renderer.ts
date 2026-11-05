@@ -8,10 +8,12 @@ import { TILE } from './constants';
 import { makeEnv, type Env } from './palette';
 import { TerrainLayer, drawTree, drawWater } from './terrain';
 import { drawBuilding, drawDungeonEntrance, lightSources, type LightSource } from './buildings';
-import { drawAdventurer, drawParty, drawRaid, drawWorker } from './units';
+import { drawAdventurer, drawCaravan, drawParty, drawRaid, drawWorker } from './units';
 import { Effects } from './effects';
+import { TownLife } from './townlife';
 import { Lighting, drawVignette } from './lighting';
 import { DungeonView } from './dungeonView';
+import { isIndoors } from '../sim/workers';
 
 export { TILE };
 
@@ -21,6 +23,7 @@ export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private terrain = new TerrainLayer();
   private effects = new Effects();
+  private townLife = new TownLife();
   private lighting = new Lighting();
   private dungeonView = new DungeonView();
   private clock = 0;
@@ -53,6 +56,7 @@ export class Renderer {
     const env = makeEnv(s, this.clock);
 
     this.effects.update(s, env, dt);
+    this.townLife.update(s, env, dt);
     this.dungeonView.update(s, env, dt);
 
     ctx.clearRect(0, 0, W, H);
@@ -67,11 +71,13 @@ export class Renderer {
     }
     for (const b of s.buildings) items.push({ y: b.y + 0.95, draw: (c, e) => drawBuilding(c, s, b, e) });
     for (const d of s.dungeons) items.push({ y: d.y + 0.95, draw: (c, e) => drawDungeonEntrance(c, s, d, e) });
-    for (const w of s.workers) items.push({ y: w.y + 0.8, draw: (c, e) => drawWorker(c, w, e) });
+    for (const w of s.workers) if (!isIndoors(s, w)) items.push({ y: w.y + 0.8, draw: (c, e) => drawWorker(c, w, e) });
+    if (s.caravan) { const cv = s.caravan; items.push({ y: cv.y + 0.9, draw: (c, e) => drawCaravan(c, cv, e) }); }
     for (const a of s.adventurers) if (a.status === 'resting' || a.status === 'arriving') items.push({ y: a.y + 0.8, draw: (c, e) => drawAdventurer(c, a, e) });
     for (const p of s.parties) if (p.phase === 'travel' || p.phase === 'return') items.push({ y: p.y + 0.9, draw: (c, e) => drawParty(c, s, p, e) });
     if (s.raid) { const r = s.raid; items.push({ y: r.y + 0.9, draw: (c, e) => drawRaid(c, r, e) }); }
     for (const g of this.effects.groundActors()) items.push(g);
+    for (const g of this.townLife.groundActors(s)) items.push(g);
     items.sort((a, b) => a.y - b.y);
     for (const it of items) it.draw(ctx, env);
 
@@ -79,9 +85,12 @@ export class Renderer {
     this.effects.drawFloats(ctx);
     this.effects.drawHigh(ctx, env);
     this.effects.drawWeather(ctx);
+    this.effects.drawRainbow(ctx, env, W, H);
 
-    const lights: LightSource[] = env.dark > 0 ? [...lightSources(s, env), ...this.unitLights(s, env)] : [];
+    const lights: LightSource[] = env.dark > 0 ? [...lightSources(s, env), ...this.unitLights(s, env), ...this.townLife.lights(s, env)] : [];
     this.lighting.draw(ctx, s, env, W, H, lights, env.dark > 0 ? this.effects.nightLights() : []);
+    this.effects.drawSky(ctx, env, W, H);
+    this.townLife.drawOverlay(ctx);
     this.effects.drawBirds(ctx, env);
     this.dungeonView.draw(ctx, s, env, W, H);
     drawVignette(ctx, W, H);
