@@ -93,7 +93,7 @@ export class Renderer {
     for (const a of s.adventurers) if (a.status === 'resting' || a.status === 'arriving') items.push({ y: a.y + 0.8, draw: (c, e) => drawAdventurer(c, a, e, s.equipment, a.x, a.y, a.path.length > 0, raidPos) });
     for (const p of trainingPosts(s)) items.push({ y: p.y + 0.7, draw: (c, e) => drawTrainingPost(c, p.x, p.y, e) });
     for (const p of s.parties) if (p.phase === 'travel' || p.phase === 'return') items.push({ y: p.y + 0.9, draw: (c, e) => drawParty(c, s, p, e) });
-    if (s.raid) { const r = s.raid; const defenders = s.adventurers.filter((a) => a.status === 'resting' && a.pastime === 'sally').map((a) => ({ x: a.x, y: a.y })); items.push({ y: r.y + 0.9, draw: (c, e) => drawRaid(c, r, e, defenders) }); }
+    if (s.raid) { const r = s.raid; const defenders = s.adventurers.filter((a) => a.status === 'resting' && a.pastime === 'sally').map((a) => ({ x: a.x, y: a.y })); items.push({ y: r.y + 0.9, draw: (c, e) => drawRaid(c, r, e, defenders, s) }); }
     for (const g of this.effects.groundActors()) items.push(g);
     for (const g of this.townLife.groundActors(s, env)) items.push(g);
     items.sort((a, b) => a.y - b.y);
@@ -123,13 +123,14 @@ export class Renderer {
     return ev;
   }
 
-  /** Lock the spotlight onto whatever is at the clicked canvas position. */
+  /** Lock the spotlight onto whatever is at the clicked canvas position, and trigger click easter eggs. */
   handleClick(s: GameState, clientX: number, clientY: number): void {
     const rect = this.canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const tx = ((clientX - rect.left) / rect.width) * s.width;
     const ty = ((clientY - rect.top) / rect.height) * s.height;
     this.spotlight.selectAt(s, tx, ty);
+    this.townLife.handleClick(s, tx, ty);
   }
 
   /** The newest event as a caption in the bottom right corner, so you never miss what just happened. */

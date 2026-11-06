@@ -78,26 +78,37 @@ function daresBossFloor(s: GameState, p: Party): boolean {
 
 function makeEncounter(s: GameState, p: Party): Encounter {
   const def = DUNGEONS.find((d) => d.id === p.dungeon)!;
-  const boss = p.floor === def.floors && !(p.dungeon === FINAL_DUNGEON && s.victory);
+  const d = s.dungeons.find((x) => x.id === p.dungeon)!;
+  const inAbyss = p.dungeon === FINAL_DUNGEON && s.victory && p.floor > def.floors;
+  const boss = (p.floor === def.floors && !(p.dungeon === FINAL_DUNGEON && s.victory)) || (inAbyss && p.floor % 5 === 0);
   const scale = (1 + 0.3 * (p.floor - 1)) * hpMult(s, p, boss);
   const atkScale = (1 + 0.1 * (p.floor - 1)) * (boss ? FIGHT_TUNE.bossAtk : FIGHT_TUNE.atk);
   const enemies: Enemy[] = [];
+  let hasNemesis = false;
   if (boss) {
-    const m = MONSTERS[def.boss];
+    const abyssBosses = ['lich', 'broodMother', 'elderDragon', 'demonLord'];
+    const bossId = inAbyss ? abyssBosses[Math.floor(p.floor / 5) % abyssBosses.length] : def.boss;
+    const m = MONSTERS[bossId];
     const maxHp = Math.round(m.hp * scale);
     let hp = maxHp;
     // Bosses carry their wounds over from the last attempt, recovering a tenth in between,
     // so a town wears its Demon Lord down over several expeditions instead of feeding it.
-    const d = s.dungeons.find((x) => x.id === p.dungeon)!;
-    if (d.bossHp !== undefined) hp = Math.round(Math.min(maxHp, d.bossHp + maxHp * 0.1));
+    if (!inAbyss && d.bossHp !== undefined) hp = Math.round(Math.min(maxHp, d.bossHp + maxHp * 0.1));
     enemies.push({ monster: m.id, hp, maxHp, atk: Math.round(m.atk * atkScale), acts: 0 });
   } else {
     // A pack: one to three monsters, bigger packs deeper down.
     const n = 1 + (chance(s, 0.6) ? 1 : 0) + (p.floor >= 4 && chance(s, 0.5) ? 1 : 0);
-    for (let i = 0; i < n; i++) { const m = MONSTERS[pick(s, def.monsters)]; const hp = Math.round(m.hp * scale); enemies.push({ monster: m.id, hp, maxHp: hp, atk: Math.round(m.atk * atkScale), acts: 0 }); }
+    for (let i = 0; i < n; i++) {
+      const m = MONSTERS[pick(s, def.monsters)];
+      const isNem = i === 0 && !!d.nemesis && d.nemesis.floor === p.floor;
+      const nemM = isNem && MONSTERS[d.nemesis!.monster] ? MONSTERS[d.nemesis!.monster] : m;
+      const hp = Math.round(nemM.hp * scale * (isNem ? 1.25 : 1));
+      enemies.push({ monster: nemM.id, hp, maxHp: hp, atk: Math.round(nemM.atk * atkScale * (isNem ? 1.12 : 1)), acts: 0, nemesis: isNem });
+      if (isNem) hasNemesis = true;
+    }
   }
   const hp = enemies.reduce((n, e) => n + e.hp, 0), maxHp = enemies.reduce((n, e) => n + e.maxHp, 0);
-  return { monster: enemies[0].monster, hp, maxHp, atk: enemies[0].atk, boss, enemies };
+  return { monster: enemies[0].monster, hp, maxHp, atk: enemies[0].atk, boss, nemesis: hasNemesis, enemies };
 }
 
 /** How many blows a monster should take: grows with the party's level. */
@@ -263,10 +274,15 @@ function onEnemySlain(s: GameState, p: Party, en: Enemy, ei: number): void {
   const team = members(s, p);
   s.stats.monstersSlain++;
   s.fx.push({ kind: 'slain', partyId: p.id, enemyIdx: ei, monster: en.monster, boss: e.boss });
-  const reward = FIGHT_REWARD * Math.max(1, hpMult(s, p, e.boss) * FIGHT_TUNE.rewardPerHp);
+  const nemMult = en.nemesis ? 2.2 : 1;
+  const reward = FIGHT_REWARD * Math.max(1, hpMult(s, p, e.boss) * FIGHT_TUNE.rewardPerHp) * nemMult;
   p.loot.gold += m.gold * 0.5 * reward * (0.8 + random(s) * 0.4);
-  p.loot.iron += m.iron ?? 0;
+  p.loot.iron += (m.iron ?? 0) * (en.nemesis ? 2 : 1);
   for (const a of team) { a.kills++; gainXp(s, a, (m.xp / team.length + p.floor) * reward); }
+  if (en.nemesis) {
+    dungeon.nemesis = undefined;
+    chronicle(s, 'adventure', 'log.nemesisSlain', { leader: leader(team)!.name, monster: `monster.${m.id}`, dungeon: `dungeon.${def.id}` });
+  }
   if (e.boss) {
     for (const a of team) a.bossKills++;
     dungeon.bossHp = undefined;
@@ -309,11 +325,17 @@ function onPackCleared(s: GameState, p: Party): void {
       log(s, 'adventure', 'log.dungeonRescue', { leader: lead, gold: g });
     }
   }
-  if (p.floor > dungeon.deepestFloor) dungeon.deepestFloor = p.floor;
-  if (e.boss) { startReturn(s, p); return; }
+  if (p.floor > dungeon.deepestFloor) {
+    dungeon.deepestFloor = p.floor;
+    if (s.victory && p.dungeon === FINAL_DUNGEON && p.floor > def.floors && p.floor % 5 === 0) {
+      chronicle(s, 'adventure', 'log.abyssMilestone', { leader: leader(team)!.name, floor: p.floor });
+    }
+  }
+  const endlessAbyss = s.victory && p.dungeon === FINAL_DUNGEON;
+  if (e.boss && !endlessAbyss) { startReturn(s, p); return; }
   const avgHp = team.reduce((n, a) => n + a.hp / a.maxHp, 0) / team.length;
   if (avgHp < 0.45) { startReturn(s, p); return; }
-  if (p.floor >= def.floors) { startReturn(s, p); return; } // cleared the top floor after victory
+  if (p.floor >= def.floors && !endlessAbyss) { startReturn(s, p); return; } // cleared the top floor; post-victory Dark Tower continues into the Endless Abyss
   p.floor++;
   p.phase = 'explore';
   p.timer = EXPLORE_TIME;
@@ -323,6 +345,11 @@ function onPackCleared(s: GameState, p: Party): void {
 
 function onMemberDown(s: GameState, p: Party, a: Adventurer): void {
   const e = p.encounter!;
+  const dungeon = s.dungeons.find((d) => d.id === p.dungeon);
+  if (dungeon && !e.boss) {
+    dungeon.nemesis = { monster: e.monster, floor: p.floor, kills: (dungeon.nemesis?.kills ?? 0) + 1 };
+    log(s, 'danger', 'log.nemesisBorn', { monster: `monster.${e.monster}`, dungeon: `dungeon.${p.dungeon}`, floor: p.floor });
+  }
   // A seasoned priest can pull one fallen companion back, once per run.
   const priest = members(s, p).find((b) => b !== a && b.hp > 0 && hasSkill(b.cls, b.level, 'revive'));
   if (priest && !p.reviveUsed) {

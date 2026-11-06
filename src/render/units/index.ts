@@ -4,7 +4,7 @@ export { drawWorker } from './worker';
 export { drawTownsfolk, type TownsfolkOpts } from './townsfolk';
 export { drawGuard } from './guard';
 export { drawCaravan } from './caravan';
-export { drawStatue } from './statue';
+export { drawStatue, drawTrophyMonument } from './statue';
 export { drawRaid } from './raid';
 export { drawAdventurer, drawParty } from './adventurer';
 export { classArt, drawClassFigure } from './classes';

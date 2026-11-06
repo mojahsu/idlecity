@@ -419,6 +419,20 @@ export function buildSkitPlans(
         });
       }
       if (s.victory) {
+        const dt = s.dungeons.find((d) => d.id === 'darkTower');
+        if (dt && dt.deepestFloor > 12) {
+          push({
+            key: `era.abyss.${a.id}`,
+            topicKey: 'skit.topic.chronicle',
+            weight: 11 * restingBonus,
+            a: as,
+            b: bs,
+            turns: [
+              { speaker: 0, text: t('skit.era.abyss.a', { floor: dt.deepestFloor }), color: '#7a2868' },
+              { speaker: 1, text: t('skit.era.abyss.b'), color: '#2a5a6a' },
+            ],
+          });
+        }
         push({
           key: `era.victory.${a.id}`,
           topicKey: 'skit.topic.chronicle',
@@ -497,6 +511,45 @@ export function buildSkitPlans(
       }
 
       const curSeason = season(s);
+      const dayIdx = Math.floor(s.time / 120);
+      if (dayIdx % 3 === 1 && curSeason !== 'winter' && s.buildings.some((bl) => bl.built && (bl.type === 'market' || bl.type === 'tavern'))) {
+        push({
+          key: `visitor.circus.${a.id}`,
+          topicKey: 'skit.topic.leisure',
+          weight: 8 * restingBonus,
+          a: as,
+          b: bs,
+          turns: [
+            { speaker: 0, text: t('skit.visitor.circus.a'), color: '#b83030' },
+            { speaker: 1, text: t('skit.visitor.circus.b'), color: '#3a2a1a' },
+          ],
+        });
+      } else if (dayIdx % 3 === 2 && s.buildings.some((bl) => bl.built && bl.type === 'guildHall')) {
+        push({
+          key: `visitor.alchemist.${a.id}`,
+          topicKey: 'skit.topic.leisure',
+          weight: 8 * restingBonus,
+          a: as,
+          b: bs,
+          turns: [
+            { speaker: 0, text: t('skit.visitor.alchemist.a'), color: '#482868' },
+            { speaker: 1, text: t('skit.visitor.alchemist.b'), color: '#286848' },
+          ],
+        });
+      }
+      if (s.dungeons.some((d) => d.bossDefeated)) {
+        push({
+          key: `monument.${a.id}`,
+          topicKey: 'skit.topic.chronicle',
+          weight: 6 * restingBonus,
+          a: as,
+          b: bs,
+          turns: [
+            { speaker: 0, text: t('skit.monument.a'), color: '#7a5a18' },
+            { speaker: 1, text: t('skit.monument.b'), color: '#3a2a1a' },
+          ],
+        });
+      }
       push({
         key: `season.${curSeason}.${a.id}`,
         topicKey: 'skit.topic.chronicle',

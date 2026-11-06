@@ -82,16 +82,25 @@ export function drawFigures(ctx: CanvasRenderingContext2D, s: GameState, p: Part
   enemies.forEach((en, i) => {
     if (en.hp <= 0) return;
     const ev = v.enemies[i] ?? { lunge: 0, hurt: 0, shownHp: 1 };
-    const sc = enemyScale(en.monster, !!e?.boss, n);
+    const sc = enemyScale(en.monster, !!e?.boss, n) * (en.nemesis ? 1.15 : 1);
     const x = enemyX(i, n, !!e?.boss, PANEL_W);
     const lunge = ev.lunge > 0 ? Math.sin((1 - ev.lunge / 0.45) * Math.PI) : 0;
     // Wind-up: the enemy whose turn is next crouches and rears.
     const myTurn = p.phase === 'fight' && actIdx === team.length + i && !ev.lunge;
     const crouch = myTurn ? 1 - 0.12 * Math.sin(windup * Math.PI) : 1;
     ellipse(ctx, x - lunge * 6, floorY + 1, 9 * sc, 3 * sc, 'rgba(0,0,0,0.45)');
+    if (en.nemesis) {
+      ctx.strokeStyle = `rgba(255,208,64,${0.55 + 0.25 * Math.sin(env.clock * 5)})`; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.ellipse(x - lunge * 6, floorY + 1, 11 * sc, 3.6 * sc, 0, 0, Math.PI * 2); ctx.stroke();
+    }
     ctx.save(); ctx.translate(x, floorY); ctx.scale(-sc * (myTurn ? 1 + 0.06 * windup : 1), sc * crouch);
     drawMonster(ctx, en.monster, env, 1, ev.hurt, v.frozen > 0 ? 0 : lunge * 1.4, 'panel', p.phase === 'explore');
     ctx.restore();
+    if (en.nemesis) {
+      const h = monsterHeight(en.monster) * sc, cy = floorY - h - 10 + Math.sin(env.clock * 4) * 1.2;
+      poly(ctx, [x - 4.5, cy, x - 3.5, cy - 4, x - 1.5, cy - 1.5, x, cy - 5, x + 1.5, cy - 1.5, x + 3.5, cy - 4, x + 4.5, cy], '#ffd040');
+      circle(ctx, x, cy - 5, 0.9, '#ff4060');
+    }
     if (lunge > 0.7) { const h = monsterHeight(en.monster) * sc; ctx.strokeStyle = 'rgba(255,120,80,0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x - lunge * 8 - 8, floorY - h * 0.5, 7, Math.PI - 0.6, Math.PI + 1.2); ctx.stroke(); }
     if (v.frozen > 0) {
       const h = monsterHeight(en.monster) * sc, a = Math.min(1, v.frozen * 2);

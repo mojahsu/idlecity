@@ -27,6 +27,8 @@ import { NightLife } from './night';
 import { Seasonal } from './seasonal';
 import { Skits, type ActiveSkitView } from './skits';
 import { Chapters } from './chapters';
+import { Visitors } from './visitors';
+import { ClickEasterEggs } from './clickEasterEggs';
 
 export class TownLife {
   private roads = new Roads();
@@ -51,6 +53,8 @@ export class TownLife {
   private seasonal = new Seasonal();
   private skits = new Skits();
   private chapters = new Chapters();
+  private visitors = new Visitors();
+  private clickEggs = new ClickEasterEggs();
 
   update(s: GameState, env: Env, dt: number): void {
     this.roads.refresh(s);
@@ -70,9 +74,16 @@ export class TownLife {
     this.pastimes.update(s, env, dt, this.music);
     this.night.update(s, env, dt, this.roads);
     this.seasonal.update(s, env, dt, this.roads);
+    this.visitors.update(s, env, dt, this.roads);
+    this.clickEggs.update(dt);
     this.skits.update(s, env, dt, this.wedding.couple(), this.kids.namedSpots(s));
     this.chapters.update(s, dt);
     this.bits.update(dt);
+  }
+
+  /** Interactive click easter eggs at tile position (tx, ty). */
+  handleClick(s: GameState, tx: number, ty: number): void {
+    this.clickEggs.handleClick(s, tx, ty, this.bits, this.river);
   }
 
   /** Currently playing multi-turn dialogue skit, if any. */
@@ -83,7 +94,8 @@ export class TownLife {
     return [
       ...this.walkers.actors(), ...this.kids.actors(env), ...this.dog.actors(), ...this.cats.actors(s), ...this.guards.actors(s),
       ...this.cheers.actors(), ...this.wedding.actors(), ...this.processions.actors(), ...this.festival.actors(s, env),
-      ...this.wolves.actors(), ...this.deer.actors(), ...this.river.actors(), ...this.statue.actors(s, this.roads), ...this.pastimes.actors(s, env), ...this.night.actors(s, env), ...this.seasonal.actors(s, env),
+      ...this.wolves.actors(), ...this.deer.actors(), ...this.river.actors(), ...this.statue.actors(s, this.roads),
+      ...this.pastimes.actors(s, env), ...this.night.actors(s, env), ...this.seasonal.actors(s, env), ...this.visitors.actors(s, env),
     ];
   }
 
@@ -97,6 +109,7 @@ export class TownLife {
     this.festival.overlay(ctx, env, s);
     this.seasonal.overlay(ctx, env, s);
     this.music.overlay(ctx);
+    this.clickEggs.overlay(ctx, env);
     this.skits.drawOverlay(ctx, s);
     this.chapters.overlay(ctx, env, s);
   }
@@ -104,6 +117,9 @@ export class TownLife {
   /** Guard torches and festival lanterns at night. */
   lights(s: GameState, env: Env): LightSource[] {
     if (env.dark <= 0.25) return [];
-    return [...this.festival.lights(s, env), ...this.guards.lights(s, env), ...this.night.lights(), ...this.seasonal.lights(s, env)];
+    return [
+      ...this.festival.lights(s, env), ...this.guards.lights(s, env), ...this.night.lights(),
+      ...this.seasonal.lights(s, env), ...this.visitors.lights(s, env), ...this.statue.lights(),
+    ];
   }
 }

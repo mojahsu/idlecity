@@ -46,9 +46,13 @@ export function updateRaids(s: GameState, dt: number): void {
     }
   }
   if (r.hp <= 0) {
-    const gold = r.count * 3;
+    const gold = r.count * (r.siege ? 6 : 3);
     s.resources.gold += gold;
-    log(s, 'adventure', 'log.raidRepelled', { monster: `monster.${r.monster}`, count: r.count, gold });
+    if (r.siege && r.bossMonster) {
+      chronicle(s, 'adventure', 'log.siegeRepelled', { boss: `monster.${r.bossMonster}`, gold });
+    } else {
+      log(s, 'adventure', 'log.raidRepelled', { monster: `monster.${r.monster}`, count: r.count, gold });
+    }
     s.raid = null;
     return;
   }
@@ -78,6 +82,9 @@ function startRaid(s: GameState): void {
   const avgLevel = heroes.length ? heroes.reduce((n, a) => n + a.level, 0) / heroes.length : 1;
   const scale = (1 + 0.15 * (year(s) - 1)) * (1 + avgLevel / 9);
   const from = edgeSpawnPoint(s);
+  const isSiege = s.tier === 'city' && hasBuilding(s, 'keep') && year(s) >= 4 && (s.stats.dungeonRuns + count) % 3 === 0;
+  const siegeBosses = ['troll', 'wyvern', 'golem'];
+  const bossMonster = isSiege ? siegeBosses[(year(s) + count) % siegeBosses.length] : undefined;
   s.raid = {
     monster: m.id, count,
     hp: m.hp * count * scale * 1.5, maxHp: m.hp * count * scale * 1.5,
@@ -85,6 +92,12 @@ function startRaid(s: GameState): void {
     x: from.x, y: from.y,
     path: findPath(s, from, s.center),
     phase: 'march', timer: 0,
+    siege: isSiege,
+    bossMonster,
   };
-  log(s, 'danger', 'log.raidIncoming', { monster: `monster.${m.id}`, count });
+  if (isSiege && bossMonster) {
+    chronicle(s, 'danger', 'log.siegeIncoming', { boss: `monster.${bossMonster}`, monster: `monster.${m.id}`, count });
+  } else {
+    log(s, 'danger', 'log.raidIncoming', { monster: `monster.${m.id}`, count });
+  }
 }

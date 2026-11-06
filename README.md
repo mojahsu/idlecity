@@ -86,7 +86,7 @@ src/
     townlife/       roads + one file per subsystem: walkers, kids, dog, cats,
                     guards, music, cheers, processions, sparkles, wedding,
                     wolves, deer, river, festival, statue, pastimes, night,
-                    seasonal, skits, skitScripts, chapters
+                    seasonal, visitors, clickEasterEggs, skits, skitScripts, chapters
     lighting/       night, rays, fog, vignette
     dungeonView/    state, step (HP → animation), panel, figures, chest, hud;
                     backdrops/{goblinCave,ancientRuins,emeraldCavern,emberPeak,darkTower}
@@ -173,10 +173,24 @@ tests/        bun tests
     light pillar cleaves the Dark Tower's clouds, townsfolk flood the square in
     a victory parade, and the Victory Chronicle scroll (`ui/victoryModal.ts`,
     reopenable anytime via the 🏆 button) honours the champions, the five
-    dungeons and the fallen. The dungeon panel announces floors, bosses,
-    retreats and victories with a banner, leaves fireball scorch marks, pops
-    chests open, plays out story encounters (glowing elf-springs, war altars
-    and rescued explorers), and shows floor progress as dots.
+    dungeons and the fallen. Each conquered dungeon boss also raises a bespoke
+    trophy monument near the square or keep (`render/units/statue.ts`,
+    `render/townlife/statue.ts`), and once the Demon Lord is slain, parties
+    entering the Dark Tower descend past Floor 12 into the Endless Abyss
+    (Floor 13+, facing rotating Abyssal Overlords every 5 floors). High-level
+    heroes (Lv 12+) ride warhorses on the map (`render/units/adventurer.ts`),
+    monsters that force a party to retreat become crowned Nemesis monsters on
+    that floor with boosted stats and double bounty, and late-game raids
+    periodically escalate into Giant Sieges led by a boss monster under arrow
+    volleys from the keep. Visiting spectacles (`render/townlife/visitors.ts`)
+    bring a Traveling Circus (juggler and fire-breather) and a Mysterious
+    Alchemist Cart (granting a glowing blessing ring to nearby heroes), while
+    clicking villagers, heroes, trees or water triggers interactive God-Hand
+    easter eggs (`render/townlife/clickEasterEggs.ts`). The dungeon panel
+    announces floors, bosses, Nemesis rematches, retreats and victories with a
+    banner, leaves fireball scorch marks, pops chests open, plays out story
+    encounters (glowing elf-springs, war altars and rescued explorers), and
+    shows floor progress as dots.
 
 12. Lives (`population.ts`): everyone has an age; a life-year is one season
     (`LIFE_YEAR_DAYS`). Newcomers arrive at 16–26, marry in the chapel, have

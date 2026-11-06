@@ -116,6 +116,8 @@ export interface Enemy {
   atk: number;
   /** Actions taken so far (drives the monster's special attack cadence). */
   acts: number;
+  /** Whether this monster is a named Nemesis that defeated a previous party. */
+  nemesis?: boolean;
 }
 
 /** A fight on a floor: a pack of monsters, or one boss. `monster`, `hp` and `maxHp` summarise the pack. */
@@ -125,6 +127,8 @@ export interface Encounter {
   maxHp: number;
   atk: number;
   boss: boolean;
+  /** Whether this pack is led by a Nemesis monster. */
+  nemesis?: boolean;
   /** Optional for saves from before packs existed. */
   enemies?: Enemy[];
 }
@@ -163,6 +167,8 @@ export interface Dungeon {
   runs: number;
   /** The boss keeps its wounds between attempts (recovering a little each time). Optional for old saves. */
   bossHp?: number;
+  /** A monster that forced a previous party to retreat and awaits a rematch. */
+  nemesis?: { monster: string; floor: number; kills: number };
 }
 
 export interface Raid {
@@ -178,6 +184,9 @@ export interface Raid {
   timer: number;
   /** Seconds until the next exchange of blows. Optional for old saves. */
   roundTimer?: number;
+  /** Late-game siege led by a giant boss monster. */
+  siege?: boolean;
+  bossMonster?: string;
 }
 
 /** A merchant caravan visiting the market. */

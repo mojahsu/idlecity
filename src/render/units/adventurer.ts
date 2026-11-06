@@ -1,8 +1,10 @@
 // Adventurers resting in town and parties on the road with their banner.
 import { TILE } from '../constants';
 import { t } from '../../i18n';
-import { circle, ellipse, poly, rect, line, shade, rgba, type Env } from '../palette';
-import { HERO_SCALE, bubble, facing, pose, withUnit } from './shared';
+import { circle, ellipse, poly, rect, line, shade, rgba, groundShadow, type Env } from '../palette';
+import { HERO_SCALE, bubble, facing, pose, spriteFigures, withUnit } from './shared';
+import { drawSprite } from '../sprites';
+import { ANIMAL } from '../spriteMap';
 import type { Adventurer, GameState, Party } from '../../sim/types';
 import { classArt } from './classes';
 
@@ -83,7 +85,26 @@ export function drawParty(ctx: CanvasRenderingContext2D, s: GameState, p: Party,
     const ox = (i >= n - 2 ? 0.24 : -0.24) * dir, oy = (i % 2 ? 0.2 : -0.2);
     const pz = pose(true, false, env.clock, a.id);
     if (departing && i === n - 1) pz.swing = 0.9; // lead warrior raises weapon on departure
-    withUnit(ctx, p.x + ox, p.y + oy, dir, pz.bob, () => classArt(ctx, a.cls, pz, true, env, a.level, s.equipment), HERO_SCALE);
+    const mounted = a.level >= 12;
+    if (mounted) {
+      const mx = (p.x + ox) * TILE + TILE / 2, my = (p.y + oy) * TILE + TILE / 2 + 5;
+      const trot = Math.sin(env.clock * 11 + a.id * 1.7) * 1.2;
+      groundShadow(ctx, mx, my + 1, 7.5, 2.2, 0.28);
+      if (spriteFigures()) {
+        drawSprite(ctx, ANIMAL.horse, mx, my + 1 + Math.abs(trot) * 0.4, 21, { flip: dir < 0 });
+        rect(ctx, mx - 3, my - 11, 6, 2.5, '#c89838');
+      } else {
+        ctx.save(); ctx.translate(mx, my); ctx.scale(dir, 1);
+        for (let k = 0; k < 4; k++) rect(ctx, -4 + k * 2.6, -4, 1.2, 4 + (k % 2 ? trot : -trot), '#5a4a3a');
+        ellipse(ctx, 0, -6.5, 5.8, 3, '#f0ece0'); rect(ctx, 4, -10.8, 2.6, 5.2, '#f0ece0');
+        poly(ctx, [4, -10.8, 4.6, -13.6, 5.6, -10.8], '#f0ece0');
+        rect(ctx, -3.5, -8.5, 7, 2.4, '#c89838');
+        ctx.restore();
+      }
+      withUnit(ctx, p.x + ox, p.y + oy, dir, pz.bob - 4.5, () => classArt(ctx, a.cls, pz, false, env, a.level, s.equipment), HERO_SCALE);
+    } else {
+      withUnit(ctx, p.x + ox, p.y + oy, dir, pz.bob, () => classArt(ctx, a.cls, pz, true, env, a.level, s.equipment), HERO_SCALE);
+    }
   });
   if (departing) bubble(ctx, px + dir * 6, py - 22, '!', 0.9, '#c85030');
   // Banner carried at the head of the column.

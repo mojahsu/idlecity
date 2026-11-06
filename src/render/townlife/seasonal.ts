@@ -1,20 +1,23 @@
-// The season's special days: seed scattered over the fields at sowing, the
-// fishing contest's banner and crowd, lantern strings and window candles on
-// midwinter night, and the blizzard's wind.
+// The season's special days and vignettes: seed scattered over the fields at
+// sowing, the fishing contest's banner and crowd, summer night fireflies,
+// winter riverbank ice skating, lantern strings on midwinter night, and the blizzard's wind.
 import type { GameState } from '../../sim/types';
 import { t } from '../../i18n';
 import { TILE } from '../constants';
 import type { LightSource } from '../buildings';
-import { circle, line, rect, rgba, type Env } from '../palette';
+import { circle, ellipse, line, rect, rgba, type Env } from '../palette';
 import { drawTownsfolk } from '../units';
+import { bubble } from '../units/shared';
 import type { Actor, Roads } from './shared';
 
 interface Seed { x: number; y: number; vx: number; vy: number; ttl: number }
 interface Gust { x: number; y: number; len: number; ttl: number; vx: number }
+interface Firefly { x: number; y: number; vx: number; vy: number; phase: number; ttl: number }
 
 export class Seasonal {
   private seeds: Seed[] = [];
   private gusts: Gust[] = [];
+  private fireflies: Firefly[] = [];
 
   update(s: GameState, env: Env, dt: number, roads: Roads): void {
     void roads;
@@ -30,6 +33,17 @@ export class Seasonal {
     }
     for (const g of this.gusts) { g.x += g.vx * dt; g.y += 25 * dt; }
     this.gusts = this.gusts.filter((g) => (g.ttl -= dt) > 0);
+    // Summer night fireflies drifting near trees and meadows.
+    if (env.season === 'summer' && env.dark > 0.28 && !env.rainy && this.fireflies.length < 18 && Math.random() < dt * 5) {
+      const fx = (3 + Math.random() * (s.width - 5)) * TILE;
+      const fy = (2 + Math.random() * (s.height - 4)) * TILE;
+      this.fireflies.push({ x: fx, y: fy, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 6, phase: Math.random() * 6.28, ttl: 5 + Math.random() * 5 });
+    }
+    for (const ff of this.fireflies) {
+      ff.x += (ff.vx + Math.sin(env.clock * 2 + ff.phase) * 4) * dt;
+      ff.y += (ff.vy + Math.cos(env.clock * 1.7 + ff.phase) * 3) * dt;
+    }
+    this.fireflies = this.fireflies.filter((ff) => (ff.ttl -= dt) > 0 && env.dark > 0.2);
   }
 
   actors(s: GameState, env: Env): Actor[] {
@@ -43,12 +57,47 @@ export class Seasonal {
         anglers.slice(0, 3).forEach((w, i) => out.push({ y: w.y + 0.8, draw: (ctx, e) => drawTownsfolk(ctx, w.x + 1.6, w.y + (i - 1) * 0.5, -1, false, e, 500 + i, { cheer: Math.sin(e.clock + i) > 0.6 }) }));
       }
     }
+    // Winter riverbank ice skating during the day.
+    if (env.season === 'winter' && env.dark < 0.45 && !env.storm) {
+      const iy = Math.max(3, Math.min(s.height - 4, s.center.y));
+      let ix = 1.6;
+      for (let x = 0; x < s.width; x++) if (s.tiles[iy * s.width + x]?.terrain === 'water') ix = x + 0.5;
+      out.push({
+        y: iy + 0.65,
+        draw: (ctx, e) => {
+          const px = ix * TILE + TILE / 2, py = iy * TILE + TILE / 2;
+          // Frozen ice sheet on the river edge with figure-eight skate marks.
+          ellipse(ctx, px, py + 2, 16, 8, 'rgba(210,238,255,0.68)');
+          ellipse(ctx, px, py + 2, 13, 6, 'rgba(235,248,255,0.55)');
+          ctx.strokeStyle = 'rgba(255,255,255,0.65)'; ctx.lineWidth = 0.7;
+          ctx.beginPath(); ctx.ellipse(px - 4, py + 2, 5, 2.5, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(px + 4, py + 2, 5, 2.5, 0, 0, Math.PI * 2); ctx.stroke();
+          for (let i = 0; i < 2; i++) {
+            const ang = e.clock * 1.8 + i * Math.PI;
+            const sx = ix + Math.sin(ang) * 0.42;
+            const sy = iy + Math.sin(ang * 2) * 0.18;
+            const dir = Math.cos(ang) >= 0 ? 1 : -1;
+            drawTownsfolk(ctx, sx, sy, dir, true, e, 810 + i, { child: i === 1 });
+            if (i === 1 && (e.clock * 0.4) % 1 < 0.3) {
+              bubble(ctx, sx * TILE + TILE / 2, sy * TILE + TILE / 2 - 16, '♪', 0.85, '#4088c8');
+            }
+          }
+        },
+      });
+    }
     return out;
   }
 
   overlay(ctx: CanvasRenderingContext2D, env: Env, s: GameState): void {
     ctx.fillStyle = '#e8d080';
     for (const sd of this.seeds) rect(ctx, sd.x, sd.y, 1.2, 1.2, '#e8d080');
+    // Summer night fireflies glowing above the darkness layer.
+    for (const ff of this.fireflies) {
+      const pulse = 0.45 + 0.55 * Math.sin(env.clock * 5 + ff.phase);
+      const a = Math.min(1, ff.ttl) * pulse;
+      circle(ctx, ff.x, ff.y, 3.2, rgba('#b8ff50', 0.28 * a));
+      circle(ctx, ff.x, ff.y, 1.1, rgba('#eeff90', 0.95 * a));
+    }
     if (env.seasonal === 'solstice' && env.dark > 0.4) {
       // Lantern strings between neighbouring houses.
       for (const b of s.buildings) {
@@ -71,6 +120,9 @@ export class Seasonal {
 
   lights(s: GameState, env: Env): LightSource[] {
     const out: LightSource[] = [];
+    for (const ff of this.fireflies) {
+      out.push({ x: ff.x, y: ff.y, r: 9, color: '#c8ff60', flicker: 0.2 });
+    }
     if (env.seasonal !== 'solstice' || env.dark <= 0.4) return out;
     for (const b of s.buildings) {
       if (!b.built || (b.type !== 'house' && b.type !== 'hut')) continue;

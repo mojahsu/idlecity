@@ -73,14 +73,15 @@ export function drawPanel(ctx: CanvasRenderingContext2D, s: GameState, p: Party,
       // Each monster of the pack carries a small bar over its head; the lead one is named top right.
       enemies.forEach((en, i) => {
         if (en.hp <= 0) return;
-        const x = enemyX(i, n, false, PANEL_W), h = monsterHeight(en.monster) * enemyScale(en.monster, false, n);
-        hpBar(ctx, x - 10, floorY - h - 7, 20, 2.5, Math.max(0, v.enemies[i]?.shownHp ?? en.hp / en.maxHp), '#e04040');
+        const x = enemyX(i, n, false, PANEL_W), h = monsterHeight(en.monster) * enemyScale(en.monster, false, n) * (en.nemesis ? 1.15 : 1);
+        hpBar(ctx, x - 10, floorY - h - (en.nemesis ? 17 : 7), 20, 2.5, Math.max(0, v.enemies[i]?.shownHp ?? en.hp / en.maxHp), en.nemesis ? '#ffd040' : '#e04040');
       });
-      ctx.font = '9px system-ui, sans-serif'; ctx.textAlign = 'right';
+      ctx.font = e.nemesis ? 'bold 9.5px system-ui, sans-serif' : '9px system-ui, sans-serif'; ctx.textAlign = 'right';
       const alive = enemies.filter((x) => x.hp > 0).length;
-      const name = n > 1 ? `${t(`monster.${e.monster}`)} ×${alive}` : t(`monster.${e.monster}`);
+      const baseName = (e.nemesis ? '★ ' + t('ui.nemesisPrefix') : '') + t(`monster.${e.monster}`);
+      const name = n > 1 ? `${baseName} ×${alive}` : baseName;
       ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(name, PANEL_W - 8, 16);
-      ctx.fillStyle = '#f0e0e0'; ctx.fillText(name, PANEL_W - 8, 16);
+      ctx.fillStyle = e.nemesis ? '#ffe070' : '#f0e0e0'; ctx.fillText(name, PANEL_W - 8, 16);
     }
   } else if (p.phase === 'explore') {
     ctx.font = '9px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,0.7)';
@@ -128,14 +129,15 @@ export function drawPanel(ctx: CanvasRenderingContext2D, s: GameState, p: Party,
     ctx.restore();
   }
   // Header.
-  ctx.font = 'bold 10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = '#f0e0c0';
-  ctx.fillText(t(`dungeon.${p.dungeon}`), 8, 14);
-  ctx.font = '9px system-ui, sans-serif'; ctx.fillStyle = p.floor === def.floors ? '#ffb0f0' : '#d0c8b8';
-  ctx.fillText(t('ui.floor', { floor: p.floor, floors: def.floors }), 8, 25);
+  const isAbyss = p.dungeon === 'darkTower' && p.floor > def.floors;
+  ctx.font = 'bold 10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = isAbyss ? '#ff90e0' : '#f0e0c0';
+  ctx.fillText(isAbyss ? t('ui.endlessAbyss') : t(`dungeon.${p.dungeon}`), 8, 14);
+  ctx.font = '9px system-ui, sans-serif'; ctx.fillStyle = isAbyss || p.floor === def.floors ? '#ffb0f0' : '#d0c8b8';
+  ctx.fillText(isAbyss ? t('ui.abyssFloor', { floor: p.floor }) : t('ui.floor', { floor: p.floor, floors: def.floors }), 8, 25);
   // Floor progress dots, bottom right.
   for (let i = 0; i < def.floors; i++) {
     const dx = PANEL_W - 8 - (def.floors - 1 - i) * 6, dy = PANEL_H - 6;
-    circle(ctx, dx, dy, i + 1 === p.floor ? 2.2 : 1.4, i + 1 < p.floor ? '#d0c8b8' : i + 1 === p.floor ? '#ffe080' : 'rgba(255,255,255,0.25)');
+    circle(ctx, dx, dy, i + 1 === p.floor ? 2.2 : 1.4, isAbyss ? '#ff80d0' : i + 1 < p.floor ? '#d0c8b8' : i + 1 === p.floor ? '#ffe080' : 'rgba(255,255,255,0.25)');
   }
   if (v.floorFlash > 0) { ctx.fillStyle = `rgba(255,255,255,${v.floorFlash * 0.25})`; ctx.fillRect(0, 0, PANEL_W, PANEL_H); }
   if (v.revive > 0.8) { ctx.fillStyle = `rgba(255,255,255,${(v.revive - 0.8) * 1.5})`; ctx.fillRect(0, 0, PANEL_W, PANEL_H); }

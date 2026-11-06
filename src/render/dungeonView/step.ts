@@ -92,7 +92,12 @@ export function step(s: GameState, p: Party, v: ViewState, env: Env, dt: number)
     }
   }
   // Floor change.
-  if (p.floor !== v.floor) { v.floor = p.floor; v.floorFlash = 0.8; const def = DUNGEONS.find((d) => d.id === p.dungeon)!; v.banner = { text: t('ui.floor', { floor: p.floor, floors: def.floors }), color: p.floor === def.floors ? '#ffb0f0' : '#f0e0c0', ttl: 1.3, life: 1.3, big: false }; }
+  if (p.floor !== v.floor) {
+    v.floor = p.floor; v.floorFlash = 0.8;
+    const def = DUNGEONS.find((d) => d.id === p.dungeon)!;
+    const isAbyss = p.dungeon === 'darkTower' && p.floor > def.floors;
+    v.banner = { text: isAbyss ? t('ui.abyssFloor', { floor: p.floor }) : t('ui.floor', { floor: p.floor, floors: def.floors }), color: isAbyss || p.floor === def.floors ? '#ffb0f0' : '#f0e0c0', ttl: 1.3, life: 1.3, big: isAbyss && p.floor % 5 === 0 };
+  }
   if (p.phase === 'explore') {
     v.scroll += dt * 24;
     v.talkCooldown -= dt;
@@ -109,12 +114,13 @@ export function step(s: GameState, p: Party, v: ViewState, env: Env, dt: number)
   }
   // The pack appears: the lead monster taunts and the party leader answers back.
   if (e && !v.hadEncounter) {
-    v.boss = e.boss; v.enemies = enemies.map(() => ({ lunge: 0, hurt: 0, shownHp: 1 })); v.shake = e.boss ? 0.5 : 0;
+    v.boss = e.boss; v.enemies = enemies.map(() => ({ lunge: 0, hurt: 0, shownHp: 1 })); v.shake = e.boss ? 0.5 : e.nemesis ? 0.25 : 0;
     if (e.boss) { v.bossIntro = 1.8; v.banner = { text: t(`monster.${e.monster}`), color: e.monster === 'demonLord' ? '#ff60c0' : '#ff8080', ttl: 1.8, life: 1.8, big: true }; }
-    say('enemy', ex(0), floorY - eh(0) - 10, t(`talk.m.${e.monster}`), 2.1);
+    else if (e.nemesis) { v.banner = { text: '★ ' + t('ui.nemesisPrefix') + t(`monster.${e.monster}`), color: '#ffd040', ttl: 1.5, life: 1.5, big: false }; }
+    say('enemy', ex(0), floorY - eh(0) - 10, t(e.nemesis ? 'talk.m.nemesis' : `talk.m.${e.monster}`), 2.1);
     if (team.length) {
       const leadIdx = team.length - 1;
-      const replyKey = e.boss ? `talk.h.boss.${e.monster}` : `talk.h.engage.${p.floor % 3}`;
+      const replyKey = e.boss ? `talk.h.boss.${e.monster}` : e.nemesis ? 'talk.h.nemesis' : `talk.h.engage.${p.floor % 3}`;
       setTimeoutLike(v, 0.5, () => say('hero', heroX(leadIdx), floorY - 30, t(replyKey), 1.9));
     }
   }

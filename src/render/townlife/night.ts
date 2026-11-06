@@ -1,15 +1,18 @@
 // After dark: the lamplighter doing the round at dusk, a watchman with a
 // lantern walking the streets, patrons stumbling home from the tavern, a fox
-// creeping up on the hens, and an owl on a roof.
+// creeping up on the hens, an owl on a roof, and a midnight thief chase.
 import type { GameState, Point } from '../../sim/types';
+import { t } from '../../i18n';
 import { TILE } from '../constants';
 import type { LightSource } from '../buildings';
 import { lampPosts } from '../buildings';
 import { circle, ellipse, poly, rect, line, groundShadow, rgba, type Env } from '../palette';
 import { drawTownsfolk } from '../units';
+import { bubble } from '../units/shared';
 import { walkerActor, type Actor, type Roads, type Walker } from './shared';
 
 interface Fox { x: number; y: number; tx: number; ty: number; phase: 'creep' | 'flee'; fade: number; timer: number }
+interface ThiefChase { x: number; y: number; tx: number; ty: number; fade: number; coins: { x: number; y: number; ttl: number }[] }
 
 export class NightLife {
   private watchman: Walker | null = null;
@@ -18,6 +21,8 @@ export class NightLife {
   private fox: Fox | null = null;
   private foxTimer = 60;
   private lamplighter: Walker | null = null;
+  private chase: ThiefChase | null = null;
+  private chaseTimer = 45;
 
   update(s: GameState, env: Env, dt: number, roads: Roads): void {
     const night = env.dark > 0.5;
@@ -69,6 +74,32 @@ export class NightLife {
       else this.fox = null;
       if (f && f.x < -1 || f && f.x > s.width + 1) this.fox = null;
     }
+    // Midnight thief chase: a masked thief bolts from the market or granary pursued by a guard and dog.
+    const targetBld = s.buildings.find((b) => b.built && (b.type === 'market' || b.type === 'granary'));
+    if (!this.chase) {
+      this.chaseTimer -= dt;
+      if (this.chaseTimer <= 0 && night && targetBld && !env.storm) {
+        this.chaseTimer = 85 + Math.random() * 95;
+        const exitX = targetBld.x > s.width / 2 ? s.width - 1.5 : 3.2;
+        const exitY = Math.max(2, Math.min(s.height - 2, targetBld.y + (Math.random() < 0.5 ? -4 : 4)));
+        this.chase = { x: targetBld.x + 0.5, y: targetBld.y + 0.8, tx: exitX, ty: exitY, fade: 0, coins: [] };
+      }
+    } else {
+      const ch = this.chase;
+      ch.fade = night ? Math.min(1, ch.fade + dt * 2) : Math.max(0, ch.fade - dt * 2);
+      const dx = ch.tx - ch.x, dy = ch.ty - ch.y, d = Math.hypot(dx, dy);
+      if (d > 0.1 && ch.fade > 0) {
+        const sp = Math.min(d, 2.1 * dt);
+        ch.x += (dx / d) * sp; ch.y += (dy / d) * sp;
+        if (Math.random() < dt * 7) ch.coins.push({ x: ch.x * TILE + TILE / 2 + (Math.random() - 0.5) * 4, y: ch.y * TILE + TILE / 2 + 3, ttl: 1.6 });
+      } else {
+        this.chase = null;
+      }
+      if (this.chase) {
+        for (const c of ch.coins) c.ttl -= dt;
+        ch.coins = ch.coins.filter((c) => c.ttl > 0);
+      }
+    }
   }
 
   /** Where the fox is, so the hens scatter. */
@@ -80,6 +111,7 @@ export class NightLife {
     for (const w of this.patrons) out.push(walkerActor(w));
     if (this.lamplighter) { const w = this.lamplighter; out.push({ y: w.y + 0.8, draw: (ctx, e) => { ctx.globalAlpha = w.fade; drawTownsfolk(ctx, w.x, w.y, w.tx >= w.x ? 1 : -1, Math.hypot(w.tx - w.x, w.ty - w.y) > 0.02, e, w.seed, w.opts); const px = w.x * TILE + TILE / 2, py = w.y * TILE + TILE / 2 + 5; line(ctx, px + 4, py - 6, px + 6, py - 22, '#6b4a2b', 1); circle(ctx, px + 6, py - 22, 1.2, '#ffb040'); ctx.globalAlpha = 1; } }); }
     if (this.fox) { const f = this.fox; out.push({ y: f.y + 0.8, draw: (ctx, e) => drawFox(ctx, f, e) }); }
+    if (this.chase) { const ch = this.chase; out.push({ y: ch.y + 0.82, draw: (ctx, e) => drawThiefChase(ctx, ch, e) }); }
     // An owl on a roof on clear nights, eyes blinking.
     if (env.clearNight) {
       const h = s.buildings.find((b) => b.built && b.type === 'house');
@@ -92,8 +124,39 @@ export class NightLife {
     const out: LightSource[] = [];
     if (this.watchman && this.watchman.fade > 0) { const w = this.watchman, dir = w.tx >= w.x ? 1 : -1; out.push({ x: w.x * TILE + TILE / 2 + dir * 7, y: w.y * TILE + TILE / 2 + 2, r: 20, color: '#ffc870', flicker: 0.1 }); }
     if (this.lamplighter) out.push({ x: this.lamplighter.x * TILE + TILE / 2 + 6, y: this.lamplighter.y * TILE + TILE / 2 - 17, r: 12, color: '#ffb040', flicker: 0.2 });
+    if (this.chase && this.chase.fade > 0) {
+      const ch = this.chase, dir = ch.tx >= ch.x ? 1 : -1;
+      out.push({ x: (ch.x - dir * 0.7) * TILE + TILE / 2, y: ch.y * TILE + TILE / 2, r: 24, color: '#ffc860', flicker: 0.15 });
+    }
     return out;
   }
+}
+
+function drawThiefChase(ctx: CanvasRenderingContext2D, ch: ThiefChase, env: Env): void {
+  const dir = ch.tx >= ch.x ? 1 : -1;
+  ctx.save(); ctx.globalAlpha = ch.fade;
+  // Dropped glittering gold coins behind the thief.
+  for (const c of ch.coins) {
+    ctx.globalAlpha = ch.fade * Math.min(1, c.ttl);
+    circle(ctx, c.x, c.y, 1.3, '#ffd040');
+    circle(ctx, c.x - 0.3, c.y - 0.3, 0.6, '#fff8c0');
+  }
+  ctx.globalAlpha = ch.fade;
+  // Masked thief in front carrying a bulging loot sack.
+  drawTownsfolk(ctx, ch.x, ch.y, dir, true, env, 991, { tunic: '#262430' });
+  const tpx = ch.x * TILE + TILE / 2, tpy = ch.y * TILE + TILE / 2 + 5;
+  ellipse(ctx, tpx - dir * 3.5, tpy - 7, 3.2, 2.6, '#b89458');
+  rect(ctx, tpx - 2.2, tpy - 12.5, 4.4, 1.4, '#14141a'); // eye mask
+
+  // Guard chasing 0.75 tiles behind with a lantern and spear.
+  const gx = ch.x - dir * 0.78, gy = ch.y + 0.08;
+  drawTownsfolk(ctx, gx, gy, dir, true, env, 992, { tunic: '#384868' });
+  const gpx = gx * TILE + TILE / 2, gpy = gy * TILE + TILE / 2 + 5;
+  line(ctx, gpx + dir * 4, gpy - 8, gpx + dir * 6.5, gpy - 4, '#5a3a1e', 1);
+  rect(ctx, gpx + dir * 6.5 - 1.5, gpy - 4, 3, 3.5, '#ffd060');
+  const k = (env.clock * 0.5) % 1;
+  if (k < 0.55) bubble(ctx, gpx, gpy - 22, t('talk.v.stopThief'), 0.95, '#c84030');
+  ctx.restore();
 }
 
 function drawFox(ctx: CanvasRenderingContext2D, f: Fox, env: Env): void {
