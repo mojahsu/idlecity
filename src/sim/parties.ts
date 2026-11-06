@@ -8,7 +8,7 @@ import { findBuildSpot, findPath, moveAlong } from './world';
 import { countBuildings, placeBuilding } from './buildings';
 import { chronicle, log } from './log';
 import { ACT_TIME, EXPLORE_TIME, FIGHT_REWARD, FIGHT_TUNE, PARTY_SPEED } from './constants';
-import { gainXp, tavernPos } from './adventurers';
+import { gainXp, leader, tavernPos } from './adventurers';
 
 function members(s: GameState, p: Party): Adventurer[] {
   return p.memberIds.map((id) => s.adventurers.find((a) => a.id === id)!).filter((a) => a && a.status === 'questing');
@@ -31,7 +31,7 @@ function updateParty(s: GameState, p: Party, dt: number): void {
     case 'explore':
       p.timer -= dt;
       if (p.timer <= 0) {
-        if (!daresBossFloor(s, p)) { log(s, 'adventure', 'log.bossRetreat', { leader: team[0].name, dungeon: `dungeon.${p.dungeon}` }); startReturn(s, p); return; }
+        if (!daresBossFloor(s, p)) { log(s, 'adventure', 'log.bossRetreat', { leader: leader(team)!.name, dungeon: `dungeon.${p.dungeon}` }); startReturn(s, p); return; }
         p.encounter = makeEncounter(s, p); p.phase = 'fight'; p.timer = -ACT_TIME; p.actIdx = 0; // a beat before the first blow
       }
       return;
@@ -72,7 +72,8 @@ function daresBossFloor(s: GameState, p: Party): boolean {
   // A party well under the dungeon's level turns back at the boss's door instead of feeding it.
   const avgLevel = team.reduce((n, a) => n + a.level, 0) / team.length;
   const margin = def.id === 'darkTower' ? 3 : 2; // the Demon Lord punishes a thin margin
-  return team.length >= 3 && avgHp >= 0.7 && avgLevel >= def.level + margin;
+  // No warrior to hold the line means no boss: a party of casters turns back at the door.
+  return team.length >= 3 && avgHp >= 0.7 && avgLevel >= def.level + margin && team.some((a) => a.cls === 'warrior');
 }
 
 function makeEncounter(s: GameState, p: Party): Encounter {
@@ -144,7 +145,7 @@ function act(s: GameState, p: Party): void {
   if (idx === 0) {
     p.rounds = (p.rounds ?? 0) + 1;
     if (e.boss && team.length >= 3 && team.some((a) => a.hp < a.maxHp * 0.4) && e.hp > e.maxHp * 0.3) {
-      log(s, 'adventure', 'log.bossRetreat', { leader: team[0].name, dungeon: `dungeon.${p.dungeon}` });
+      log(s, 'adventure', 'log.bossRetreat', { leader: leader(team)!.name, dungeon: `dungeon.${p.dungeon}` });
       startReturn(s, p);
       return;
     }
@@ -229,13 +230,24 @@ function enemyAct(s: GameState, p: Party, en: Enemy, ei: number, team: Adventure
     void e;
     return;
   }
-  let target = pick(s, team);
+  // Bolts and curses fly at anyone; blows land mostly on the front of the line (the team is in battle-line order, back first).
+  let target = style === 'bolt' || style === 'curse' ? pick(s, team) : frontTarget(s, team);
   if (warrior && target !== warrior && chance(s, T.tauntChance)) { target = warrior; fx(warrior, 'taunt'); }
   let taken = Math.max(1, en.atk * (style === 'curse' ? 1.4 : 1) * (0.6 + random(s) * 0.8) - target.def - s.equipment * 0.5);
   if (hasSkill(target.cls, target.level, 'ironWall') && chance(s, T.blockChance)) { taken *= T.blockMultiplier; fx(target, 'block'); }
   target.hp -= taken;
   s.fx.push({ kind: 'enemyStrike', partyId: p.id, enemyIdx: ei, style, targetId: target.id, amount: Math.round(taken) });
   if (target.hp <= 0) onMemberDown(s, p, target);
+}
+
+/** Who a melee blow finds: the front of the line 55% of the time, the next rank 25%, the rest shared by those behind. */
+function frontTarget(s: GameState, team: Adventurer[]): Adventurer {
+  const n = team.length;
+  if (n <= 1) return team[0];
+  const weights = team.map((_, i) => (i === n - 1 ? 0.55 : i === n - 2 ? 0.25 : 0.2 / (n - 2)));
+  let r = random(s) * weights.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < n; i++) { r -= weights[i]; if (r <= 0) return team[i]; }
+  return team[n - 1];
 }
 
 /** One monster of the pack goes down: rewards for it, and the boss bookkeeping. */
@@ -256,15 +268,15 @@ function onEnemySlain(s: GameState, p: Party, en: Enemy, ei: number): void {
     dungeon.bossHp = undefined;
     if (!dungeon.bossDefeated) {
       dungeon.bossDefeated = true;
-      chronicle(s, 'adventure', 'log.bossSlain', { leader: team[0].name, monster: `monster.${m.id}`, dungeon: `dungeon.${def.id}` });
+      chronicle(s, 'adventure', 'log.bossSlain', { leader: leader(team)!.name, monster: `monster.${m.id}`, dungeon: `dungeon.${def.id}` });
     } else {
-      log(s, 'adventure', 'log.bossSlain', { leader: team[0].name, monster: `monster.${m.id}`, dungeon: `dungeon.${def.id}` });
+      log(s, 'adventure', 'log.bossSlain', { leader: leader(team)!.name, monster: `monster.${m.id}`, dungeon: `dungeon.${def.id}` });
     }
     if (p.dungeon === FINAL_DUNGEON && !s.victory) {
       s.victory = true;
-      chronicle(s, 'victory', 'log.victory', { leader: team[0].name, names: team.map((a) => a.name).join(', ') });
+      chronicle(s, 'victory', 'log.victory', { leader: leader(team)!.name, names: team.map((a) => a.name).join(', ') });
     }
-  } else if (chance(s, 0.2)) log(s, 'adventure', 'log.slain', { leader: team[0].name, monster: `monster.${m.id}`, floor: p.floor });
+  } else if (chance(s, 0.2)) log(s, 'adventure', 'log.slain', { leader: leader(team)!.name, monster: `monster.${m.id}`, floor: p.floor });
 }
 
 /** The whole pack is down: a chance of a chest, then on to the next floor (or home). */
@@ -273,7 +285,7 @@ function onPackCleared(s: GameState, p: Party): void {
   const def = DUNGEONS.find((d) => d.id === p.dungeon)!;
   const dungeon = s.dungeons.find((d) => d.id === p.dungeon)!;
   const team = members(s, p);
-  if (chance(s, 0.15)) { const g = 10 + p.floor * 4; p.loot.gold += g; s.fx.push({ kind: 'treasure', partyId: p.id, gold: g }); log(s, 'adventure', 'log.treasure', { leader: team[0].name }); }
+  if (chance(s, 0.15)) { const g = 10 + p.floor * 4; p.loot.gold += g; s.fx.push({ kind: 'treasure', partyId: p.id, gold: g }); log(s, 'adventure', 'log.treasure', { leader: leader(team)!.name }); }
   if (p.floor > dungeon.deepestFloor) dungeon.deepestFloor = p.floor;
   if (e.boss) { startReturn(s, p); return; }
   const avgHp = team.reduce((n, a) => n + a.hp / a.maxHp, 0) / team.length;
@@ -311,7 +323,7 @@ function onMemberDown(s: GameState, p: Party, a: Adventurer): void {
     if (!members(s, p).length) { dissolve(s, p); return; }
   } else {
     a.hp = 1;
-    log(s, 'danger', 'log.knockedOut', { name: a.name, leader: members(s, p)[0].name });
+    log(s, 'danger', 'log.knockedOut', { name: a.name, leader: leader(members(s, p))!.name });
   }
   startReturn(s, p);
 }
@@ -332,7 +344,7 @@ function arriveHome(s: GameState, p: Party): void {
   s.resources.gold += Math.round(p.loot.gold);
   s.resources.iron += Math.round(p.loot.iron);
   s.fx.push({ kind: 'float', x: p.x, y: p.y, text: `+${Math.round(p.loot.gold)}g`, color: '#f0d050' });
-  log(s, 'adventure', 'log.partyReturns', { leader: team[0]?.name ?? '?', gold: Math.round(p.loot.gold), floor: p.floor });
+  log(s, 'adventure', 'log.partyReturns', { leader: leader(team)?.name ?? '?', gold: Math.round(p.loot.gold), floor: p.floor });
   dissolve(s, p);
 }
 

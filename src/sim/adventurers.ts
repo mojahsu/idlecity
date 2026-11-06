@@ -24,8 +24,40 @@ function maxAdventurers(s: GameState): number {
   return 4 * countBuildings(s, 'tavern') + 4 * countBuildings(s, 'guildHall') + 2 * countBuildings(s, 'keep');
 }
 
+/** Back-to-front order of the battle line: casters behind, the warrior in front. */
+export const FORMATION: Record<AdventurerClass, number> = { mage: 0, priest: 1, archer: 2, warrior: 3 };
+
+/** A team sorted into its battle line (back first), highest level first within a rank. */
+export function formationOrder<T extends { cls: AdventurerClass; level: number }>(team: T[]): T[] {
+  return [...team].sort((a, b) => FORMATION[a.cls] - FORMATION[b.cls] || b.level - a.level);
+}
+
+/** The party's leader is its highest-level member, whatever rank they stand in. */
+export function leader<T extends { level: number }>(team: T[]): T | undefined {
+  return team.reduce<T | undefined>((best, a) => (!best || a.level > best.level ? a : best), undefined);
+}
+
+/** Ranged classes stand back from a raid; the warrior closes in. */
+export function isRanged(cls: AdventurerClass): boolean { return cls !== 'warrior'; }
+
+/**
+ * The guild recruits what the roster lacks: with no living warrior or priest
+ * the next arrival is one; otherwise warriors and archers are a little more
+ * common than mages and priests.
+ */
+function recruitClass(s: GameState): AdventurerClass {
+  const roster = alive(s);
+  const has = (c: AdventurerClass) => roster.some((a) => a.cls === c);
+  if (!has('warrior')) return 'warrior';
+  if (!has('priest')) return 'priest';
+  const weights: [AdventurerClass, number][] = [['warrior', 3], ['archer', 3], ['mage', 2], ['priest', 2]];
+  let r = random(s) * weights.reduce((n, [, w]) => n + w, 0);
+  for (const [c, w] of weights) { r -= w; if (r <= 0) return c; }
+  return 'warrior';
+}
+
 export function spawnAdventurer(s: GameState): Adventurer {
-  const cls = pick(s, Object.keys(CLASSES) as AdventurerClass[]);
+  const cls = recruitClass(s);
   const def = CLASSES[cls];
   const from = edgeSpawnPoint(s);
   const a: Adventurer = {
@@ -107,8 +139,7 @@ function tryFormParty(s: GameState): void {
   if (s.parties.length >= maxParties) return;
   const ready = s.adventurers.filter((a) => a.status === 'resting' && a.hp >= a.maxHp * 0.85);
   if (ready.length < 3) return;
-  ready.sort((a, b) => b.level - a.level);
-  const members = ready.slice(0, 4);
+  const members = pickParty(ready);
   const avgLevel = members.reduce((n, a) => n + a.level, 0) / members.length;
 
   // Go to the hardest dungeon the party can plausibly handle.
@@ -137,7 +168,26 @@ function tryFormParty(s: GameState): void {
   };
   for (const a of members) { a.status = 'questing'; a.partyId = party.id; a.pastime = undefined; a.path = []; }
   s.parties.push(party);
-  log(s, 'adventure', 'log.partyLeaves', { leader: members[0].name, count: members.length, dungeon: `dungeon.${target.id}` });
+  log(s, 'adventure', 'log.partyLeaves', { leader: leader(members)!.name, count: members.length, dungeon: `dungeon.${target.id}` });
+}
+
+/**
+ * A sensible party: the best warrior to hold the line, the best priest to keep
+ * it standing, then the strongest of the rest with at most two of a class.
+ * Only when that cannot make three does level alone decide. Members are kept
+ * in battle-line order so the fight and the panel agree on who stands where.
+ */
+function pickParty(ready: Adventurer[]): Adventurer[] {
+  const byLevel = [...ready].sort((a, b) => b.level - a.level);
+  const chosen: Adventurer[] = [];
+  for (const role of ['warrior', 'priest'] as AdventurerClass[]) { const c = byLevel.find((a) => a.cls === role); if (c) chosen.push(c); }
+  for (const a of byLevel) {
+    if (chosen.length >= 4) break;
+    if (chosen.includes(a) || chosen.filter((c) => c.cls === a.cls).length >= 2) continue;
+    chosen.push(a);
+  }
+  for (const a of byLevel) { if (chosen.length >= 3) break; if (!chosen.includes(a)) chosen.push(a); }
+  return formationOrder(chosen);
 }
 
 /** Free tiles in a ring around a spot. */
@@ -168,8 +218,15 @@ function updatePastime(s: GameState, a: Adventurer, dt: number): void {
   const fighting = raid && raid.phase === 'fight';
   if (fighting && a.hp > a.maxHp * 0.3) {
     if (a.pastime !== 'sally') {
-      const ring = ringAround(s, { x: Math.round(raid.x), y: Math.round(raid.y) }, 1).filter((p) => Math.hypot(p.x - s.center.x, p.y - s.center.y) <= Math.hypot(raid.x - s.center.x, raid.y - s.center.y) + 0.5);
-      const spot = ring.length ? pick(s, ring) : { x: Math.round(raid.x), y: Math.round(raid.y) };
+      // Warriors close to a ring right round the raiders; archers, mages and priests hold a line two tiles back, on the town's side.
+      const at = { x: Math.round(raid.x), y: Math.round(raid.y) };
+      const townward = (p: { x: number; y: number }, slack: number) => Math.hypot(p.x - s.center.x, p.y - s.center.y) <= Math.hypot(raid.x - s.center.x, raid.y - s.center.y) + slack;
+      const ring = isRanged(a.cls)
+        ? ringAround(s, at, 2).filter((p) => townward(p, -0.5))
+        : ringAround(s, at, 1).filter((p) => townward(p, 0.5));
+      const fallback = isRanged(a.cls) ? ringAround(s, at, 2) : ringAround(s, at, 1);
+      const pool = ring.length ? ring : fallback;
+      const spot = pool.length ? pick(s, pool) : at;
       a.pastime = 'sally'; a.path = findPath(s, a, spot); a.pastimeTimer = 999;
     }
     moveAlong(a, PARTY_SPEED * 1.3, dt);

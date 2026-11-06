@@ -18,16 +18,18 @@ export function drawFigures(ctx: CanvasRenderingContext2D, s: GameState, p: Part
   const windup = p.phase === 'fight' ? Math.max(0, Math.min(1, (p.timer + ACT_TIME) / ACT_TIME)) : 0;
   team.forEach((a, i) => {
     const hx = heroX(i);
+    // The line has depth: the warrior in front stands on the near edge of the floor, the casters a step back.
+    const fy = floorY - (team.length - 1 - i) * 1.6;
     const l = v.heroLunge.get(a.id);
     const lunge = l ? Math.sin((1 - l.t / 0.45) * Math.PI) : 0;
     const lx = l ? hx + (l.tx - hx) * lunge : hx;
     // Wind-up: the hero whose turn is next steps back a little.
     const next = p.phase === 'fight' && actIdx === i && !l ? windup * -3 : 0;
     const hurt = v.heroHurt.get(a.id) ?? 0, heal = v.heal.get(a.id) ?? 0;
-    ellipse(ctx, lx + next, floorY + 1, 6, 2.5, 'rgba(0,0,0,0.4)');
+    ellipse(ctx, lx + next, fy + 1, 6, 2.5, 'rgba(0,0,0,0.4)');
     if (heal > 0) { circle(ctx, hx, floorY - 10, 9 * (1 - heal), rgba('#90f090', heal * 0.5)); for (let k = 0; k < 4; k++) circle(ctx, hx - 6 + k * 4, floorY - 4 - ((env.clock * 30 + k * 7) % 24), 1, rgba('#c0ffc0', heal)); }
-    if (lunge > 0.3) { const ga = ctx.globalAlpha; ctx.globalAlpha = ga * 0.3; drawClassFigure(ctx, a.cls, a.level, env, false, hx + (lx - hx) * 0.5, floorY, 1, 1.35, false, s.equipment); ctx.globalAlpha = ga; }
-    drawClassFigure(ctx, a.cls, a.level, env, p.phase === 'explore' || lunge > 0, lx + next, floorY, 1, 1.35, hurt > 0, s.equipment);
+    if (lunge > 0.3) { const ga = ctx.globalAlpha; ctx.globalAlpha = ga * 0.3; drawClassFigure(ctx, a.cls, a.level, env, false, hx + (lx - hx) * 0.5, fy, 1, 1.35, false, s.equipment); ctx.globalAlpha = ga; }
+    drawClassFigure(ctx, a.cls, a.level, env, p.phase === 'explore' || lunge > 0, lx + next, fy, 1, 1.35, hurt > 0, s.equipment);
     if (lunge > 0.7) { ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(lx + 11, floorY - 14, 8, -1.2, 0.6); ctx.stroke(); }
     if (v.taunt > 0 && v.tauntIdx === i) { ctx.font = 'bold 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#ff6060'; ctx.fillText('!', hx, floorY - 34 - Math.sin(v.taunt * 12) * 2); }
     if (v.beam > 0 && v.beamIdx === i) { const g = ctx.createLinearGradient(0, 0, 0, floorY); g.addColorStop(0, `rgba(255,240,160,${0.7 * v.beam})`); g.addColorStop(1, `rgba(255,240,160,${0.15 * v.beam})`); ctx.fillStyle = g; ctx.fillRect(hx - 7, 0, 14, floorY); for (let k = 0; k < 4; k++) circle(ctx, hx - 8 + k * 5.5, floorY - 8 - ((env.clock * 40 + k * 9) % 30), 1.2, rgba('#fff8c0', v.beam)); }

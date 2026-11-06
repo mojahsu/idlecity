@@ -8,6 +8,7 @@ import { countBuildings, hasBuilding } from './buildings';
 import { log, chronicle } from './log';
 import { RAID_ROUND, RAID_SPEED, RAID_TIME_LIMIT } from './constants';
 import { year } from './time';
+import { isRanged } from './adventurers';
 
 export function updateRaids(s: GameState, dt: number): void {
   if (!s.raid) {
@@ -30,14 +31,17 @@ export function updateRaids(s: GameState, dt: number): void {
   r.roundTimer = (r.roundTimer ?? RAID_ROUND) - dt;
   if (r.roundTimer <= 0) {
     r.roundTimer += RAID_ROUND;
-    const defenders = s.adventurers.filter((a) => a.status === 'resting' && a.pastime === 'sally' && Math.hypot(a.x - r.x, a.y - r.y) < 2.2);
+    // Warriors must be at the raiders' side; archers, mages and priests fight from their line further back.
+    const defenders = s.adventurers.filter((a) => a.status === 'resting' && a.pastime === 'sally' && Math.hypot(a.x - r.x, a.y - r.y) < (isRanged(a.cls) ? 3.4 : 2.2));
     const walls = countBuildings(s, 'walls');
     let dmg = walls * 6 + s.workers.length * 0.3;
     for (const a of defenders) { dmg += a.atk * (1 + 0.1 * s.equipment) * (0.7 + random(s) * 0.6); s.fx.push({ kind: 'hit', x: a.x, y: a.y }); }
     r.hp -= dmg;
     s.fx.push({ kind: 'hit', x: r.x, y: r.y });
     if (defenders.length) {
-      const t = pick(s, defenders);
+      // Raiders strike whoever is closest most of the time, so the warrior in front takes the brunt.
+      const near = [...defenders].sort((a, b) => Math.hypot(a.x - r.x, a.y - r.y) - Math.hypot(b.x - r.x, b.y - r.y));
+      const t = chance(s, 0.6) ? near[0] : pick(s, defenders);
       t.hp = Math.max(1, t.hp - Math.max(0, r.atk * 0.5 * (0.6 + random(s) * 0.8) - walls * 2 - t.def));
     }
   }

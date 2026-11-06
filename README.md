@@ -210,6 +210,18 @@ tests/        bun tests
     heroes' level so a raid lasts twenty to forty seconds. Between expeditions
     adventurers spar at the guild's training posts, drink, sit by the fire and
     wander the streets instead of standing still.
+18. Parties are built by role (`pickParty` in `sim/adventurers.ts`): the best
+    warrior, the best priest, then the strongest of the rest with at most two
+    of a class; level alone decides only when that cannot make three. Members
+    are kept in battle-line order (`FORMATION`: mage, priest, archer, warrior,
+    back to front) so the sim and the panel agree on who stands where: melee
+    blows find the front of the line 55% of the time and the second rank 25%
+    (`frontTarget`), bolts and curses fly at anyone, and a party without a
+    warrior turns back at a boss's door. The guild recruits what the roster
+    lacks (`recruitClass`): no living warrior or priest means the next arrival
+    is one. On the map the party walks as a two-by-two column with the warrior
+    leading, and in a raid the warrior closes to the raiders while archers,
+    mages and priests hold a line two tiles back and shoot (`isRanged`).
 
 Rough pacing at 1x: hamlet in minutes, village ~15 min, town ~40 min, city ~2 h,
 first dungeon ~45 min, Dark Tower after the Keep (~3 h), Demon Lord falls
