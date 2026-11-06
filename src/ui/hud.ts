@@ -16,6 +16,7 @@ export interface HudCallbacks {
   onReset(): void;
   onFullscreen(): void;
   onMute(): void;
+  onCamera?(): void;
 }
 
 const SPEEDS = [0, 1, 2, 4];
@@ -30,6 +31,7 @@ export class Hud {
   private speed = 1;
   private fullscreen = false;
   private muted = false;
+  private cameraOn = false;
   private lastLogLen = -1;
   private lastChronLen = -1;
   private lastLocale = '';
@@ -54,6 +56,16 @@ export class Hud {
     this.muted = on;
     const b = document.getElementById('mute');
     if (b) { b.textContent = on ? '🔇' : '🔊'; b.title = t(on ? 'ui.unmute' : 'ui.mute'); }
+  }
+
+  /** Relabel and highlight the cinematic camera button. */
+  setCamera(on: boolean): void {
+    this.cameraOn = on;
+    const b = document.getElementById('camera-btn');
+    if (b) {
+      b.classList.toggle('active', on);
+      b.title = t(on ? 'ui.cameraOff' : 'ui.cameraOn');
+    }
   }
 
   setSpeed(speed: number): void {
@@ -106,11 +118,17 @@ export class Hud {
     fs.id = 'fullscreen';
     fs.onclick = () => this.cb.onFullscreen();
     c.appendChild(fs);
+    const cam = document.createElement('button');
+    cam.id = 'camera-btn';
+    cam.textContent = '🎥';
+    cam.onclick = () => this.cb.onCamera?.();
+    c.appendChild(cam);
     const mu = document.createElement('button');
     mu.id = 'mute';
     mu.onclick = () => this.cb.onMute();
     c.appendChild(mu);
     this.setMuted(this.muted);
+    this.setCamera(this.cameraOn);
     this.setSpeed(this.speed);
   }
 
@@ -125,6 +143,7 @@ export class Hud {
       document.getElementById('reset')!.textContent = t('ui.newGame');
       this.setFullscreen(this.fullscreen);
       this.setMuted(this.muted);
+      this.setCamera(this.cameraOn);
       this.lastLogLen = -1; this.lastChronLen = -1;
     }
     this.updateTop(s);

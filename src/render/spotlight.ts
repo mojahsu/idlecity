@@ -24,6 +24,11 @@ export class Spotlight {
   private last = { x: 0, y: 0 };
   private manual = false;
 
+  /** Current focal tile coordinates for the cinematic camera, if a target is active. */
+  focusPoint(): { x: number; y: number } | null {
+    return this.target && this.fade > 0.1 ? this.last : null;
+  }
+
   /** Select the nearest person, party, caravan, dungeon or building at tile (tx, ty). */
   selectAt(s: GameState, tx: number, ty: number): void {
     let best: { tg: Target; d: number } | null = null;

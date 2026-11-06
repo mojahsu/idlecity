@@ -42,7 +42,12 @@ export function loadSprites(): void {
   started = true;
   for (const id of Object.keys(sheets) as SheetId[]) {
     const img = new Image();
-    img.onload = () => { sheets[id].img = img; };
+    img.onload = () => {
+      if (img.naturalWidth >= sheets[id].cols * 16) {
+        sheets[id].tile = Math.round(img.naturalWidth / sheets[id].cols);
+      }
+      sheets[id].img = img;
+    };
     img.src = `${BASE}${id}.png`;
   }
   fetch(`${BASE}dungeon-ii.txt`).then((r) => r.text()).then((txt) => {
@@ -81,7 +86,7 @@ function source(sh: Sheet, id: SheetId, sx: number, sy: number, w: number, h: nu
 
 function blit(ctx: CanvasRenderingContext2D, img: CanvasImageSource, sx: number, sy: number, sw: number, sh: number, x: number, y: number, w: number, h: number, o: DrawOpts, fromCache: boolean): void {
   ctx.save();
-  ctx.imageSmoothingEnabled = false;
+  ctx.imageSmoothingEnabled = sw >= 32;
   if (o.alpha !== undefined && o.alpha < 1) ctx.globalAlpha *= o.alpha;
   ctx.translate(x, y);
   if (o.rot) ctx.rotate(o.rot);
@@ -128,22 +133,23 @@ export function drawTileRect(ctx: CanvasRenderingContext2D, ref: SpriteRef, x: n
   const sx = (ref.i % sh.cols) * sh.tile, sy = Math.floor(ref.i / sh.cols) * sh.tile;
   const img = source(sh, ref.s, sx, sy, sh.tile, sh.tile, tint, tintA);
   if (!img) return false;
-  ctx.imageSmoothingEnabled = false;
+  ctx.imageSmoothingEnabled = sh.tile >= 32;
   if (tint) ctx.drawImage(img, 0, 0, sh.tile, sh.tile, x, y, w, h);
   else ctx.drawImage(img, sx, sy, sh.tile, sh.tile, x, y, w, h);
   return true;
 }
 
 /**
- * Draw part of a tile: (u, v, uw, vh) in sheet pixels within the tile, to the
+ * Draw part of a tile: (u, v, uw, vh) in 16px-normalised tile units, to the
  * rect (x, y, w, h). Used to lay grass fringes over road edges.
  */
 export function drawTilePart(ctx: CanvasRenderingContext2D, ref: SpriteRef, u: number, v: number, uw: number, vh: number, x: number, y: number, w: number, h: number): boolean {
   const sh = sheets[ref.s];
   if (!sh.img) return false;
-  const sx = (ref.i % sh.cols) * sh.tile + u, sy = Math.floor(ref.i / sh.cols) * sh.tile + v;
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(sh.img, sx, sy, uw, vh, x, y, w, h);
+  const k = sh.tile / 16;
+  const sx = (ref.i % sh.cols) * sh.tile + u * k, sy = Math.floor(ref.i / sh.cols) * sh.tile + v * k;
+  ctx.imageSmoothingEnabled = sh.tile >= 32;
+  ctx.drawImage(sh.img, sx, sy, uw * k, vh * k, x, y, w, h);
   return true;
 }
 

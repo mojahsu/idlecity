@@ -9,10 +9,12 @@ import { drawRoad } from './road';
 import { drawWaterBase } from './water';
 import { drawRock, drawGlints } from './rock';
 import { drawBush, drawStump } from './bush';
+import { drawGrandPlaza } from './urban';
 import { drawSprite, drawTilePart, drawTileRect, townSprites } from '../sprites';
 import { GROUND, PROP, TREES } from '../spriteMap';
 export { drawWater } from './water';
 export { drawTree, drawTreeShadows, treeFoot } from './trees';
+export { urbanActors, urbanLights } from './urban';
 
 const TERRAIN_CODE: Record<string, number> = { grass: 1, forest: 2, rock: 3, bush: 4, ore: 5, water: 6, road: 7 };
 
@@ -35,7 +37,7 @@ export class TerrainLayer {
       const amt = t.terrain === 'rock' || t.terrain === 'ore' ? Math.floor(t.amount / 10) : t.terrain === 'forest' ? (t.amount < 1 ? 0 : 1) : t.terrain === 'bush' ? (t.amount >= 5 ? 2 : t.amount < 1 ? 0 : 1) : 0;
       h = (h * 31 + code * 8 + amt) | 0;
     }
-    return `${env.season}|${env.rainy ? 'wet' : 'dry'}|${scale.toFixed(3)}|${townSprites() ? 'spr' : 'proc'}|${h}`;
+    return `${env.season}|${env.rainy ? 'wet' : 'dry'}|${s.tier}|${scale.toFixed(3)}|${townSprites() ? 'spr' : 'proc'}|${h}`;
   }
 
   private renderStatic(s: GameState, env: Env, scale: number): void {
@@ -45,7 +47,7 @@ export class TerrainLayer {
     const ctx = this.canvas.getContext('2d')!;
     ctx.setTransform(bw / W, 0, 0, bh / H, 0, 0);
     ctx.clearRect(0, 0, W, H);
-    if (townSprites()) { renderSpriteGround(ctx, s, env); return; }
+    if (townSprites()) { renderSpriteGround(ctx, s, env); drawGrandPlaza(ctx, s, env); return; }
     const pal = PALETTE[env.season];
 
     // Base grass with soft blotches.
@@ -77,6 +79,7 @@ export class TerrainLayer {
         case 'bush': drawBush(ctx, px, py, t, env); break;
       }
     }
+    drawGrandPlaza(ctx, s, env);
   }
 }
 
@@ -118,7 +121,8 @@ function renderSpriteGround(ctx: CanvasRenderingContext2D, s: GameState, env: En
 function drawSpriteRoad(ctx: CanvasRenderingContext2D, s: GameState, x: number, y: number): void {
   const px = x * TILE, py = y * TILE;
   const isRoad = (dx: number, dy: number) => { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= s.width || ny >= s.height) return true; return s.tiles[ny * s.width + nx].terrain === 'road'; };
-  const cobble = Math.hypot(x - s.center.x, y - s.center.y) < 7.5 && (x + y) % 2 === 0;
+  const cobbleRadius = s.tier === 'city' ? 11.5 : s.tier === 'town' ? 8.5 : s.tier === 'village' ? 6.5 : 3.2;
+  const cobble = Math.hypot(x - s.center.x, y - s.center.y) < cobbleRadius && (x + y) % 2 === 0;
   drawTileRect(ctx, cobble ? GROUND.cobble : GROUND.dirt.c, px, py, TILE, TILE);
   // Grass fringes on the sides with no road neighbour, cut from the 3x3 patch's edges and corners.
   const e = 4, k = TILE / 16, ek = e * k;

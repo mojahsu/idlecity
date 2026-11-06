@@ -5,7 +5,8 @@ import { circle, ellipse, rect, roundRect, shade, rgba, hash, PALETTE, type Env 
 
 export function drawRoad(ctx: CanvasRenderingContext2D, s: GameState, x: number, y: number, dirt: string, edge: string, env: Env): void {
   const px = x * TILE, py = y * TILE;
-  const cobbled = Math.hypot(x - s.center.x, y - s.center.y) < 7.5;
+  const cobbleRadius = s.tier === 'city' ? 11.5 : s.tier === 'town' ? 8.5 : s.tier === 'village' ? 6.5 : 3.2;
+  const cobbled = Math.hypot(x - s.center.x, y - s.center.y) < cobbleRadius;
   if (cobbled) { dirt = env.season === 'winter' ? '#b8b4ac' : '#a89c8a'; edge = env.season === 'winter' ? '#8a867e' : '#776b5a'; }
   const isRoad = (dx: number, dy: number) => { const t = s.tiles[(y + dy) * s.width + (x + dx)]; return !!t && (t.terrain === 'road') && x + dx >= 0 && x + dx < s.width; };
   const half = TILE / 2, w = 8;

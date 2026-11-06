@@ -34,6 +34,8 @@
   "ui.fullscreenHint": "按 F 或雙擊地圖",
   "ui.mute": "關閉聲音（M）",
   "ui.unmute": "開啟聲音（M）",
+  "ui.cameraOn": "已開啟電影跟隨運鏡（C）",
+  "ui.cameraOff": "已關閉電影跟隨運鏡（C）",
   "ui.floor": "第 {floor} / {floors} 層",
   "ui.exploring": "探索中",
   "ui.slain": "擊倒！",

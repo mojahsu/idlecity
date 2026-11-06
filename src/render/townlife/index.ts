@@ -102,7 +102,7 @@ export class TownLife {
   /** Where the children are this frame. */
   kidSpots(): { x: number; y: number }[] { return [...this.kids.spots(), ...this.night.scare()]; }
 
-  /** Confetti, stars, lanterns, notes, bell rings and skit bubbles, drawn above the lighting so they read at night. */
+  /** Confetti, stars, lanterns, notes, bell rings and skit bubbles, drawn above the lighting in world coordinates. */
   drawOverlay(ctx: CanvasRenderingContext2D, env: Env, s: GameState): void {
     this.bits.draw(ctx);
     this.sparkles.overlay(ctx, s);
@@ -111,6 +111,10 @@ export class TownLife {
     this.music.overlay(ctx);
     this.clickEggs.overlay(ctx, env);
     this.skits.drawOverlay(ctx, s);
+  }
+
+  /** Screen-space chapter scroll banner, unaffected by camera zoom. */
+  drawScreenOverlay(ctx: CanvasRenderingContext2D, env: Env, s: GameState): void {
     this.chapters.overlay(ctx, env, s);
   }
 

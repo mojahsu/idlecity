@@ -50,12 +50,14 @@ const HEIGHT: Partial<Record<Building['type'], number>> = {
   market: 18, mine: 12, chapel: 50, guildHall: 42, walls: 34, keep: 52, grave: 8, campfire: 0,
 };
 
-/** Sun shadows of every finished building, drawn on the ground before the scene. */
+/** Sun shadows and Ambient Occlusion (AO) contact shadows of every finished building, drawn on the ground before the scene. */
 export function drawBuildingShadows(ctx: CanvasRenderingContext2D, s: GameState, env: Env): void {
   for (const b of s.buildings) {
     const h = hasSpriteBuilding(b.type) ? spriteBuildingHeight(b.type) : HEIGHT[b.type] ?? 0;
     if (!b.built || !h) continue;
     const px = b.x * TILE, py = b.y * TILE;
+    // Soft ambient occlusion contact shadow grounding the building base.
+    groundShadow(ctx, px + TILE / 2, py + TILE - 1.5, TILE * 0.54, 4.2, 0.34);
     castShadow(ctx, env, px + TILE / 2, py + TILE - 1, TILE - 4, h);
   }
   for (const l of lampPosts(s)) castShadow(ctx, env, l.x * TILE + 5, l.y * TILE + 6, 2, 16);

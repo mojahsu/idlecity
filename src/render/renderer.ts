@@ -7,7 +7,7 @@ import type { GameState, LogEntry } from '../sim/types';
 import { t } from '../i18n';
 import { TILE } from './constants';
 import { makeEnv, type Env } from './palette';
-import { TerrainLayer, drawTree, drawTreeShadows, drawWater } from './terrain';
+import { TerrainLayer, drawTree, drawTreeShadows, drawWater, urbanActors, urbanLights } from './terrain';
 import { drawBuilding, drawBuildingShadows, drawLampPost, lampPosts, lightSources, type LightSource } from './buildings';
 import { drawDungeonEntrance } from './dungeons';
 import { drawAdventurer, drawCaravan, drawParty, drawRaid, drawWorker } from './units';
@@ -16,6 +16,7 @@ import { TownLife } from './townlife';
 import { Spotlight } from './spotlight';
 import { Lighting, drawVignette } from './lighting';
 import { DungeonView } from './dungeonView';
+import { CinematicCamera } from './camera';
 import { isIndoors } from '../sim/workers';
 import { trainingPosts } from '../sim/adventurers';
 import { drawTrainingPost } from './units/trainingPost';
@@ -33,6 +34,7 @@ export class Renderer {
   private spotlight = new Spotlight();
   private lighting = new Lighting();
   private dungeonView = new DungeonView();
+  private camera = new CinematicCamera();
   private clock = 0;
   private scale = 1;
   private lastLog: LogEntry | null = null;
@@ -70,9 +72,12 @@ export class Renderer {
     this.townLife.update(s, env, dt);
     const skit = this.townLife.activeSkit();
     this.spotlight.update(s, env, dt, skit);
+    this.camera.update(s, dt, skit, this.spotlight.focusPoint());
     this.dungeonView.update(s, env, dt);
 
     ctx.clearRect(0, 0, W, H);
+    ctx.save();
+    this.camera.apply(ctx, W, H);
     this.terrain.draw(ctx, s, env, this.scale);
     drawWater(ctx, s, env);
     drawTreeShadows(ctx, s, env);
@@ -85,6 +90,7 @@ export class Renderer {
       if (t.terrain === 'forest' && t.amount >= 1) items.push({ y: y + 0.6, draw: (c, e) => drawTree(c, x, y, t, e) });
     }
     for (const b of s.buildings) items.push({ y: b.y + 0.95, draw: (c, e) => drawBuilding(c, s, b, e) });
+    for (const u of urbanActors(s, env)) items.push(u);
     for (const d of s.dungeons) items.push({ y: d.y + 0.95, draw: (c, e) => drawDungeonEntrance(c, s, d, e) });
     lampPosts(s).forEach((l, i) => items.push({ y: l.y + 0.3, draw: (c, e) => drawLampPost(c, l.x, l.y, e, i) }));
     for (const w of s.workers) if (!isIndoors(s, w)) items.push({ y: w.y + 0.8, draw: (c, e) => drawWorker(c, w, e) });
@@ -105,15 +111,27 @@ export class Renderer {
     this.effects.drawWeather(ctx);
     this.effects.drawRainbow(ctx, env, W, H);
 
-    const lights: LightSource[] = env.dark > 0 ? [...lightSources(s, env), ...this.unitLights(s, env), ...this.townLife.lights(s, env)] : [];
+    const lights: LightSource[] = env.dark > 0 ? [...lightSources(s, env), ...urbanLights(s, env), ...this.unitLights(s, env), ...this.townLife.lights(s, env)] : [];
     this.lighting.draw(ctx, s, env, W, H, lights, env.dark > 0 ? this.effects.nightLights() : []);
     this.effects.drawSky(ctx, env, W, H);
     this.townLife.drawOverlay(ctx, env, s);
     this.spotlight.draw(ctx, s, env, W, skit);
     this.effects.drawBirds(ctx, env);
+    ctx.restore();
+
+    this.townLife.drawScreenOverlay(ctx, env, s);
     this.drawCaption(ctx, s, dt, W, H);
     this.dungeonView.draw(ctx, s, env, W, H);
     drawVignette(ctx, W, H);
+  }
+
+  /** Toggle the HD-2D Cinematic follow-camera mode. */
+  toggleCamera(): boolean {
+    return this.camera.toggle();
+  }
+
+  isCameraEnabled(): boolean {
+    return this.camera.enabled;
   }
 
   /** Render-side happenings since the last call (lightning, fireworks), for the soundtrack. */
@@ -127,8 +145,7 @@ export class Renderer {
   handleClick(s: GameState, clientX: number, clientY: number): void {
     const rect = this.canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
-    const tx = ((clientX - rect.left) / rect.width) * s.width;
-    const ty = ((clientY - rect.top) / rect.height) * s.height;
+    const { tx, ty } = this.camera.screenToTile(s, rect, clientX, clientY);
     this.spotlight.selectAt(s, tx, ty);
     this.townLife.handleClick(s, tx, ty);
   }

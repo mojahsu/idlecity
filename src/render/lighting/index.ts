@@ -6,9 +6,12 @@ import { skyTint, type Env } from '../palette';
 import { drawNight } from './night';
 import { drawRays } from './rays';
 import { drawFog } from './fog';
+import { drawBloom } from './bloom';
+import { drawCloudShadows } from './clouds';
 import type { GlowDot } from './shared';
 export type { GlowDot } from './shared';
 export { drawVignette } from './vignette';
+export { drawCloudShadows } from './clouds';
 
 export class Lighting {
   private night = document.createElement('canvas');
@@ -17,9 +20,10 @@ export class Lighting {
     const tint = skyTint(env);
     if (tint) { ctx.fillStyle = tint; ctx.fillRect(0, 0, W, H); }
     if (env.rainy) { ctx.fillStyle = 'rgba(40,50,80,0.2)'; ctx.fillRect(0, 0, W, H); }
+    drawCloudShadows(ctx, env, W, H);
     drawRays(ctx, env, W, H);
     if (env.dark > 0) drawNight(ctx, env, W, H, lights, dots, this.night);
+    drawBloom(ctx, s, env, lights);
     if (env.foggy) drawFog(ctx, env, W, H);
-    void s;
   }
 }

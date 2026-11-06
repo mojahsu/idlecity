@@ -34,6 +34,8 @@
   "ui.fullscreenHint": "F or double-click the map",
   "ui.mute": "Sound off (M)",
   "ui.unmute": "Sound on (M)",
+  "ui.cameraOn": "Cinematic Camera ON (C)",
+  "ui.cameraOff": "Cinematic Camera OFF (C)",
   "ui.floor": "Floor {floor} / {floors}",
   "ui.exploring": "Exploring",
   "ui.slain": "Slain!",

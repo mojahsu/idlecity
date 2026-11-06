@@ -31,7 +31,13 @@ const hud = new Hud({
   onReset() { clearSave(storage); state = newGame(); catchUp = 0; fitStage(); },
   onFullscreen() { void fullscreen.toggle(); },
   onMute() { toggleMute(); },
+  onCamera() { toggleCamera(); },
 });
+function toggleCamera(): void {
+  const on = renderer.toggleCamera();
+  hud.setCamera(on);
+  hud.showToast(t(on ? 'ui.cameraOn' : 'ui.cameraOff'), 3);
+}
 function toggleMute(): void {
   audio.ensure();
   const m = !audio.isMuted();
@@ -156,6 +162,7 @@ window.addEventListener('beforeunload', () => saveGame(storage, state));
 window.addEventListener('keydown', (e) => {
   if (e.key === ' ') { e.preventDefault(); const sp = speed === 0 ? (settings.speed || 1) : 0; speed = sp; hud.setSpeed(sp); }
   if (e.key === 'f' || e.key === 'F') { void fullscreen.toggle(); }
+  if (e.key === 'c' || e.key === 'C') toggleCamera();
   if (e.key === 'm' || e.key === 'M') toggleMute();
   if (e.key === 'd' || e.key === 'D') {
     // Copy a state summary for bug reports; where the clipboard is off limits, show it to copy by hand.

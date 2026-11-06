@@ -31,7 +31,8 @@ bun run typecheck
 bun run build      # static files in dist/
 ```
 
-Keyboard: `space` pause, `1` / `2` / `3` for 1x / 2x / 4x, `M` mute, `D` copies a
+Keyboard: `space` pause, `1` / `2` / `3` for 1x / 2x / 4x, `M` mute, `C` (or the
+`🎥` button) toggles the HD-2D Cinematic follow-camera, `D` copies a
 JSON summary of parties, adventurers and dungeons for bug reports, `F` (or
 double-click the map) for fullscreen. The canvas re-renders at its displayed size, so
 fullscreen on a large monitor stays sharp. The mouse cursor hides after 3 s
@@ -74,7 +75,7 @@ src/
     palette/        colors, seasons, env (per-frame snapshot), shapes, shadows
     sprites.ts      sheet loader, tinted tile cache, drawSprite/drawNamed
     spriteMap.ts    which tile of which sheet stands for each thing in the game
-    terrain/        grass, road, water, rock, bush; trees/{oak,birch,pine}
+    terrain/        grass, road, water, rock, bush, urban (plaza, bridge, fences); trees/{oak,birch,pine}
     buildings/      one file per building type + shared pieces (walls, roofs, doors)
     dungeons/       one file per dungeon entrance
     units/          worker, townsfolk, guard, caravan, statue, raid, adventurer;
@@ -87,7 +88,8 @@ src/
                     guards, music, cheers, processions, sparkles, wedding,
                     wolves, deer, river, festival, statue, pastimes, night,
                     seasonal, visitors, clickEasterEggs, skits, skitScripts, chapters
-    lighting/       night, rays, fog, vignette
+    lighting/       night, rays, fog, bloom, clouds, vignette
+    camera.ts       smooth HD-2D cinematic pan & zoom follow-camera
     dungeonView/    state, step (HP → animation), panel, figures, chest, hud;
                     backdrops/{goblinCave,ancientRuins,emeraldCavern,emberPeak,darkTower}
   ui/         HUD (DOM), VictoryModal (victoryModal.ts), stylesheet
@@ -308,5 +310,8 @@ fallback (the old hand-drawn art) that shows until the sheets arrive, and the
 lighting, weather, particles, shadows and seasonal washes are drawn over the
 sprites as before. Buildings are stacks of roof and wall tiles
 (`BUILDING_SPRITES`); the campfire, farm crops, market and graves stay
-procedural. `public/assets/viewer.html?sheet=tiny-town&s=6&from=0&to=83&cols=12`
+procedural. `sprites.ts` auto-detects each sheet's native tile resolution
+(`img.naturalWidth / cols`), so 32x32, 64x64 or 128x128 high-res replacement
+sheets can be dropped into `public/assets/` without code changes.
+`public/assets/viewer.html?sheet=tiny-town&s=6&from=0&to=83&cols=12`
 shows any sheet with its indices when adding a mapping.
