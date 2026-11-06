@@ -24,10 +24,10 @@ export const HERO_ANIM_TINT: Record<string, string | null> = { warrior: null, ar
 // ---- monsters -----------------------------------------------------------------
 /** On the map (raids): a Tiny tile per monster. */
 export const MONSTER_TILE: Record<string, SpriteRef> = {
-  rat: D(123), goblin: D(112), goblinChief: C(96), wolf: C(93), skeleton: C(1), ghoul: C(0), bandit: D(109),
-  lich: C(65), spider: C(130), troll: C(12), wraith: C(64), broodMother: C(131),
-  hellhound: C(92), golem: C(86), wyvern: C(32), elderDragon: C(33),
-  imp: C(39), demon: C(38), orc: C(11), dragon: C(33), demonLord: C(123),
+  rat: D(123), goblin: C(10), goblinChief: C(11), wolf: C(23), skeleton: C(1), ghoul: C(0), bandit: D(111),
+  lich: C(96), spider: D(122), troll: C(14), wraith: C(4), broodMother: D(122),
+  hellhound: C(102), golem: C(47), wyvern: C(34), elderDragon: C(32),
+  imp: C(39), demon: C(38), orc: C(20), dragon: C(33), demonLord: C(123),
 };
 /** In the panel: a 0x72 animation prefix where one fits, else the map tile. */
 export const MONSTER_ANIM: Partial<Record<string, string>> = {
@@ -39,36 +39,36 @@ export const MONSTER_ANIM: Partial<Record<string, string>> = {
 
 // ---- animals (Tiny Creatures) -------------------------------------------------
 export const ANIMAL = {
-  chicken: C(150), dog: C(101), cat: C(94), wolf: C(93), deer: C(161), fox: C(169), owl: C(117), horse: C(50), sheep: C(153),
+  chicken: C(150), dog: C(169), cat: C(94), wolf: C(23), deer: C(161), fox: C(169), owl: C(117), horse: C(50), sheep: C(153),
   fish: [C(60), C(61), C(62), C(63)], bat: C(132),
 } as const;
 
 // ---- props and tools (Tiny Town / Tiny Dungeon) -------------------------------
 export const TOOL: Record<string, SpriteRef | undefined> = {
-  lumberjack: T(129), quarryman: T(115), miner: T(115), builder: T(128), farmer: T(116),
+  lumberjack: T(127), quarryman: T(115), miner: T(115), builder: D(117), farmer: T(116),
 };
 export const PROP = {
-  bow: T(118), arrow: T(119), bucket: T(131), crate: T(130), goldBag: T(93), coins: T(106), pot: T(107), hammer: T(128), axe: T(129),
-  pickaxe: T(115), signpost: T(83), beehive: T(94), target: T(95), key: T(117), ladder: T(103), mushroom: T(29), mushrooms: T(30),
+  bow: T(118), arrow: T(119), bucket: T(131), crate: T(130), goldBag: T(93), coins: T(93), log: T(106), pot: T(107), hammer: D(117), axe: T(127),
+  pickaxe: T(115), signpost: T(83), beehive: T(94), target: T(95), key: T(117), ladder: T(103), mushroom: T(29), mushrooms: T(29),
   sword: D(104), redSword: D(107), shield: D(102), anvil: D(74), potion: D(114), chest: D(89), chestOpen: D(91), skullMarker: D(60),
-  rock: C(86), rockSmall: C(87), pebble: C(88), gem: C(89), gold: C(83), goldSmall: C(84), fire: C(55),
+  rock: D(12), rockSmall: D(24), pebble: D(24), gem: C(89), gold: C(83), goldSmall: C(84), fire: C(55),
 } as const;
 
 // ---- ground (Tiny Town) -------------------------------------------------------
 export const GROUND = {
-  grass: T(0), grassTuft: T(1), grassFlowers: T(2), tufts: T(17),
+  grass: T(0), grassTuft: T(1), grassFlowers: T(2), tufts: T(1),
   /** 3x3 dirt patch: corners and edges blend into grass. */
   dirt: { tl: T(12), t: T(13), tr: T(14), l: T(24), c: T(25), r: T(26), bl: T(36), b: T(37), br: T(38) },
-  path: [T(39), T(40), T(41), T(42)], cobble: T(43),
+  path: [T(39), T(40), T(41), T(42)], cobble: D(42),
 } as const;
 
-/** Trees: [top, bottom] pairs for two-tile trees, single tiles for small ones. */
+/** Standalone trees: [top, bottom] pairs for two-tile trees, single tiles for small trees and bushes. */
 export const TREES = {
   oak: { green: [T(4), T(16)], orange: [T(3), T(15)] },
-  pine: { green: [T(19), T(31)], orange: [T(22), T(34)] },
-  pine2: { green: [T(20), T(32)], orange: [T(23), T(35)] },
+  pine: { green: [T(4), T(16)], orange: [T(3), T(15)] },
+  pine2: { green: [T(4), T(16)], orange: [T(3), T(15)] },
   small: { green: T(28), orange: T(27) },
-  round: { green: T(5), orange: T(11) },
+  round: { green: T(5), orange: T(5) },
 } as const;
 
 // ---- buildings (Tiny Town) ----------------------------------------------------
@@ -80,21 +80,19 @@ export const TREES = {
 export interface BuildingSprite { k: number; rows: number[][]; props?: { ref: SpriteRef; dx: number; dy: number; size: number }[] }
 
 export const BUILDING_SPRITES: Partial<Record<string, BuildingSprite>> = {
-  hut: { k: 1, rows: [[67], [86]] },
-  house: { k: 0.75, rows: [[52, 54], [64, 66], [72, 74]] },
-  lumberCamp: { k: 1, rows: [[63], [86]], props: [{ ref: T(130), dx: 0.55, dy: 0, size: 0.5 }, { ref: T(129), dx: -0.5, dy: 0, size: 0.45 }] },
-  quarry: { k: 1, rows: [[25]], props: [{ ref: C(86), dx: -0.2, dy: -0.1, size: 0.7 }, { ref: C(87), dx: 0.3, dy: 0.05, size: 0.5 }, { ref: T(115), dx: 0.45, dy: -0.25, size: 0.4 }] },
-  well: { k: 1, rows: [[104]] },
-  granary: { k: 0.85, rows: [[55], [67], [84]] },
-  tavern: { k: 0.75, rows: [[52, 54], [64, 66], [84, 74]], props: [{ ref: T(83), dx: 0.7, dy: 0, size: 0.55 }] },
-  blacksmith: { k: 0.75, rows: [[48, 50], [60, 62], [76, 78]], props: [{ ref: D(74), dx: -0.62, dy: 0.02, size: 0.5 }] },
-  mine: { k: 0.75, rows: [[108, 110], [111, 112]], props: [{ ref: T(115), dx: 0.62, dy: 0, size: 0.45 }] },
-  chapel: { k: 0.75, rows: [[48, 50], [60, 62], [88, 89]] },
-  guildHall: { k: 0.75, rows: [[52, 54], [64, 66], [76, 78]] },
-  walls: { k: 1, rows: [[97], [109]] },
-  keep: { k: 0.75, rows: [[96, 98], [108, 110], [111, 112]] },
+  hut: { k: 0.42, rows: [[48, 50], [60, 62], [72, 87]] },
+  house: { k: 0.46, rows: [[52, 54], [64, 66], [84, 87]] },
+  lumberCamp: { k: 0.45, rows: [[48, 50], [60, 62], [72, 87]], props: [{ ref: T(106), dx: 0.36, dy: 0.02, size: 0.42 }, { ref: T(127), dx: -0.38, dy: 0.02, size: 0.38 }] },
+  well: { k: 0.68, rows: [[92], [104]] },
+  granary: { k: 0.46, rows: [[52, 54], [64, 66], [72, 87]], props: [{ ref: T(107), dx: -0.38, dy: 0.02, size: 0.38 }, { ref: T(94), dx: 0.38, dy: 0.02, size: 0.38 }] },
+  tavern: { k: 0.48, rows: [[52, 54], [64, 66], [84, 87]], props: [{ ref: T(83), dx: 0.42, dy: 0.02, size: 0.44 }] },
+  blacksmith: { k: 0.46, rows: [[48, 50], [60, 62], [88, 91]], props: [{ ref: D(74), dx: -0.38, dy: 0.02, size: 0.42 }] },
+  chapel: { k: 0.47, rows: [[48, 50], [60, 62], [88, 91]] },
+  guildHall: { k: 0.48, rows: [[48, 50], [60, 62], [88, 91]] },
+  walls: { k: 0.72, rows: [[102], [125]] },
+  keep: { k: 0.48, rows: [[99, 101], [111, 112], [123, 124]] },
 };
 
 /** Tiles that carry a window (lit at night) and roof tiles (snow in winter). */
 export const WINDOW_TILES = new Set([51, 55, 73, 84, 88, 125]);
-export const ROOF_TILES = new Set([48, 49, 50, 51, 52, 53, 54, 55, 60, 61, 62, 63, 64, 65, 66, 67, 96, 97, 98]);
+export const ROOF_TILES = new Set([48, 49, 50, 51, 52, 53, 54, 55, 60, 61, 62, 63, 64, 65, 66, 67, 92, 99, 100, 101, 102]);

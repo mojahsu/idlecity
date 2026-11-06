@@ -117,14 +117,15 @@ export function availableTiles(s: GameState, terrain: Terrain): number {
 
 /**
  * Nearest free grass tile for a new building, in expanding rings. Buildings fill
- * 2x2 blocks separated by streets every third tile, so nothing ever gets walled in.
+ * 2x1 east-west blocks with a street before every row and every third column, so
+ * buildings never stack directly behind one another or get walled in.
  */
 export function findBuildSpot(s: GameState, around: Point, minRing = 1): Point | null {
   for (let r = minRing; r < Math.max(s.width, s.height); r++) {
     const ring: Point[] = [];
     for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) {
       if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-      if (dx % 3 === 0 || dy % 3 === 0) continue; // street
+      if (dx % 3 === 0 || dy % 2 === 0) continue; // street
       const x = around.x + dx, y = around.y + dy;
       const t = tileAt(s, x, y);
       if (!t || t.terrain !== 'grass' || t.building >= 0) continue;

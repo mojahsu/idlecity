@@ -15,12 +15,18 @@ export function hasSpriteBuilding(type: Building['type']): boolean { return town
 /** Height above the ground line, for sun shadows. */
 export function spriteBuildingHeight(type: Building['type']): number {
   const def = BUILDING_SPRITES[type];
-  return def ? def.rows.length * TILE * def.k * 0.9 : 0;
+  if (!def) return 0;
+  const rowsH = def.rows.length === 3 ? (type === 'keep' ? 2.65 : 2.5) : def.rows.length;
+  return rowsH * TILE * def.k * 0.95;
 }
 
-/** Distinct roof tints so houses, the tavern and the guild hall never blur together. */
+/** Distinct roof tints so houses, cottages, workplaces and halls never blur together. */
 function roofTint(b: Building, snow: boolean): [string | null, number] {
   if (snow) return ['#eef3f8', 0.55];
+  if (b.type === 'hut') return ['#c89a40', 0.52];
+  if (b.type === 'lumberCamp') return ['#6e4826', 0.5];
+  if (b.type === 'granary') return ['#b88428', 0.45];
+  if (b.type === 'chapel') return ['#5c4a82', 0.42];
   if (b.type === 'guildHall') return ['#2b4c7e', 0.58];
   if (b.type === 'tavern') return ['#8c5220', 0.46];
   if (b.type === 'house') {
@@ -33,21 +39,37 @@ function roofTint(b: Building, snow: boolean): [string | null, number] {
 export function drawSpriteBuilding(ctx: CanvasRenderingContext2D, s: GameState, b: Building, env: Env, px: number, py: number): boolean {
   const def = BUILDING_SPRITES[b.type];
   if (!def || !townSprites()) return false;
-  const ts = TILE * def.k, cx = px + TILE / 2, ground = py + TILE;
+  const ts = Math.round(TILE * def.k), cx = px + TILE / 2, ground = py + TILE - 1;
   const lit = isLit(b, env), snow = env.season === 'winter';
   const glowA = 0.8 + 0.2 * Math.sin(env.clock * 3 + b.x);
   const [rTint, rAlpha] = roofTint(b, snow);
-  def.rows.forEach((row, r) => {
-    const y = ground - (def.rows.length - r) * ts, x0 = cx - row.length * ts / 2;
+  const nRows = def.rows.length;
+  if (b.type === 'keep') {
+    rect(ctx, cx - ts * 0.68, ground - ts * 1.9, ts * 1.36, ts * 1.88, '#1a1620');
+  }
+  // Draw from bottom row to top row; for 3-row buildings, overlap the roof ridge
+  // slightly over the eaves row so roofs have natural proportions without hiding neighbours.
+  const rowY = (r: number): number => {
+    if (nRows === 3 && r === 0) return Math.round(ground - (b.type === 'keep' ? 2.65 : 2.5) * ts);
+    return Math.round(ground - (nRows - r) * ts);
+  };
+  for (let r = nRows - 1; r >= 0; r--) {
+    const row = def.rows[r];
+    const y = rowY(r), x0 = Math.round(cx - (row.length * ts) / 2);
     row.forEach((i, c) => {
       const x = x0 + c * ts;
       const isRoof = ROOF_TILES.has(i);
       drawTileRect(ctx, { s: 'tiny-town', i }, x, y, ts, ts, isRoof ? rTint : null, isRoof ? rAlpha : 0.55);
-      if (lit && WINDOW_TILES.has(i)) rect(ctx, x + ts * 0.36, y + ts * 0.32, ts * 0.28, ts * 0.3, `rgba(255,214,110,${0.85 * glowA})`);
+      if (b.type === 'walls' && r === 1) {
+        rect(ctx, x, y, 1.2, ts, '#2a2630');
+        rect(ctx, x + ts - 1.2, y, 1.2, ts, '#2a2630');
+      }
+      if (lit && WINDOW_TILES.has(i)) rect(ctx, x + ts * 0.34, y + ts * 0.32, ts * 0.32, ts * 0.32, `rgba(255,214,110,${0.85 * glowA})`);
     });
-  });
+  }
   for (const p of def.props ?? []) drawSprite(ctx, p.ref, cx + p.dx * TILE, ground + p.dy * TILE, p.size * TILE);
-  drawLandmarkTrim(ctx, s, b, env, cx, ground, ts, def.rows.length * ts, lit, snow);
+  const topH = ground - rowY(0);
+  drawLandmarkTrim(ctx, s, b, env, cx, ground, ts, topH, lit, snow);
   return true;
 }
 
@@ -95,6 +117,16 @@ function drawLandmarkTrim(ctx: CanvasRenderingContext2D, s: GameState, b: Buildi
     // Quench tub beside the anvil.
     const wx = cx - ts * 0.92, wy = ground - 1;
     rect(ctx, wx - 3, wy - 4, 6, 4, '#6b4a2b'); ellipse(ctx, wx, wy - 4, 2.8, 1.1, '#5aa0e0');
+  } else if (b.type === 'granary') {
+    // Rotating windmill sails on the roof peak.
+    const wy = ground - topH + 2;
+    rect(ctx, cx - 0.8, wy - 5, 1.6, 6, '#5a3a1e');
+    const a = env.clock * (env.rainy ? 2.8 : 1.5) + b.id;
+    for (let i = 0; i < 4; i++) {
+      const an = a + (i * Math.PI) / 2;
+      poly(ctx, [cx, wy - 5, cx + Math.cos(an) * 7.5, wy - 5 + Math.sin(an) * 7.5, cx + Math.cos(an + 0.34) * 6.5, wy - 5 + Math.sin(an + 0.34) * 6.5], '#f0e4c8');
+    }
+    circle(ctx, cx, wy - 5, 1.2, '#5a3a1e');
   } else if (b.type === 'chapel') {
     // Rooftop golden cross and a stained-glass rose window.
     const topY = ground - topH;

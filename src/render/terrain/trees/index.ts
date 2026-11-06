@@ -6,7 +6,7 @@ import type { TreeArt, TreeKind } from './shared';
 import { drawPine } from './pine';
 import { drawBirch } from './birch';
 import { drawOak } from './oak';
-import { drawSprite, townSprites } from '../../sprites';
+import { drawSprite, drawSpriteTall, townSprites } from '../../sprites';
 import { TREES } from '../../spriteMap';
 
 const ART: Record<TreeKind, (a: TreeArt) => void> = { pine: drawPine, birch: drawBirch, oak: drawOak };
@@ -42,16 +42,18 @@ export function drawTreeShadows(ctx: CanvasRenderingContext2D, s: GameState, env
   }
 }
 
-/** Tiny Town trees: two-tile oaks and pines, a small round tree for the birch; orange in autumn, dusted white in winter. */
+/** Tiny Town standalone trees: two-tile tall trees and single-tile small trees; orange in autumn, dusted white in winter. */
 function drawSpriteTree(ctx: CanvasRenderingContext2D, kind: TreeKind, t: Tile, env: Env, cx: number, foot: number, size: number, sway: number): void {
-  const orange = env.season === 'autumn';
-  const o = env.season === 'winter' ? { tint: '#e8eef5', tintA: 0.5 } : {};
-  const ts = TILE * (0.62 + 0.38 * size);
-  ctx.save(); ctx.translate(cx, foot); ctx.rotate(sway * 0.012);
-  if (kind === 'birch') { drawSprite(ctx, orange ? TREES.round.orange : TREES.round.green, 0, 0, ts * 1.1, o); ctx.restore(); return; }
-  const set = kind === 'oak' ? TREES.oak : t.v < 0.14 ? TREES.pine : TREES.pine2;
-  const [top, bottom] = orange ? set.orange : set.green;
-  drawSprite(ctx, bottom, 0, 0, ts, o);
-  drawSprite(ctx, top, 0, -ts + 0.5, ts, o);
-  ctx.restore();
+  const orange = env.season === 'autumn' ? t.v < 0.78 : env.season === 'spring' ? t.v < 0.12 : false;
+  const winter = env.season === 'winter';
+  const tint = winter ? '#e8eef5' : kind === 'pine' && !orange ? '#265838' : null;
+  const tintA = winter ? 0.5 : kind === 'pine' && !orange ? 0.22 : 0;
+  const o = { flip: (Math.floor(t.v * 100) % 2) === 1, rot: sway * 0.012, tint, tintA };
+  const ts = Math.round(TILE * (0.58 + 0.34 * size));
+  if (kind === 'birch' || size < 0.68) {
+    drawSprite(ctx, orange ? TREES.small.orange : TREES.small.green, cx, foot, Math.round(ts * 1.12), o);
+    return;
+  }
+  const [top] = orange ? TREES.oak.orange : TREES.oak.green;
+  drawSpriteTall(ctx, top, cx, foot, kind === 'pine' ? Math.round(ts * 0.92) : ts, o);
 }

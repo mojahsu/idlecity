@@ -229,7 +229,7 @@ export class Spotlight {
     const ch = prevText ? 34 : 24;
     const midX = (ax + bx) / 2, topY = Math.min(ay, by);
     const cx = Math.max(4, Math.min(W - cw - 4, midX - cw / 2));
-    const cy = Math.max(4, topY - (prevText ? 68 : 58));
+    const cy = Math.max(4, topY - (prevText ? 82 : 72));
 
     roundRect(ctx, cx, cy, cw, ch, 4, 'rgba(20,16,12,0.86)');
     ctx.strokeStyle = 'rgba(255,224,128,0.78)';

@@ -105,6 +105,22 @@ export function drawSprite(ctx: CanvasRenderingContext2D, ref: SpriteRef, x: num
   return true;
 }
 
+/**
+ * Draw a vertically stacked 2-tile sprite (top tile `ref` and the tile directly
+ * below it in the sheet) as a single 16x32 image with its bottom-centre at (x, y),
+ * `size` wide and `2 * size` tall, avoiding any seam between the two halves.
+ */
+export function drawSpriteTall(ctx: CanvasRenderingContext2D, topRef: SpriteRef, x: number, y: number, size: number, o: DrawOpts = {}): boolean {
+  const sh = sheets[topRef.s];
+  if (!sh.img) return false;
+  const sx = (topRef.i % sh.cols) * sh.tile, sy = Math.floor(topRef.i / sh.cols) * sh.tile;
+  const sw = sh.tile, sh2 = sh.tile * 2;
+  const img = source(sh, topRef.s, sx, sy, sw, sh2, o.tint, o.tintA ?? 0.45);
+  if (!img) return false;
+  blit(ctx, img, sx, sy, sw, sh2, x, y, size, size * 2, o, !!o.tint);
+  return true;
+}
+
 /** Draw a tile filling a rect (ground tiles); optional tint. */
 export function drawTileRect(ctx: CanvasRenderingContext2D, ref: SpriteRef, x: number, y: number, w: number, h: number, tint?: string | null, tintA = 0.45): boolean {
   const sh = sheets[ref.s];

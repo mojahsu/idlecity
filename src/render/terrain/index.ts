@@ -88,21 +88,20 @@ function renderSpriteGround(ctx: CanvasRenderingContext2D, s: GameState, env: En
     const px = x * TILE, py = y * TILE;
     if (t.terrain === 'water') { drawWaterBase(ctx, s, x, y, env); continue; }
     const n = hash(x, y, 1);
-    drawTileRect(ctx, n > 0.93 ? GROUND.grassFlowers : n > 0.84 ? GROUND.grassTuft : GROUND.grass, px, py, TILE, TILE);
-    if (n > 0.78 && n <= 0.84) drawTileRect(ctx, GROUND.tufts, px, py, TILE, TILE); // sprouts are a transparent overlay
+    drawTileRect(ctx, n > 0.93 ? GROUND.grassFlowers : n > 0.82 ? GROUND.grassTuft : GROUND.grass, px, py, TILE, TILE);
     switch (t.terrain) {
       case 'road': drawSpriteRoad(ctx, s, x, y); break;
       case 'forest': if (t.amount < 1) drawStump(ctx, px, py, t); break;
-      case 'rock': drawSprite(ctx, t.amount > 20 ? PROP.rock : PROP.rockSmall, px + TILE / 2, py + TILE - 2, TILE * (0.7 + 0.3 * Math.min(1, t.amount / 30))); break;
+      case 'rock': drawRock(ctx, px, py, t, env, '#9a9a96', '#6e6e6a', '#b9b9b4'); break;
       case 'ore':
-        drawSprite(ctx, t.amount > 20 ? PROP.rock : PROP.rockSmall, px + TILE / 2, py + TILE - 2, TILE * (0.7 + 0.3 * Math.min(1, t.amount / 30)), { tint: '#4a4a70', tintA: 0.4 });
-        if (t.amount >= 1) drawSprite(ctx, PROP.gem, px + TILE / 2 + 4, py + TILE - 8, 9);
+        drawRock(ctx, px, py, t, env, '#5c5c6a', '#3a3a48', '#7a7a8c');
+        if (t.amount >= 1) drawGlints(ctx, px, py, t);
         break;
       case 'bush':
         if (t.amount >= 1) {
-          drawSprite(ctx, autumn ? TREES.small.orange : TREES.small.green, px + TILE / 2, py + TILE - 2, TILE * 0.85);
-          if (t.amount >= 5 && !autumn) for (let i = 0; i < 3; i++) { ctx.fillStyle = '#d83a4a'; ctx.fillRect(px + 7 + i * 4 + hash(x, y, 20 + i) * 2, py + 9 + hash(x, y, 30 + i) * 5, 2, 2); }
-        } else drawSprite(ctx, PROP.mushrooms, px + TILE / 2, py + TILE - 3, TILE * 0.6);
+          drawSprite(ctx, TREES.round.green, px + TILE / 2, py + TILE - 2, TILE * 0.78, autumn ? { tint: '#d87828', tintA: 0.42 } : {});
+          if (t.amount >= 5 && !autumn) for (let i = 0; i < 3; i++) { ctx.fillStyle = '#d83a4a'; ctx.fillRect(px + 7 + i * 3.5 + hash(x, y, 20 + i) * 2, py + 10 + hash(x, y, 30 + i) * 4, 2, 2); }
+        } else drawSprite(ctx, PROP.mushroom, px + TILE / 2, py + TILE - 3, TILE * 0.58);
         break;
     }
   }
@@ -119,13 +118,8 @@ function renderSpriteGround(ctx: CanvasRenderingContext2D, s: GameState, env: En
 function drawSpriteRoad(ctx: CanvasRenderingContext2D, s: GameState, x: number, y: number): void {
   const px = x * TILE, py = y * TILE;
   const isRoad = (dx: number, dy: number) => { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= s.width || ny >= s.height) return true; return s.tiles[ny * s.width + nx].terrain === 'road'; };
-  if (Math.hypot(x - s.center.x, y - s.center.y) < 7.5) {
-    // Cobbles round the square: the inside of the cobble tile, stretched over the dirt.
-    drawTileRect(ctx, GROUND.dirt.c, px, py, TILE, TILE);
-    drawTilePart(ctx, GROUND.cobble, 2, 2, 12, 12, px, py, TILE, TILE);
-    return;
-  }
-  drawTileRect(ctx, GROUND.dirt.c, px, py, TILE, TILE);
+  const cobble = Math.hypot(x - s.center.x, y - s.center.y) < 7.5 && (x + y) % 2 === 0;
+  drawTileRect(ctx, cobble ? GROUND.cobble : GROUND.dirt.c, px, py, TILE, TILE);
   // Grass fringes on the sides with no road neighbour, cut from the 3x3 patch's edges and corners.
   const e = 4, k = TILE / 16, ek = e * k;
   const up = !isRoad(0, -1), down = !isRoad(0, 1), left = !isRoad(-1, 0), right = !isRoad(1, 0);

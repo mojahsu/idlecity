@@ -117,5 +117,9 @@ and `soundtrack`. Useful moves:
   shrinking or a `fight` with no living enemies.
 - Parties already on the road in old saves keep their level-sorted order
   until they re-form; new parties are in battle-line order.
-- Sprite buildings: campfire, farm crops, market and graves are still procedural;
-  house, tavern and guild hall now have distinct roof tints and landmark signs.
+- Sprite buildings: campfire, farm crops, quarry, mine, market and graves are
+  procedural (with animated crane/minecart); sprite buildings fit inside their
+  24 px tile width and `findBuildSpot` leaves an east-west street before every
+  building row (`dy % 2 === 0`) so houses never overlap. Standalone tree tiles
+  (`T(3)/T(15)`, `T(4)/T(16)`, `T(27)`, `T(28)`, `T(5)`) are used instead of
+  the 3x3 forest autotile slices (`T(6..11, 18..23, 30..35)`).
