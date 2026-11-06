@@ -90,9 +90,13 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
   if (elder) p.bob += 1.2; // a slight stoop
   const sit = { walk: 0, bob: 0, swing: 0 };
   if (sleeping || rest?.activity === 'nap') {
-    // Dozing: sat down, head nodding, the odd "z".
-    const nod = Math.sin(env.clock * 1.5 + w.id) * 0.6;
-    withUnit(ctx, w.x, w.y, dir, 3 + nod, () => { body(ctx, tunic, skin, hair, sit, true, fig); hat(ctx, w.job); });
+    // Dozing: reclined/leaning back, breathing slowly, the odd "z".
+    const breath = Math.sin(env.clock * 1.5 + w.id) * 0.4;
+    withUnit(ctx, w.x, w.y, dir, 3 + breath, () => {
+      ctx.save(); ctx.translate(-2, -1); ctx.rotate(-0.55);
+      body(ctx, tunic, skin, hair, sit, true, fig); hat(ctx, w.job);
+      ctx.restore();
+    });
     sleepZ(ctx, w, env, dir);
     return;
   }

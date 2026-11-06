@@ -198,6 +198,7 @@
   "act.build": "building",
   "act.farm": "working the field",
   "act.sleep": "asleep",
+  "act.walkHome": "going home to sleep",
   "act.douse": "fighting the fire",
   "act.arrive": "just arrived",
   "act.idle": "looking for something to do",

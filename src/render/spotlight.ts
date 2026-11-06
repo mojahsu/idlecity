@@ -59,7 +59,7 @@ export class Spotlight {
   }
 
   private find(s: GameState, tg: Target): { x: number; y: number } | null {
-    if (tg.kind === 'worker') { const w = s.workers.find((x) => x.id === tg.id); return w ? w : null; }
+    if (tg.kind === 'worker') { const w = s.workers.find((x) => x.id === tg.id); return w && !isIndoors(s, w) ? w : null; }
     if (tg.kind === 'adventurer') { const a = s.adventurers.find((x) => x.id === tg.id); return a && (a.status === 'resting' || a.status === 'arriving') ? a : null; }
     if (tg.kind === 'party') { const p = s.parties.find((x) => x.id === tg.id); return p && (p.phase === 'travel' || p.phase === 'return') ? p : null; }
     if (tg.kind === 'caravan') return s.caravan ? s.caravan : null;
@@ -94,7 +94,7 @@ export class Spotlight {
     else if (tk.kind === 'gather') line = tk.phase === 'return' ? t('act.carry', { res: `res.${tk.resource}` }) : tk.phase === 'work' ? t('act.gather') : t('act.walk');
     else if (tk.kind === 'farm') line = tk.phase === 'return' ? t('act.carry', { res: 'res.food' }) : tk.phase === 'work' ? t('act.farm') : t('act.walk');
     else if (tk.kind === 'build') line = tk.phase === 'work' ? t('act.build') : t('act.walk');
-    else if (tk.kind === 'sleep') line = t('act.sleep');
+    else if (tk.kind === 'sleep') line = tk.phase === 'sleep' ? t('act.sleep') : t('act.walkHome');
     else if (tk.kind === 'douse') line = t('act.douse');
     else if (tk.kind === 'arrive') line = t('act.arrive');
     void s;
