@@ -68,7 +68,8 @@ export class Renderer {
     this.effects.scare = this.townLife.kidSpots();
     this.effects.update(s, env, dt);
     this.townLife.update(s, env, dt);
-    this.spotlight.update(s, env, dt);
+    const skit = this.townLife.activeSkit();
+    this.spotlight.update(s, env, dt, skit);
     this.dungeonView.update(s, env, dt);
 
     ctx.clearRect(0, 0, W, H);
@@ -108,7 +109,7 @@ export class Renderer {
     this.lighting.draw(ctx, s, env, W, H, lights, env.dark > 0 ? this.effects.nightLights() : []);
     this.effects.drawSky(ctx, env, W, H);
     this.townLife.drawOverlay(ctx, env, s);
-    this.spotlight.draw(ctx, s, env, W);
+    this.spotlight.draw(ctx, s, env, W, skit);
     this.effects.drawBirds(ctx, env);
     this.drawCaption(ctx, s, dt, W, H);
     this.dungeonView.draw(ctx, s, env, W, H);

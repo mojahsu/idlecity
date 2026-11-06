@@ -40,4 +40,9 @@ export class Wedding {
   }
 
   actors(): Actor[] { return this.wedding.map(walkerActor); }
+
+  /** The newlywed pair when strolling from the chapel, for wedding skits. */
+  couple(): { a: Walker; b: Walker } | null {
+    return this.wedding.length === 2 && this.wedding[0].fade > 0.5 ? { a: this.wedding[0], b: this.wedding[1] } : null;
+  }
 }

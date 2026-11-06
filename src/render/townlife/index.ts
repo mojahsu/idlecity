@@ -25,6 +25,7 @@ import { Statue } from './statue';
 import { Pastimes } from './pastimes';
 import { NightLife } from './night';
 import { Seasonal } from './seasonal';
+import { Skits, type ActiveSkitView } from './skits';
 
 export class TownLife {
   private roads = new Roads();
@@ -47,6 +48,7 @@ export class TownLife {
   private pastimes = new Pastimes();
   private night = new NightLife();
   private seasonal = new Seasonal();
+  private skits = new Skits();
 
   update(s: GameState, env: Env, dt: number): void {
     this.roads.refresh(s);
@@ -66,8 +68,12 @@ export class TownLife {
     this.pastimes.update(s, env, dt, this.music);
     this.night.update(s, env, dt, this.roads);
     this.seasonal.update(s, env, dt, this.roads);
+    this.skits.update(s, env, dt, this.wedding.couple(), this.kids.namedSpots(s));
     this.bits.update(dt);
   }
+
+  /** Currently playing multi-turn dialogue skit, if any. */
+  activeSkit(): ActiveSkitView | null { return this.skits.current(); }
 
   /** Things standing on the ground, sorted with units by the renderer. */
   groundActors(s: GameState, env: Env): Actor[] {
@@ -81,13 +87,14 @@ export class TownLife {
   /** Where the children are this frame. */
   kidSpots(): { x: number; y: number }[] { return [...this.kids.spots(), ...this.night.scare()]; }
 
-  /** Confetti, stars, lanterns, notes and bell rings, drawn above the lighting so they read at night. */
+  /** Confetti, stars, lanterns, notes, bell rings and skit bubbles, drawn above the lighting so they read at night. */
   drawOverlay(ctx: CanvasRenderingContext2D, env: Env, s: GameState): void {
     this.bits.draw(ctx);
     this.sparkles.overlay(ctx, s);
     this.festival.overlay(ctx, env, s);
     this.seasonal.overlay(ctx, env, s);
     this.music.overlay(ctx);
+    this.skits.drawOverlay(ctx, s);
   }
 
   /** Guard torches and festival lanterns at night. */

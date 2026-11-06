@@ -65,4 +65,17 @@ export class Kids {
 
   /** Where the children are, so the hens can scatter. */
   spots(): Point[] { return [...this.kidsById.values(), ...this.kids].filter((w) => w.fade > 0.5).map((w) => ({ x: w.x, y: w.y })); }
+
+  /** Named children currently playing outdoors, for kid-and-hero skits. */
+  namedSpots(s: GameState): { id: number; name: string; x: number; y: number }[] {
+    const out: { id: number; name: string; x: number; y: number }[] = [];
+    for (const c of s.children ?? []) {
+      const w = this.kidsById.get(c.id);
+      if (w && w.fade > 0.6) out.push({ id: c.id, name: c.name, x: w.x, y: w.y });
+    }
+    if (!out.length && this.kids.length && this.kids[0].fade > 0.6) {
+      out.push({ id: -1, name: '', x: this.kids[0].x, y: this.kids[0].y });
+    }
+    return out;
+  }
 }

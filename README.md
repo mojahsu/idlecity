@@ -194,14 +194,20 @@ tests/        bun tests
     so often and follows them for a while with a card: name, age, job, what
     they are doing; clicking any person, party, caravan, dungeon or building on
     the map locks the spotlight onto it for 18 s (showing fallen heroes on
-    graves, loot on returning parties, or occupancy on buildings). People also
-    show small contextual speech bubbles over their heads (`><>` when a fish
-    bites, `?`/`!` over chess, `♥` at meals and picnics, `✦` when praying,
-    sparks when sparring). Buildings grow with the town's tier and carry
-    landmark signs: a swinging mug at the tavern, a crossed-swords crest and
-    noticeboard at the guild, a glowing hearth at the smithy, and golden
-    pennants, statue admirers and doves over the Dark Tower once the Demon Lord
-    falls.
+    graves, loot on returning parties, or occupancy on buildings). Nearby
+    townsfolk, spouses, parents, elders, children and resting heroes also act
+    out multi-turn back-and-forth skits (`render/townlife/skits.ts`,
+    `render/townlife/skitScripts.ts`): chess banter, teasing a lazy coworker,
+    chapel wedding vows, couples at a picnic, parents talking about their
+    child, elders reminiscing, kids asking heroes about dragons or magic, and
+    era/seasonal town gossip; when the spotlight is in auto-follow mode it cuts
+    to the active skit and subtitles both speakers. People also show small
+    contextual speech bubbles over their heads (`><>` when a fish bites, `?`/`!`
+    over chess, `♥` at meals and picnics, `✦` when praying, sparks when
+    sparring). Buildings grow with the town's tier and carry landmark signs: a
+    swinging mug at the tavern, a crossed-swords crest and noticeboard at the
+    guild, a glowing hearth at the smithy, and golden pennants, statue admirers
+    and doves over the Dark Tower once the Demon Lord falls.
 16. Offline progress is replayed over the first frames after loading
     (a 12 ms slice of simulation per timer tick, `runCatchUp` in main.ts) with a "catching up" toast,
     so the town appears at once instead of the page freezing.

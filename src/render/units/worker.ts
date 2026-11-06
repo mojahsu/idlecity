@@ -3,6 +3,7 @@ import { TILE } from '../constants';
 import { t } from '../../i18n';
 import { circle, ellipse, poly, rect, line, rgba, hash, shade, type Env } from '../palette';
 import { SKIN, HAIR, facing, Pose, pose, body, withUnit, bubble, spriteFigures, villagerFig } from './shared';
+import { isSpeakingInSkit } from '../townlife/skits';
 import { drawSprite } from '../sprites';
 import { PROP, TOOL } from '../spriteMap';
 import type { Worker } from '../../sim/types';
@@ -102,8 +103,10 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
   }
   if (rest?.activity === 'lunch') {
     withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true, fig); hat(ctx, w.job); ellipse(ctx, 3.5, -5.5, 2.4, 1.4, '#8a6a3a'); ellipse(ctx, 3.5, -6, 1.8, 0.8, '#d8b060'); const sp = Math.sin(env.clock * 3 + w.id) > 0.3 ? -2 : 0; line(ctx, 4.5, -6, 5.5, -9 + sp, '#e0d0b0', 0.8); });
-    const k = (env.clock * 0.35 + w.id * 0.23) % 1;
-    bubble(ctx, px + dir * 2, py - 18, '♥', k < 0.3 ? 1 : 0, '#d84a4a');
+    if (!isSpeakingInSkit(w.id)) {
+      const k = (env.clock * 0.35 + w.id * 0.23) % 1;
+      bubble(ctx, px + dir * 2, py - 18, '♥', k < 0.3 ? 1 : 0, '#d84a4a');
+    }
     return;
   }
   if (rest?.activity === 'fish') {
@@ -140,8 +143,10 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
     const myTurn = (turn === 0) === (dir === 1);
     const reach = myTurn ? Math.max(0, Math.sin(mv * Math.PI)) * 3 : 0;
     withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true, fig); hat(ctx, w.job); rect(ctx, 2.8 + reach, -7.5 + reach * 0.3, 1.6, 4, tunic); circle(ctx, 3.6 + reach, -3.5 + reach * 0.3, 1.1, skin); });
-    if (myTurn && mv < 0.45) bubble(ctx, px - dir * 2, py - 18, '?', 0.9, '#4a6a9a');
-    else if (!myTurn && mv > 0.55 && mv < 0.8) bubble(ctx, px - dir * 2, py - 18, '!', 0.9, '#c86030');
+    if (!isSpeakingInSkit(w.id)) {
+      if (myTurn && mv < 0.45) bubble(ctx, px - dir * 2, py - 18, '?', 0.9, '#4a6a9a');
+      else if (!myTurn && mv > 0.55 && mv < 0.8) bubble(ctx, px - dir * 2, py - 18, '!', 0.9, '#c86030');
+    }
     return;
   }
   if (rest?.activity === 'picnic') {
@@ -152,8 +157,10 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
       ellipse(ctx, bx, by - 6, 3.4, 2.4, '#b08a52'); rect(ctx, bx - 3.4, by - 8, 6.8, 1.2, '#8a6a3a'); circle(ctx, bx - 1, by - 7.5, 1, '#d83a4a'); circle(ctx, bx + 1.5, by - 7.8, 1, '#f7d94c');
     }
     withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true, fig); hat(ctx, w.job); if (Math.sin(env.clock * 2 + w.id) > 0.4) { circle(ctx, 4, -8, 1.2, '#f06a4f'); } });
-    const k = (env.clock * 0.4 + w.id * 0.5) % 1;
-    bubble(ctx, px + dir * 2, py - 18, '♥', k < 0.35 ? 1 : 0, '#e05070');
+    if (!isSpeakingInSkit(w.id)) {
+      const k = (env.clock * 0.4 + w.id * 0.5) % 1;
+      bubble(ctx, px + dir * 2, py - 18, '♥', k < 0.35 ? 1 : 0, '#e05070');
+    }
     return;
   }
   if (rest?.activity === 'swim') {
@@ -201,6 +208,7 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
     else if (!rest && (working || !w.carrying)) tool(ctx, w, p);
   });
   if (dousing) { const k = (env.clock * 0.4 + w.id * 0.23) % 1; bubble(ctx, px, py - 20, t('talk.w.fire'), k < 0.35 ? 1 : 0, '#c83020'); }
+  else if (isSpeakingInSkit(w.id)) { /* skit overlay draws the full multi-turn bubble */ }
   else if (rest?.activity === 'chat' || rest?.activity === 'visit') { const k = (env.clock * 0.45 + (w.id % 2) * 0.5) % 1; bubble(ctx, px + dir * 2, py - 20, w.id % 3 === 0 ? t(w.id % 2 ? 'talk.w.chat.0' : 'talk.w.chat.1') : '…', k < 0.4 ? 1 : 0); }
   else if (listening && !dancing) { const k = (env.clock * 0.35 + w.id * 0.17) % 1; bubble(ctx, px + dir * 2, py - 20, '♪', k < 0.3 ? 1 : 0, '#b86a2a'); }
   else if (rest?.activity === 'watch') { const k = (env.clock * 0.3 + w.id * 0.13) % 1; bubble(ctx, px + dir * 2, py - 20, '!', k < 0.25 ? 1 : 0, '#c86030'); }

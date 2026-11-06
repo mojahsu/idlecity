@@ -100,7 +100,8 @@ and `soundtrack`. Useful moves:
   and action-by-action fights in `sim/parties.ts`; raids in `sim/raids.ts`.
 - Rendering: `render/renderer.ts` composes the layers; the dungeon panel is
   `render/dungeonView/` (fx from the sim become animations in `step.ts`);
-  ambient life that is not in the sim lives in `render/townlife/`.
+  ambient life and multi-turn villager/hero dialogue skits (`skits.ts`,
+  `skitScripts.ts`) live in `render/townlife/`.
 - Sound is synthesised (no audio files): `platform/audio.ts` is the engine,
   `platform/soundtrack.ts` decides what plays from game state.
 - Save/load and offline catch-up: `platform/save.ts`, `main.ts`.
