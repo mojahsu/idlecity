@@ -8,6 +8,22 @@ port is planned (see README "Steam / desktop port"). Read `README.md` first:
 it has the directory layout and the numbered design notes (1–18) that explain
 every system and why it is tuned the way it is.
 
+## Handoff between agents
+
+- Nothing is shared between agents except this repository: no agent can see
+  another's conversation. Read `STATUS.md` before starting work and rewrite
+  it before stopping (what changed, what is in progress, what is next, how
+  to verify). Keep it short and current; it is not a log.
+- One task, one GitHub issue (`gh issue list`); reference it in commits and
+  close it when done. Work on a branch and open a pull request for anything
+  larger than a fix; `ci.yml` typechecks, tests, builds and runs the
+  balance check on every branch and pull request, `pages.yml` does the same
+  on `main` and deploys.
+- One writer at a time per set of files. Never leave uncommitted work for
+  the next agent; commit with a message that says why.
+- Record a design decision in README's numbered notes when you make one, so
+  the next agent does not undo it as a bug.
+
 ## Working with the owner
 
 - The owner writes Traditional Chinese (zh-TW). Reply in zh-TW; keep code,
