@@ -1,7 +1,8 @@
 // Raiders marching on the town, drawn with the monster art.
 import { TILE } from '../constants';
-import { ellipse, rect, line, rgba, type Env } from '../palette';
-import { HERO_SCALE, facing, withUnit } from './shared';
+import { t } from '../../i18n';
+import { ellipse, rect, line, type Env } from '../palette';
+import { HERO_SCALE, bubble, facing, withUnit } from './shared';
 import type { Raid } from '../../sim/types';
 import { drawMonster } from '../monsters';
 
@@ -27,4 +28,6 @@ export function drawRaid(ctx: CanvasRenderingContext2D, r: Raid, env: Env, defen
   const px = r.x * TILE + TILE / 2, py = r.y * TILE - 4;
   rect(ctx, px - 15, py - 1, 30, 4, 'rgba(0,0,0,0.6)');
   rect(ctx, px - 14, py, 28 * Math.max(0, r.hp / r.maxHp), 2, '#e04040');
+  const kt = (env.clock * 0.35) % 1;
+  if (kt < 0.45) bubble(ctx, px, py - 8, t(Math.floor(env.clock * 0.35) % 2 ? 'talk.m.raid.0' : 'talk.m.raid.1'), 0.95, '#ffd8e4', true);
 }

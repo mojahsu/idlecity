@@ -1,5 +1,5 @@
 // Fight pacing: how many dungeon fights happen in 6 hours and how long they
-// last (expected ~37 s on average, bosses several minutes).
+// last (expected ~17 s on average, bosses a couple of minutes).
 //   bun scripts/balance/fights.ts [seed]
 import { newGame } from '../../src/sim/state';
 import { step } from '../../src/sim/tick';

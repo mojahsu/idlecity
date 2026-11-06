@@ -83,15 +83,18 @@ export function withUnit(ctx: CanvasRenderingContext2D, x: number, y: number, di
   ctx.restore();
 }
 
-/** A little speech bubble above a head: "…" for chatter, "!" for excitement, "~" for a tipsy hum. */
-export function bubble(ctx: CanvasRenderingContext2D, px: number, py: number, text: string, alpha: number, color = '#3a2a1a'): void {
+/** A little speech bubble above a head: icons or short spoken lines. */
+export function bubble(ctx: CanvasRenderingContext2D, px: number, py: number, text: string, alpha: number, color = '#3a2a1a', dark = false): void {
   if (alpha <= 0) return;
-  const w = text.length > 2 ? 13 : 10;
+  ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.fillStyle = '#fffaf0'; ctx.beginPath(); ctx.roundRect(px - w / 2, py - 7, w, 7, 2); ctx.fill();
-  poly(ctx, [px - 2, py, px + 1, py, px - 1, py + 2], '#fffaf0');
-  ctx.font = 'bold 6px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = color; ctx.fillText(text, px, py - 1.5);
-  ctx.globalAlpha = 1;
+  ctx.font = 'bold 6.5px system-ui, sans-serif';
+  const w = Math.max(10, Math.ceil(ctx.measureText(text).width) + 6);
+  const bg = dark ? 'rgba(34,14,24,0.9)' : '#fffaf0';
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.roundRect(px - w / 2, py - 8, w, 8, 2.2); ctx.fill();
+  poly(ctx, [px - 2, py, px + 1, py, px - 1, py + 2.2], bg);
+  ctx.textAlign = 'center'; ctx.fillStyle = dark ? '#ffd8e4' : color; ctx.fillText(text, px, py - 2);
+  ctx.restore();
 }
 
 // ---- townsfolk (ambient, not in the simulation) ---------------------------------

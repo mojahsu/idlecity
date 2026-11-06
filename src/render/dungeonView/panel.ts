@@ -103,6 +103,26 @@ export function drawPanel(ctx: CanvasRenderingContext2D, s: GameState, p: Party,
   ctx.font = 'bold 10px system-ui, sans-serif'; ctx.textAlign = 'center';
   for (const n of v.nums) { ctx.font = n.big ? 'bold 13px system-ui, sans-serif' : 'bold 10px system-ui, sans-serif'; ctx.globalAlpha = Math.min(1, n.ttl * 2); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(n.text, n.x, n.y); ctx.fillStyle = n.color; ctx.fillText(n.text, n.x, n.y); }
   ctx.globalAlpha = 1;
+  // Hero and monster dialogue bubbles.
+  for (const tk of v.talks) {
+    const a = Math.min(1, tk.ttl / 0.25, (tk.life - tk.ttl) / 0.15 + 0.2);
+    ctx.save(); ctx.globalAlpha = a;
+    ctx.font = 'bold 7.5px system-ui, sans-serif';
+    const tw = Math.min(PANEL_W * 0.56, ctx.measureText(tk.text).width);
+    const bw = tw + 10, bh = 13;
+    const bx = Math.max(4, Math.min(PANEL_W - bw - 4, tk.x - bw / 2));
+    const by = Math.max(24, Math.min(floorY - 36, tk.y - bh - 4));
+    const isHero = tk.side === 'hero';
+    ctx.fillStyle = isHero ? 'rgba(255,250,236,0.94)' : 'rgba(34,14,24,0.92)';
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 3); ctx.fill();
+    ctx.strokeStyle = isHero ? '#8a6838' : '#d04870'; ctx.lineWidth = 0.9;
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 3); ctx.stroke();
+    const tailX = Math.max(bx + 4, Math.min(bx + bw - 4, tk.x));
+    poly(ctx, [tailX - 2.5, by + bh, tailX + 2.5, by + bh, tailX + (isHero ? -1 : 1), by + bh + 3.5], isHero ? 'rgba(255,250,236,0.94)' : 'rgba(34,14,24,0.92)');
+    ctx.textAlign = 'center'; ctx.fillStyle = isHero ? '#2a1a10' : '#ffd8e4';
+    fitText(ctx, tk.text, bx + bw / 2, by + 9.2, bw - 6);
+    ctx.restore();
+  }
   // Header.
   ctx.font = 'bold 10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = '#f0e0c0';
   ctx.fillText(t(`dungeon.${p.dungeon}`), 8, 14);

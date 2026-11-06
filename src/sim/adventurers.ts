@@ -142,15 +142,13 @@ function tryFormParty(s: GameState): void {
   const members = pickParty(ready);
   const avgLevel = members.reduce((n, a) => n + a.level, 0) / members.length;
 
-  // Go to the hardest dungeon the party can plausibly handle.
-  let target = unlockedDungeons[0];
-  for (const d of unlockedDungeons) {
-    const def = DUNGEONS.find((x) => x.id === d.id)!;
-    if (avgLevel >= def.level) target = d;
-  }
-  // Sometimes revisit an easier dungeon for variety, never one above the party's level.
-  const easier = unlockedDungeons.filter((d) => DUNGEONS.find((x) => x.id === d.id)!.level <= avgLevel);
-  if (easier.length > 1 && chance(s, 0.25)) target = pick(s, easier);
+  // Never send two parties into the same dungeon at the same time.
+  const occupied = new Set(s.parties.map((p) => p.dungeon));
+  const candidates = unlockedDungeons.filter((d) => DUNGEONS.find((x) => x.id === d.id)!.level <= avgLevel && !occupied.has(d.id));
+  if (!candidates.length) return;
+  // Go to the hardest available dungeon the party can handle; once its boss is defeated, sometimes revisit an easier one.
+  let target = candidates[candidates.length - 1];
+  if (target.bossDefeated && candidates.length > 1 && chance(s, 0.25)) target = pick(s, candidates);
 
   const from = tavernPos(s);
   const party = {

@@ -9,6 +9,8 @@ export interface Shot { kind: 'arrow' | 'fire' | 'bolt' | 'dark' | 'light'; x: n
 
 export interface Banner { text: string; color: string; ttl: number; life: number; big: boolean }
 
+export interface Talk { side: 'hero' | 'enemy'; x: number; y: number; text: string; ttl: number; life: number }
+
 export interface Dying { monster: string; x: number; boss: boolean; t: number; scale: number }
 
 export interface EnemyView {
@@ -61,8 +63,12 @@ export interface ViewState {
   scorch: { x: number; ttl: number }[];
   outro: number;
   retreating: boolean;
+  talks: Talk[];
+  talkCooldown: number;
+  cheer: number;
+  guardCover: { actorIdx: number; targetIdx: number; t: number } | null;
 }
 
 export function newViewState(floor: number): ViewState {
-  return { floor, hadEncounter: false, boss: false, heroLunge: new Map(), heroHurt: new Map(), heal: new Map(), shownHp: new Map(), enemies: [], dying: [], floorFlash: 0.8, shake: 0, nums: [], sparks: [], scroll: 0, shots: [], taunt: 0, tauntIdx: 0, frozen: 0, beam: 0, beamIdx: 0, block: 0, blockIdx: 0, revive: 0, reviveIdx: 0, casting: 0, castIdx: 0, breath: 0, breathFrom: 0, curse: 0, curseIdx: 0, banner: null, bossIntro: 0, chest: 0, motes: [], puffs: [], scorch: [], outro: 0, retreating: false };
+  return { floor, hadEncounter: false, boss: false, heroLunge: new Map(), heroHurt: new Map(), heal: new Map(), shownHp: new Map(), enemies: [], dying: [], floorFlash: 0.8, shake: 0, nums: [], sparks: [], scroll: 0, shots: [], taunt: 0, tauntIdx: 0, frozen: 0, beam: 0, beamIdx: 0, block: 0, blockIdx: 0, revive: 0, reviveIdx: 0, casting: 0, castIdx: 0, breath: 0, breathFrom: 0, curse: 0, curseIdx: 0, banner: null, bossIntro: 0, chest: 0, motes: [], puffs: [], scorch: [], outro: 0, retreating: false, talks: [], talkCooldown: 1.5, cheer: 0, guardCover: null };
 }

@@ -34,7 +34,9 @@ export function drawFigures(ctx: CanvasRenderingContext2D, s: GameState, p: Part
     const fy = floorY - (team.length - 1 - i) * 1.6;
     const l = v.heroLunge.get(a.id);
     const lunge = l ? Math.sin((1 - l.t / 0.45) * Math.PI) : 0;
-    const lx = l ? hx + (l.tx - hx) * lunge : hx;
+    const cover = v.guardCover && v.guardCover.actorIdx === i ? Math.sin((1 - v.guardCover.t / 0.55) * Math.PI) * 9 : 0;
+    const lx = (l ? hx + (l.tx - hx) * lunge : hx) + cover;
+    const cheerHop = v.cheer > 0 ? Math.abs(Math.sin(env.clock * 14 + i * 1.3)) * -3.5 * Math.min(1, v.cheer * 2) : 0;
     // Wind-up: the hero whose turn is next steps back a little.
     const next = p.phase === 'fight' && actIdx === i && !l ? windup * -3 : 0;
     const hurt = v.heroHurt.get(a.id) ?? 0, heal = v.heal.get(a.id) ?? 0;
@@ -42,11 +44,11 @@ export function drawFigures(ctx: CanvasRenderingContext2D, s: GameState, p: Part
     if (v.taunt > 0 && v.tauntIdx === i) {
       const tk = 1 - v.taunt / 0.8;
       ctx.strokeStyle = `rgba(255,212,96,${0.85 * (1 - tk)})`; ctx.lineWidth = 1.6;
-      ctx.beginPath(); ctx.ellipse(hx, fy + 1, 7 + tk * 14, 2.5 + tk * 5, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(lx, fy + 1, 7 + tk * 14, 2.5 + tk * 5, 0, 0, Math.PI * 2); ctx.stroke();
     }
     if (heal > 0) { circle(ctx, hx, floorY - 10, 9 * (1 - heal), rgba('#90f090', heal * 0.5)); for (let k = 0; k < 4; k++) circle(ctx, hx - 6 + k * 4, floorY - 4 - ((env.clock * 30 + k * 7) % 24), 1, rgba('#c0ffc0', heal)); }
     if (lunge > 0.3) { const ga = ctx.globalAlpha; ctx.globalAlpha = ga * 0.3; drawClassFigure(ctx, a.cls, a.level, env, false, hx + (lx - hx) * 0.5, fy, heroDir, 1.35, false, s.equipment); ctx.globalAlpha = ga; }
-    drawClassFigure(ctx, a.cls, a.level, env, p.phase === 'explore' || lunge > 0 || v.outro > 0, lx + next, fy, heroDir, 1.35, hurt > 0, s.equipment);
+    drawClassFigure(ctx, a.cls, a.level, env, p.phase === 'explore' || lunge > 0 || v.outro > 0, lx + next, fy + cheerHop, heroDir, 1.35, hurt > 0, s.equipment);
     if (lunge > 0.7) { ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(lx + 11, floorY - 14, 8, -1.2, 0.6); ctx.stroke(); }
     if (v.taunt > 0 && v.tauntIdx === i) {
       const sy = floorY - 32 - Math.sin(v.taunt * 10) * 1.5;

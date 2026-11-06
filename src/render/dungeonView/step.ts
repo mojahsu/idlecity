@@ -20,6 +20,10 @@ export function step(s: GameState, p: Party, v: ViewState, env: Env, dt: number)
   const hi = (id: number) => Math.max(0, team.findIndex((a) => a.id === id));
   const label = (text: string, x: number, y: number, color: string, ttl = 1.1, big = false) => v.nums.push({ x, y, text, color, ttl, big });
   const num = (text: string, x: number, y: number, color: string) => v.nums.push({ x: x + (Math.random() - 0.5) * 10, y, text, color, ttl: 1 });
+  const say = (side: 'hero' | 'enemy', x: number, y: number, text: string, life = 1.9) => {
+    v.talks = v.talks.filter((tk) => tk.side !== side);
+    v.talks.push({ side, x, y, text, ttl: life, life });
+  };
   while (v.enemies.length < n) v.enemies.push({ lunge: 0, hurt: 0, shownHp: 1 });
 
   for (const f of s.fx) {
@@ -32,51 +36,68 @@ export function step(s: GameState, p: Party, v: ViewState, env: Env, dt: number)
         case 'melee': v.heroLunge.set(f.actorId, { t: 0.45, tx: tx - 14 }); v.puffs.push({ x: hx - 4, y: floorY + 1, ttl: 0.45 }); setTimeoutLike(v, 0.2, () => hitEnemy(ti, f.amount, '#ffe080')); break;
         case 'smite': v.casting = 0.3; v.castIdx = ai; v.shots.push({ kind: 'light', x: hx + 4, y: floorY - 20, tx, ty, t: 0, life: 0.3, onLand: () => hitEnemy(ti, f.amount, '#fff0a0') }); break;
         case 'arrow': v.shots.push({ kind: 'arrow', x: hx + 6, y: floorY - 14, tx: tx - 4, ty, t: 0, life: 0.25, onLand: () => hitEnemy(ti, f.amount, '#ffe080') }); break;
-        case 'volley': for (let k = 0; k < 3; k++) v.shots.push({ kind: 'arrow', x: hx + 6, y: floorY - 14 - k * 3, tx: tx - 4 + k * 2, ty: ty - k * 3, t: -k * 0.07, life: 0.25, onLand: k === 2 ? () => hitEnemy(ti, f.amount, '#c8f0a0') : undefined }); label(t('skill.volley'), hx, floorY - 36, '#c8f0a0'); break;
-        case 'crit': v.shots.push({ kind: 'arrow', x: hx + 6, y: floorY - 14, tx: tx - 4, ty, t: 0, life: 0.2, onLand: () => { hitEnemy(ti, f.amount, '#ffd040'); v.shake = Math.max(v.shake, 0.15); } }); label(t('skill.crit'), hx, floorY - 44, '#ffd040', 1.3, true); break;
+        case 'volley': for (let k = 0; k < 3; k++) v.shots.push({ kind: 'arrow', x: hx + 6, y: floorY - 14 - k * 3, tx: tx - 4 + k * 2, ty: ty - k * 3, t: -k * 0.07, life: 0.25, onLand: k === 2 ? () => hitEnemy(ti, f.amount, '#c8f0a0') : undefined }); label(t('skill.volley'), hx, floorY - 36, '#c8f0a0'); if (Math.random() < 0.65) say('hero', hx, floorY - 30, t('talk.h.volley')); break;
+        case 'crit': v.shots.push({ kind: 'arrow', x: hx + 6, y: floorY - 14, tx: tx - 4, ty, t: 0, life: 0.2, onLand: () => { hitEnemy(ti, f.amount, '#ffd040'); v.shake = Math.max(v.shake, 0.15); if (Math.random() < 0.7) say('enemy', tx, floorY - eh(ti) - 10, t(Math.random() < 0.5 ? 'talk.m.hurt.0' : 'talk.m.hurt.1'), 1.5); } }); label(t('skill.crit'), hx, floorY - 44, '#ffd040', 1.3, true); say('hero', hx, floorY - 30, t(Math.random() < 0.5 ? 'talk.h.crit.0' : 'talk.h.crit.1')); break;
         case 'bolt': v.casting = 0.3; v.castIdx = ai; v.shots.push({ kind: 'bolt', x: hx + 8, y: floorY - 18, tx, ty, t: 0, life: 0.3, onLand: () => hitEnemy(ti, f.amount, '#a0e0ff') }); break;
-        case 'fireball': v.casting = 0.4; v.castIdx = ai; v.shots.push({ kind: 'fire', x: hx + 8, y: floorY - 18, tx, ty, t: 0, life: 0.4, onLand: () => { hitEnemy(ti, f.amount, '#ffa060'); burst(v, tx, ty, '#ff9040', 18); burst(v, tx, ty, '#ffe080', 8); v.scorch.push({ x: tx, ttl: 2.2 }); for (const i of f.splash ?? []) hitEnemy(i, Math.round(f.amount / 2), '#ffa060'); v.shake = Math.max(v.shake, 0.22); } }); label(t('skill.fireball'), hx, floorY - 36, '#ffa060'); break;
-        case 'heal': { const ti2 = hi(f.targetId ?? f.actorId); v.heal.set(f.targetId ?? f.actorId, 0.6); num(`+${f.amount}`, heroX(ti2), floorY - 46, '#90f090'); v.casting = 0.3; v.castIdx = ai; break; }
-        case 'holyLight': { const ti2 = hi(f.targetId ?? f.actorId); v.beam = 0.7; v.beamIdx = ti2; v.heal.set(f.targetId ?? f.actorId, 0.7); num(`+${f.amount}`, heroX(ti2), floorY - 46, '#fff0a0'); label(t('skill.holyLight'), heroX(ti2), floorY - 40, '#fff0a0'); break; }
+        case 'fireball': v.casting = 0.4; v.castIdx = ai; v.shots.push({ kind: 'fire', x: hx + 8, y: floorY - 18, tx, ty, t: 0, life: 0.4, onLand: () => { hitEnemy(ti, f.amount, '#ffa060'); burst(v, tx, ty, '#ff9040', 18); burst(v, tx, ty, '#ffe080', 8); v.scorch.push({ x: tx, ttl: 2.2 }); for (const i of f.splash ?? []) hitEnemy(i, Math.round(f.amount / 2), '#ffa060'); v.shake = Math.max(v.shake, 0.22); } }); label(t('skill.fireball'), hx, floorY - 36, '#ffa060'); say('hero', hx, floorY - 30, t('talk.h.fireball')); break;
+        case 'heal': { const ti2 = hi(f.targetId ?? f.actorId); v.heal.set(f.targetId ?? f.actorId, 0.6); num(`+${f.amount}`, heroX(ti2), floorY - 46, '#90f090'); v.casting = 0.3; v.castIdx = ai; if (ti2 !== ai && Math.random() < 0.55) setTimeoutLike(v, 0.35, () => say('hero', heroX(ti2), floorY - 28, t('talk.h.thanks'), 1.5)); break; }
+        case 'holyLight': { const ti2 = hi(f.targetId ?? f.actorId); v.beam = 0.7; v.beamIdx = ti2; v.heal.set(f.targetId ?? f.actorId, 0.7); num(`+${f.amount}`, heroX(ti2), floorY - 46, '#fff0a0'); label(t('skill.holyLight'), heroX(ti2), floorY - 40, '#fff0a0'); say('hero', hx, floorY - 30, t('talk.h.heal')); if (ti2 !== ai) setTimeoutLike(v, 0.45, () => say('hero', heroX(ti2), floorY - 28, t('talk.h.thanks'), 1.6)); break; }
       }
     } else if (f.kind === 'enemyStrike') {
       const ti = hi(f.targetId), hx = heroX(ti);
       const ev = v.enemies[f.enemyIdx];
       const hurtHero = () => { v.heroHurt.set(f.targetId, 0.3); num(`-${f.amount}`, hx, PANEL_H - 44, '#ff7070'); };
       switch (f.style) {
-        case 'breath': if (!f.all || ti === 0) { v.breath = 0.8; v.breathFrom = f.enemyIdx; v.shake = Math.max(v.shake, 0.25); label(t('skill.breath'), ex(f.enemyIdx), floorY - eh(f.enemyIdx) - 14, '#ff8040', 1.2, true); } setTimeoutLike(v, 0.25, hurtHero); break;
+        case 'breath': if (!f.all || ti === 0) { v.breath = 0.8; v.breathFrom = f.enemyIdx; v.shake = Math.max(v.shake, 0.25); label(t('skill.breath'), ex(f.enemyIdx), floorY - eh(f.enemyIdx) - 14, '#ff8040', 1.2, true); say('enemy', ex(f.enemyIdx), floorY - eh(f.enemyIdx) - 12, t('talk.m.breath')); } setTimeoutLike(v, 0.25, hurtHero); break;
         case 'bolt': v.shots.push({ kind: 'dark', x: ex(f.enemyIdx) - 6, y: floorY - eh(f.enemyIdx) * 0.6, tx: hx, ty: floorY - 12, t: 0, life: 0.3, onLand: hurtHero }); break;
-        case 'curse': v.curse = 1.0; v.curseIdx = ti; v.shots.push({ kind: 'dark', x: ex(f.enemyIdx) - 6, y: floorY - eh(f.enemyIdx) * 0.6, tx: hx, ty: floorY - 24, t: 0, life: 0.35, onLand: hurtHero }); label(t('skill.curse'), ex(f.enemyIdx), floorY - eh(f.enemyIdx) - 14, '#d080ff', 1.2, true); break;
-        default: if (ev) ev.lunge = 0.45; v.puffs.push({ x: ex(f.enemyIdx) + 6, y: floorY + 1, ttl: 0.45 }); setTimeoutLike(v, 0.2, () => { hurtHero(); if (f.style === 'smash') v.shake = Math.max(v.shake, 0.2); }); break;
+        case 'curse': v.curse = 1.0; v.curseIdx = ti; v.shots.push({ kind: 'dark', x: ex(f.enemyIdx) - 6, y: floorY - eh(f.enemyIdx) * 0.6, tx: hx, ty: floorY - 24, t: 0, life: 0.35, onLand: hurtHero }); label(t('skill.curse'), ex(f.enemyIdx), floorY - eh(f.enemyIdx) - 14, '#d080ff', 1.2, true); say('enemy', ex(f.enemyIdx), floorY - eh(f.enemyIdx) - 12, t('talk.m.curse')); break;
+        default: if (ev) ev.lunge = 0.45; v.puffs.push({ x: ex(f.enemyIdx) + 6, y: floorY + 1, ttl: 0.45 }); if (f.style === 'smash' && Math.random() < 0.6) say('enemy', ex(f.enemyIdx), floorY - eh(f.enemyIdx) - 12, t('talk.m.smash'), 1.6); setTimeoutLike(v, 0.2, () => { hurtHero(); if (f.style === 'smash') v.shake = Math.max(v.shake, 0.2); }); break;
       }
     } else if (f.kind === 'slain') {
       v.dying.push({ monster: f.monster, x: ex(f.enemyIdx), boss: f.boss, t: 0, scale: enemyScale(f.monster, f.boss, n) });
       burst(v, ex(f.enemyIdx), floorY - eh(f.enemyIdx) * 0.5, f.boss ? '#ffd040' : '#c0c0c0', f.boss ? 40 : 14);
       label(t('ui.slain'), ex(f.enemyIdx), floorY - eh(f.enemyIdx) - 10, '#ffe080', 1.2, f.boss);
-      if (f.boss) v.shake = Math.max(v.shake, 0.5);
+      v.cheer = 0.65;
+      if (f.boss) { v.shake = Math.max(v.shake, 0.5); say('enemy', ex(f.enemyIdx), floorY - eh(f.enemyIdx) - 10, t('talk.m.slain'), 1.8); }
+      else if (Math.random() < 0.55 && team.length) say('hero', heroX(team.length - 1), floorY - 30, t('talk.h.cheer'), 1.5);
     } else if (f.kind === 'skill') {
       const ai = hi(f.actorId), ti = f.targetId !== undefined ? hi(f.targetId) : ai;
       switch (f.skill) {
-        case 'taunt': v.taunt = 0.8; v.tauntIdx = ai; label(t('skill.taunt'), heroX(ai), floorY - 38, '#ffd060'); break;
-        case 'frost': v.frozen = 1.4; label(t('skill.frost'), PANEL_W * 0.74, floorY - 48, '#a0e0ff', 1.3); break;
-        case 'block': v.block = 0.45; v.blockIdx = ti; label(t('skill.block'), heroX(ti), floorY - 36, '#c0d0e0'); break;
-        case 'revive': v.revive = 1.2; v.reviveIdx = ti; label(t('skill.revive'), heroX(ti), floorY - 44, '#ffffff', 1.6, true); break;
+        case 'taunt': v.taunt = 0.8; v.tauntIdx = ai; v.guardCover = { actorIdx: ai, targetIdx: Math.max(0, ai - 1), t: 0.55 }; label(t('skill.taunt'), heroX(ai), floorY - 38, '#ffd060'); say('hero', heroX(ai), floorY - 30, t(Math.random() < 0.5 ? 'talk.h.taunt.0' : 'talk.h.taunt.1')); break;
+        case 'frost': v.frozen = 1.4; label(t('skill.frost'), PANEL_W * 0.74, floorY - 48, '#a0e0ff', 1.3); say('hero', heroX(ai), floorY - 30, t('talk.h.frost')); break;
+        case 'block': v.block = 0.45; v.blockIdx = ti; label(t('skill.block'), heroX(ti), floorY - 36, '#c0d0e0'); say('hero', heroX(ti), floorY - 30, t('talk.h.block'), 1.5); break;
+        case 'revive': v.revive = 1.2; v.reviveIdx = ti; label(t('skill.revive'), heroX(ti), floorY - 44, '#ffffff', 1.6, true); say('hero', heroX(ai), floorY - 30, t('talk.h.revive')); setTimeoutLike(v, 0.5, () => say('hero', heroX(ti), floorY - 28, t('talk.h.thanks'), 1.6)); break;
       }
     } else if (f.kind === 'treasure') {
-      v.chest = 1.4; burst(v, PANEL_W * 0.74 - 30, floorY - 6, '#ffd040', 22); label(`+${f.gold}g`, PANEL_W * 0.74 - 30, floorY - 20, '#ffd040', 1.3);
+      v.chest = 1.4; v.cheer = 0.85; burst(v, PANEL_W * 0.74 - 30, floorY - 6, '#ffd040', 22); label(`+${f.gold}g`, PANEL_W * 0.74 - 30, floorY - 20, '#ffd040', 1.3);
+      if (team.length) say('hero', heroX(team.length - 1), floorY - 30, t('talk.h.treasure'));
     }
   }
   // Floor change.
   if (p.floor !== v.floor) { v.floor = p.floor; v.floorFlash = 0.8; const def = DUNGEONS.find((d) => d.id === p.dungeon)!; v.banner = { text: t('ui.floor', { floor: p.floor, floors: def.floors }), color: p.floor === def.floors ? '#ffb0f0' : '#f0e0c0', ttl: 1.3, life: 1.3, big: false }; }
-  if (p.phase === 'explore') v.scroll += dt * 24;
+  if (p.phase === 'explore') {
+    v.scroll += dt * 24;
+    v.talkCooldown -= dt;
+    if (v.talkCooldown <= 0 && team.length && !v.talks.length) {
+      v.talkCooldown = 2.6 + Math.random() * 1.4;
+      const speaker = Math.floor(Math.random() * team.length);
+      say('hero', heroX(speaker), floorY - 28, t(`talk.h.explore.${Math.floor(Math.random() * 4)}`), 1.8);
+    }
+  }
   if (v.outro > 0 && v.retreating) {
     v.scroll -= dt * 36;
+    if (!v.talks.some((tk) => tk.side === 'hero') && team.length) say('hero', heroX(team.length - 1), floorY - 28, t('talk.h.retreat'), 1.3);
     if (Math.random() < dt * 10 && team.length) v.puffs.push({ x: heroX(Math.floor(Math.random() * team.length)) + 4, y: floorY + 1, ttl: 0.4 });
   }
-  // The pack appears.
+  // The pack appears: the lead monster taunts and the party leader answers back.
   if (e && !v.hadEncounter) {
     v.boss = e.boss; v.enemies = enemies.map(() => ({ lunge: 0, hurt: 0, shownHp: 1 })); v.shake = e.boss ? 0.5 : 0;
     if (e.boss) { v.bossIntro = 1.8; v.banner = { text: t(`monster.${e.monster}`), color: e.monster === 'demonLord' ? '#ff60c0' : '#ff8080', ttl: 1.8, life: 1.8, big: true }; }
+    say('enemy', ex(0), floorY - eh(0) - 10, t(`talk.m.${e.monster}`), 2.1);
+    if (team.length) {
+      const leadIdx = team.length - 1;
+      setTimeoutLike(v, 0.5, () => say('hero', heroX(leadIdx), floorY - 30, t(e.boss ? 'talk.h.boss' : `talk.h.engage.${p.floor % 3}`), 1.9));
+    }
   }
   if (!e && v.outro <= 0) v.enemies = [];
   v.hadEncounter = !!e;
@@ -93,6 +114,9 @@ export function step(s: GameState, p: Party, v: ViewState, env: Env, dt: number)
   v.breath = Math.max(0, v.breath - dt); v.curse = Math.max(0, v.curse - dt);
   if (v.banner && (v.banner.ttl -= dt) <= 0) v.banner = null;
   v.taunt = Math.max(0, v.taunt - dt); v.frozen = Math.max(0, v.frozen - dt); v.beam = Math.max(0, v.beam - dt); v.block = Math.max(0, v.block - dt); v.revive = Math.max(0, v.revive - dt); v.casting = Math.max(0, v.casting - dt);
+  v.cheer = Math.max(0, v.cheer - dt);
+  if (v.guardCover && (v.guardCover.t -= dt) <= 0) v.guardCover = null;
+  v.talks = v.talks.filter((tk) => (tk.ttl -= dt) > 0);
   for (const sh of v.shots) { const was = sh.t; sh.t += dt; if (sh.onLand && was < sh.life && sh.t >= sh.life) sh.onLand(); }
   v.shots = v.shots.filter((sh) => sh.t < sh.life);
   runDelayed(v, dt);

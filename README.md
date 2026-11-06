@@ -213,23 +213,29 @@ tests/        bun tests
     priest's smite), then each monster (bites, slashes, claws, smashes, the
     imp's and lich's bolts, the dragon's and demons' breath over everyone,
     the lich's curse). Every action is an fx the panel plays out with a
-    wind-up, a lunge or a projectile, a number and sparks; monsters carry
-    their own bars and die one at a time. Monster hit points grow with the
-    heroes' level so every monster takes several blows, their attacks are
-    scaled down, and rewards per kill grow with the hit points (`FIGHT_TUNE`)
-    so xp and gold per hour hold. Raids are fought in rounds too: only
-    adventurers who have run out to the raiders (`pastime: 'sally'`) deal
-    damage, walls and townsfolk count for a little, and raiders scale with the
+    wind-up, a lunge or a projectile, a number, sparks and comic speech
+    bubbles (`v.talks` in `render/dungeonView/step.ts`): monsters taunt on
+    sight and roar on specials, heroes shout battle cries on skills and crits,
+    thank the priest for heals, hop when a monster or chest falls (`v.cheer`),
+    and the warrior physically steps forward to intercept blows on a taunt
+    (`v.guardCover`). Monsters carry their own bars and die one at a time.
+    Monster hit points grow with the heroes' level so every monster takes
+    several blows, their attacks are scaled down, and rewards per kill grow
+    with the hit points (`FIGHT_TUNE`) so xp and gold per hour hold. Raids
+    are fought in rounds too: only adventurers who have run out to the raiders
+    (`pastime: 'sally'`) deal damage, walls and townsfolk count for a little,
+    raiders and defenders trade shouts on the map, and raiders scale with the
     heroes' level so a raid lasts twenty to forty seconds. Between expeditions
     adventurers spar at the guild's training posts, drink, sit by the fire and
     wander the streets instead of standing still.
 18. Parties are built by role (`pickParty` in `sim/adventurers.ts`): the best
     warrior, the best priest, then the strongest of the rest with at most two
-    of a class; level alone decides only when that cannot make three. Members
-    are kept in battle-line order (`FORMATION`: mage, priest, archer, warrior,
-    back to front) so the sim and the panel agree on who stands where: melee
-    blows find the front of the line 55% of the time and the second rank 25%
-    (`frontTarget`), bolts and curses fly at anyone, and a party without a
+    of a class; level alone decides only when that cannot make three. Two
+    parties never enter the same dungeon at the same time (`tryFormParty`).
+    Members are kept in battle-line order (`FORMATION`: mage, priest, archer,
+    warrior, back to front) so the sim and the panel agree on who stands where:
+    melee blows find the front of the line 55% of the time and the second rank
+    25% (`frontTarget`), bolts and curses fly at anyone, and a party without a
     warrior turns back at a boss's door. The guild recruits what the roster
     lacks (`recruitClass`): no living warrior or priest means the next arrival
     is one. On the map the party walks as a two-by-two column with the warrior
@@ -238,7 +244,7 @@ tests/        bun tests
 
 Rough pacing at 1x: hamlet in minutes, village ~15 min, town ~40 min, city ~2 h,
 first dungeon ~45 min, Dark Tower after the Keep (~3 h), Demon Lord falls
-around hour 2–5 with a few deaths (0–9 over 10 h on eight seeds; fights now last about 40 s, bosses several minutes).
+around hour 2–5 with a few deaths (0–9 over 10 h on eight seeds; fights last about 17 s, bosses a couple of minutes).
 Parties never randomly revisit a dungeon above their level, turn back at a
 boss's door when under-levelled (`daresBossFloor`), and break off a boss
 fight as soon as anyone is badly hurt; bosses keep their wounds between

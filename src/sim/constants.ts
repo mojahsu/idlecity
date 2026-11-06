@@ -20,7 +20,7 @@ export const RAID_SPEED = 1.1;
 
 // Fights are paced to be watched: one exchange of blows every FIGHT_ROUND seconds.
 export const FIGHT_ROUND = 2.2; // (legacy name) now the pause between a round's start and its first action
-export const ACT_TIME = 0.7;    // seconds between actions: hero, hero, hero, hero, enemy, enemy...
+export const ACT_TIME = 0.55;   // seconds between actions: hero, hero, hero, hero, enemy, enemy...
 /**
  * Fight tuning. Monster hit points grow with the heroes' level so every monster
  * takes several blows whatever the party's strength; their attacks are scaled
@@ -28,11 +28,11 @@ export const ACT_TIME = 0.7;    // seconds between actions: hero, hero, hero, he
  * the hit points so xp and gold per hour stay where they were.
  */
 export const FIGHT_TUNE = {
-  hpBase: 2.0,        // hit-point multiplier at level 1
-  hpPerLevel: 0.3,    // extra multiplier per average hero level
-  atk: 0.3,           // pack monster attack multiplier
-  bossAtk: 0.45,
-  rewardPerHp: 0.38,  // reward multiplier per hit-point multiplier
+  hpBase: 1.35,       // hit-point multiplier at level 1
+  hpPerLevel: 0.18,   // extra multiplier per average hero level
+  atk: 0.42,          // pack monster attack multiplier
+  bossAtk: 0.62,
+  rewardPerHp: 0.54,  // reward multiplier per hit-point multiplier
 };
 /** Rewards per kill are scaled by this so slower fights keep xp and gold per hour roughly where they were. */
 export const FIGHT_REWARD = 1.5;

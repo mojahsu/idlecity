@@ -1,5 +1,6 @@
 // Workers: job tools, hats, loads, buckets, rest poses, elders.
 import { TILE } from '../constants';
+import { t } from '../../i18n';
 import { circle, ellipse, poly, rect, line, rgba, hash, shade, type Env } from '../palette';
 import { SKIN, HAIR, facing, Pose, pose, body, withUnit, bubble, spriteFigures, villagerFig } from './shared';
 import { drawSprite } from '../sprites';
@@ -195,10 +196,11 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
     }
     else if (!rest && (working || !w.carrying)) tool(ctx, w, p);
   });
-  if (rest?.activity === 'chat' || rest?.activity === 'visit') { const k = (env.clock * 0.5 + (w.id % 2) * 0.5) % 1; bubble(ctx, px + dir * 2, py - 20, '…', k < 0.45 ? 1 : 0); }
+  if (dousing) { const k = (env.clock * 0.4 + w.id * 0.23) % 1; bubble(ctx, px, py - 20, t('talk.w.fire'), k < 0.35 ? 1 : 0, '#c83020'); }
+  else if (rest?.activity === 'chat' || rest?.activity === 'visit') { const k = (env.clock * 0.45 + (w.id % 2) * 0.5) % 1; bubble(ctx, px + dir * 2, py - 20, w.id % 3 === 0 ? t(w.id % 2 ? 'talk.w.chat.0' : 'talk.w.chat.1') : '…', k < 0.4 ? 1 : 0); }
   else if (listening && !dancing) { const k = (env.clock * 0.35 + w.id * 0.17) % 1; bubble(ctx, px + dir * 2, py - 20, '♪', k < 0.3 ? 1 : 0, '#b86a2a'); }
   else if (rest?.activity === 'watch') { const k = (env.clock * 0.3 + w.id * 0.13) % 1; bubble(ctx, px + dir * 2, py - 20, '!', k < 0.25 ? 1 : 0, '#c86030'); }
   else if (rest?.activity === 'feed') { const k = (env.clock * 0.35 + w.id * 0.19) % 1; bubble(ctx, px + dir * 2, py - 20, '♥', k < 0.3 ? 1 : 0, '#e05070'); }
   else if (w.task?.kind === 'rest' && w.task.activity === 'pray') { const k = (env.clock * 0.35 + w.id * 0.29) % 1; bubble(ctx, px + dir * 2, py - 20, '✦', k < 0.35 ? 1 : 0, '#d8a020'); }
-  else if (tipsy) { const k = (env.clock * 0.4 + w.id * 0.21) % 1; bubble(ctx, px + dir * 2, py - 20, w.id % 2 ? '♪' : '~', k < 0.4 ? 1 : 0, '#c85060'); }
+  else if (tipsy) { const k = (env.clock * 0.4 + w.id * 0.21) % 1; bubble(ctx, px + dir * 2, py - 20, w.id % 2 ? t('talk.w.drink') : '~', k < 0.4 ? 1 : 0, '#c85060'); }
 }

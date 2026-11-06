@@ -54,7 +54,7 @@ changed: `curl -s https://mojahsu.github.io/idlecity/ | grep -o 'index-[A-Za-z0-
 6. Balance is protected by headless runs, not by feel. Before and after
    touching `sim/constants.ts`, `FIGHT_TUNE`, class or monster stats, run
    `bun scripts/balance/pace.ts` and keep victory within hour 2–5 on every
-   seed with deaths in the single digits over 10 h. `fights.ts` (~37 s per
+   seed with deaths in the single digits over 10 h. `fights.ts` (~17 s per
    fight), `raids.ts` (20–40 s, mostly repelled), `events.ts`, `lives.ts` and
    `progress.ts` cover the other systems.
 7. One bad frame must not stop the town: `main.ts` wraps the sim step, the

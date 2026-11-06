@@ -1,5 +1,6 @@
 // Adventurers resting in town and parties on the road with their banner.
 import { TILE } from '../constants';
+import { t } from '../../i18n';
 import { circle, ellipse, poly, rect, line, shade, rgba, type Env } from '../palette';
 import { HERO_SCALE, bubble, facing, pose, withUnit } from './shared';
 import type { Adventurer, GameState, Party } from '../../sim/types';
@@ -36,8 +37,9 @@ export function drawAdventurer(ctx: CanvasRenderingContext2D, a: Adventurer, env
       circle(ctx, sx + Math.cos(ang) * 3, sy + Math.sin(ang) * 2.5, 0.9, i % 2 ? '#ffe890' : '#ff9040');
     }
   }
-  if (training) { const k = (env.clock * 0.35 + a.id * 0.23) % 1; bubble(ctx, px + dir * 2, py - 21, '!', k < 0.22 ? 1 : 0, '#c85030'); }
-  else if (drinking) { const k = (env.clock * 0.38 + a.id * 0.19) % 1; bubble(ctx, px + dir * 2, py - 21, a.id % 2 ? '♪' : '~', k < 0.32 ? 1 : 0, '#c87820'); }
+  if (sally) { const k = (env.clock * 0.32 + a.id * 0.27) % 1; bubble(ctx, px + dir * 2, py - 22, t(a.id % 2 ? 'talk.h.defend.0' : 'talk.h.defend.1'), k < 0.3 ? 1 : 0, '#9a3020'); }
+  else if (training) { const k = (env.clock * 0.32 + a.id * 0.23) % 1; bubble(ctx, px + dir * 2, py - 21, a.id % 2 ? t('talk.a.train') : '!', k < 0.24 ? 1 : 0, '#c85030'); }
+  else if (drinking) { const k = (env.clock * 0.35 + a.id * 0.19) % 1; bubble(ctx, px + dir * 2, py - 21, a.id % 2 ? t('talk.w.drink') : '♪', k < 0.3 ? 1 : 0, '#c87820'); }
   else if (sitting) { const k = (env.clock * 0.25 + a.id * 0.31) % 1; bubble(ctx, px + dir * 2, py - 19, '…', k < 0.25 ? 1 : 0); }
   if (sally && raid && !melee) drawShot(ctx, a, x, y, raid, env);
   if (sally && lunge > 0.8) { const sx = lx * TILE + TILE / 2 + dir * 9, sy = y * TILE + TILE / 2 - 8; ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sx, sy, 7, dir > 0 ? -1.3 : Math.PI - 0.5, dir > 0 ? 0.5 : Math.PI + 1.3); ctx.stroke(); }
