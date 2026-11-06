@@ -16,8 +16,20 @@ export function drawFigures(ctx: CanvasRenderingContext2D, s: GameState, p: Part
   const n = enemies.length;
   const actIdx = p.actIdx ?? 0;
   const windup = p.phase === 'fight' ? Math.max(0, Math.min(1, (p.timer + ACT_TIME) / ACT_TIME)) : 0;
+  // Scorch marks left by fireballs.
+  for (const sc of v.scorch) {
+    const a = Math.min(1, sc.ttl / 0.8);
+    ellipse(ctx, sc.x, floorY + 1, 13, 3.8, `rgba(25,12,8,${0.55 * a})`);
+    ellipse(ctx, sc.x, floorY + 1, 8, 2.2, `rgba(255,110,30,${0.4 * a})`);
+    for (let i = 0; i < 3; i++) {
+      const et = (env.clock * 1.6 + i * 0.33) % 1;
+      circle(ctx, sc.x - 6 + i * 6 + Math.sin(env.clock * 4 + i) * 2, floorY - et * 14, 1 * (1 - et) + 0.3, `rgba(255,160,50,${0.7 * a * (1 - et)})`);
+    }
+  }
+  const retreatShift = v.outro > 0 && v.retreating ? (1.35 - v.outro) * 26 : 0;
+  const heroDir = v.outro > 0 && v.retreating ? -1 : 1;
   team.forEach((a, i) => {
-    const hx = heroX(i);
+    const hx = heroX(i) - retreatShift;
     // The line has depth: the warrior in front stands on the near edge of the floor, the casters a step back.
     const fy = floorY - (team.length - 1 - i) * 1.6;
     const l = v.heroLunge.get(a.id);
@@ -27,14 +39,32 @@ export function drawFigures(ctx: CanvasRenderingContext2D, s: GameState, p: Part
     const next = p.phase === 'fight' && actIdx === i && !l ? windup * -3 : 0;
     const hurt = v.heroHurt.get(a.id) ?? 0, heal = v.heal.get(a.id) ?? 0;
     ellipse(ctx, lx + next, fy + 1, 6, 2.5, 'rgba(0,0,0,0.4)');
+    if (v.taunt > 0 && v.tauntIdx === i) {
+      const tk = 1 - v.taunt / 0.8;
+      ctx.strokeStyle = `rgba(255,212,96,${0.85 * (1 - tk)})`; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.ellipse(hx, fy + 1, 7 + tk * 14, 2.5 + tk * 5, 0, 0, Math.PI * 2); ctx.stroke();
+    }
     if (heal > 0) { circle(ctx, hx, floorY - 10, 9 * (1 - heal), rgba('#90f090', heal * 0.5)); for (let k = 0; k < 4; k++) circle(ctx, hx - 6 + k * 4, floorY - 4 - ((env.clock * 30 + k * 7) % 24), 1, rgba('#c0ffc0', heal)); }
-    if (lunge > 0.3) { const ga = ctx.globalAlpha; ctx.globalAlpha = ga * 0.3; drawClassFigure(ctx, a.cls, a.level, env, false, hx + (lx - hx) * 0.5, fy, 1, 1.35, false, s.equipment); ctx.globalAlpha = ga; }
-    drawClassFigure(ctx, a.cls, a.level, env, p.phase === 'explore' || lunge > 0, lx + next, fy, 1, 1.35, hurt > 0, s.equipment);
+    if (lunge > 0.3) { const ga = ctx.globalAlpha; ctx.globalAlpha = ga * 0.3; drawClassFigure(ctx, a.cls, a.level, env, false, hx + (lx - hx) * 0.5, fy, heroDir, 1.35, false, s.equipment); ctx.globalAlpha = ga; }
+    drawClassFigure(ctx, a.cls, a.level, env, p.phase === 'explore' || lunge > 0 || v.outro > 0, lx + next, fy, heroDir, 1.35, hurt > 0, s.equipment);
     if (lunge > 0.7) { ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(lx + 11, floorY - 14, 8, -1.2, 0.6); ctx.stroke(); }
-    if (v.taunt > 0 && v.tauntIdx === i) { ctx.font = 'bold 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#ff6060'; ctx.fillText('!', hx, floorY - 34 - Math.sin(v.taunt * 12) * 2); }
-    if (v.beam > 0 && v.beamIdx === i) { const g = ctx.createLinearGradient(0, 0, 0, floorY); g.addColorStop(0, `rgba(255,240,160,${0.7 * v.beam})`); g.addColorStop(1, `rgba(255,240,160,${0.15 * v.beam})`); ctx.fillStyle = g; ctx.fillRect(hx - 7, 0, 14, floorY); for (let k = 0; k < 4; k++) circle(ctx, hx - 8 + k * 5.5, floorY - 8 - ((env.clock * 40 + k * 9) % 30), 1.2, rgba('#fff8c0', v.beam)); }
+    if (v.taunt > 0 && v.tauntIdx === i) {
+      const sy = floorY - 32 - Math.sin(v.taunt * 10) * 1.5;
+      poly(ctx, [hx - 3.5, sy - 3, hx + 3.5, sy - 3, hx + 3, sy + 1, hx, sy + 4, hx - 3, sy + 1], `rgba(255,212,96,${Math.min(1, v.taunt * 2)})`);
+      ctx.font = 'bold 9px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#5a2010'; ctx.fillText('!', hx, sy + 2.5);
+    }
+    if (v.beam > 0 && v.beamIdx === i) {
+      const g = ctx.createLinearGradient(0, 0, 0, floorY); g.addColorStop(0, `rgba(255,240,160,${0.7 * v.beam})`); g.addColorStop(1, `rgba(255,240,160,${0.15 * v.beam})`); ctx.fillStyle = g; ctx.fillRect(hx - 7, 0, 14, floorY);
+      ctx.strokeStyle = `rgba(255,240,160,${0.8 * v.beam})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(hx, fy + 1, 9, 3.2, 0, 0, Math.PI * 2); ctx.stroke();
+      for (let k = 0; k < 4; k++) circle(ctx, hx - 8 + k * 5.5, floorY - 8 - ((env.clock * 40 + k * 9) % 30), 1.2, rgba('#fff8c0', v.beam));
+    }
     if (v.block > 0 && v.blockIdx === i) { ctx.strokeStyle = `rgba(200,220,255,${v.block * 2})`; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(hx + 9, floorY - 12, 9, -1.4, 1.4); ctx.stroke(); }
-    if (v.revive > 0 && v.reviveIdx === i) { circle(ctx, hx, floorY - 12, 16 * (1.2 - v.revive) + 4, rgba('#ffffff', v.revive * 0.5)); }
+    if (v.revive > 0 && v.reviveIdx === i) {
+      const rk = Math.min(1, v.revive);
+      circle(ctx, hx, floorY - 12, 16 * (1.2 - v.revive) + 4, rgba('#ffffff', v.revive * 0.5));
+      poly(ctx, [hx - 2, floorY - 14, hx - 12, floorY - 26, hx - 6, floorY - 10], `rgba(255,245,190,${0.6 * rk})`);
+      poly(ctx, [hx + 2, floorY - 14, hx + 12, floorY - 26, hx + 6, floorY - 10], `rgba(255,245,190,${0.6 * rk})`);
+    }
     if (v.casting > 0 && v.castIdx === i) { circle(ctx, hx + 8, floorY - 18, 5 + (0.4 - v.casting) * 10, rgba(a.cls === 'priest' ? '#fff0a0' : '#ffa040', v.casting * 2)); for (let k = 0; k < 3; k++) { const ang = env.clock * 8 + k * 2.1; circle(ctx, hx + 8 + Math.cos(ang) * 6, floorY - 18 + Math.sin(ang) * 4, 1, rgba('#ffffff', v.casting * 2)); } }
     if (v.curse > 0 && v.curseIdx === i) { const k = v.curse; circle(ctx, hx, floorY - 28, 7, rgba('#8030c0', 0.25 * k)); ctx.font = 'bold 9px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = rgba('#d080ff', Math.min(1, k * 2)); ctx.fillText('\u2620', hx, floorY - 25 - (1 - k) * 6); }
     if (a.cls === 'mage') circle(ctx, hx + 6, floorY - 22, 9, rgba('#80c0ff', 0.12 + 0.05 * Math.sin(env.clock * 4)));

@@ -84,12 +84,13 @@ export function withUnit(ctx: CanvasRenderingContext2D, x: number, y: number, di
 }
 
 /** A little speech bubble above a head: "…" for chatter, "!" for excitement, "~" for a tipsy hum. */
-export function bubble(ctx: CanvasRenderingContext2D, px: number, py: number, text: string, alpha: number): void {
+export function bubble(ctx: CanvasRenderingContext2D, px: number, py: number, text: string, alpha: number, color = '#3a2a1a'): void {
   if (alpha <= 0) return;
+  const w = text.length > 2 ? 13 : 10;
   ctx.globalAlpha = alpha;
-  ctx.fillStyle = '#fffaf0'; ctx.beginPath(); ctx.roundRect(px - 5, py - 7, 10, 7, 2); ctx.fill();
+  ctx.fillStyle = '#fffaf0'; ctx.beginPath(); ctx.roundRect(px - w / 2, py - 7, w, 7, 2); ctx.fill();
   poly(ctx, [px - 2, py, px + 1, py, px - 1, py + 2], '#fffaf0');
-  ctx.font = 'bold 6px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#3a2a1a'; ctx.fillText(text, px, py - 1.5);
+  ctx.font = 'bold 6px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = color; ctx.fillText(text, px, py - 1.5);
   ctx.globalAlpha = 1;
 }
 

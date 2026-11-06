@@ -69,7 +69,8 @@ and `soundtrack`. Useful moves:
 
 - `space` pauses, `1/2/3` set speed, `M` mutes, `F` fullscreen, `D` copies a
   JSON diagnostic of parties, adventurers, dungeons and the raid (the owner
-  can paste this when reporting a stuck town).
+  can paste this when reporting a stuck town); clicking any person, party,
+  caravan, dungeon or building on the map locks the spotlight card onto it.
 - Jump to a time of day or season: a day is 60 s, a season 10 days, a year
   40 days (spring, summer, autumn, winter). Night is day fraction > 0.8 or
   < 0.17. `idleTown.time = Math.floor(idleTown.state.time / 2400) * 2400 + day * 60 + seconds`.
@@ -114,6 +115,5 @@ and `soundtrack`. Useful moves:
   shrinking or a `fight` with no living enemies.
 - Parties already on the road in old saves keep their level-sorted order
   until they re-form; new parties are in battle-line order.
-- Sprite buildings: house, tavern and guild hall share the same red two-tile
-  roof and are hard to tell apart in a dense town; campfire, farm crops,
-  market and graves are still procedural.
+- Sprite buildings: campfire, farm crops, market and graves are still procedural;
+  house, tavern and guild hall now have distinct roof tints and landmark signs.

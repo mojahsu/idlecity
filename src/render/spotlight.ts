@@ -1,20 +1,51 @@
 // The spotlight: every so often one villager, adventurer or child is picked
 // and followed for a while with a small card saying who they are and what
 // they are doing, so a watcher gets to know the town's people one by one.
-import type { GameState, Worker } from '../sim/types';
+// Clicking anything on the map locks the spotlight onto it for a while.
+import type { Building, GameState, Worker } from '../sim/types';
+import { DUNGEONS } from '../data/dungeons';
 import { ageOf } from '../sim/population';
 import { isLazy } from '../sim/leisure';
+import { isIndoors } from '../sim/workers';
 import { t } from '../i18n';
 import { TILE } from './constants';
 import { circle, roundRect, type Env } from './palette';
 
-type Target = { kind: 'worker' | 'adventurer' | 'child'; id: number };
+type Target =
+  | { kind: 'worker' | 'adventurer' | 'child' | 'party' | 'building'; id: number }
+  | { kind: 'dungeon'; id: string }
+  | { kind: 'caravan'; id: number };
 
 export class Spotlight {
   private target: Target | null = null;
   private timer = 6;
   private fade = 0;
   private last = { x: 0, y: 0 };
+
+  /** Select the nearest person, party, caravan, dungeon or building at tile (tx, ty). */
+  selectAt(s: GameState, tx: number, ty: number): void {
+    let best: { tg: Target; d: number } | null = null;
+    const consider = (tg: Target, x: number, y: number, maxD: number) => {
+      const d = Math.hypot(x - tx, y - ty);
+      if (d <= maxD && (!best || d < best.d)) best = { tg, d };
+    };
+    for (const p of s.parties) if (p.phase === 'travel' || p.phase === 'return') consider({ kind: 'party', id: p.id }, p.x + 0.5, p.y + 0.5, 1.3);
+    for (const a of s.adventurers) if (a.status === 'resting' || a.status === 'arriving') consider({ kind: 'adventurer', id: a.id }, a.x + 0.5, a.y + 0.5, 1.2);
+    for (const w of s.workers) if (!isIndoors(s, w)) consider({ kind: 'worker', id: w.id }, w.x + 0.5, w.y + 0.5, 1.2);
+    if (s.caravan) consider({ kind: 'caravan', id: 0 }, s.caravan.x + 0.5, s.caravan.y + 0.5, 1.4);
+    if (!best) {
+      for (const d of s.dungeons) if (d.unlocked) consider({ kind: 'dungeon', id: d.id }, d.x + 0.5, d.y + 0.5, 1.2);
+      for (const b of s.buildings) consider({ kind: 'building', id: b.id }, b.x + 0.5, b.y + 0.5, 0.9);
+    }
+    if (best) {
+      this.target = (best as { tg: Target; d: number }).tg;
+      this.timer = 18;
+      this.fade = Math.max(this.fade, 0.4);
+    } else if (this.target) {
+      this.target = null;
+      this.timer = 4;
+    }
+  }
 
   update(s: GameState, env: Env, dt: number): void {
     this.timer -= dt;
@@ -30,6 +61,10 @@ export class Spotlight {
   private find(s: GameState, tg: Target): { x: number; y: number } | null {
     if (tg.kind === 'worker') { const w = s.workers.find((x) => x.id === tg.id); return w ? w : null; }
     if (tg.kind === 'adventurer') { const a = s.adventurers.find((x) => x.id === tg.id); return a && (a.status === 'resting' || a.status === 'arriving') ? a : null; }
+    if (tg.kind === 'party') { const p = s.parties.find((x) => x.id === tg.id); return p && (p.phase === 'travel' || p.phase === 'return') ? p : null; }
+    if (tg.kind === 'caravan') return s.caravan ? s.caravan : null;
+    if (tg.kind === 'dungeon') { const d = s.dungeons.find((x) => x.id === tg.id); return d ? d : null; }
+    if (tg.kind === 'building') { const b = s.buildings.find((x) => x.id === tg.id); return b ? b : null; }
     const c = (s.children ?? []).find((x) => x.id === tg.id);
     return c ? this.last : null;
   }
@@ -62,7 +97,24 @@ export class Spotlight {
     else if (tk.kind === 'sleep') line = t('act.sleep');
     else if (tk.kind === 'douse') line = t('act.douse');
     else if (tk.kind === 'arrive') line = t('act.arrive');
+    void s;
     return [head, line];
+  }
+
+  private describeBuilding(s: GameState, b: Building): [string, string] {
+    const head = t(`building.${b.type}`);
+    if (!b.built) return [head, t('ui.buildingProgress', { pct: Math.round(b.progress * 100) })];
+    if (b.type === 'grave') {
+      const graves = s.buildings.filter((x) => x.type === 'grave');
+      const idx = graves.findIndex((x) => x.id === b.id);
+      const fallen = s.adventurers.filter((a) => a.status === 'dead');
+      const hero = idx >= 0 && idx < fallen.length ? fallen[idx] : null;
+      return [head, hero ? t('ui.graveHero', { name: hero.name, cls: t(`class.${hero.cls}`), level: hero.level }) : t('ui.graveRest')];
+    }
+    if (b.type === 'blacksmith') return [head, `${t('ui.equipment')} ${t('ui.level', { level: s.equipment })}`];
+    const inside = s.workers.filter((w) => Math.hypot(w.x - b.x, w.y - b.y) < 0.85).length
+      + s.adventurers.filter((a) => a.status === 'resting' && Math.hypot(a.x - b.x, a.y - b.y) < 0.85).length;
+    return [head, inside > 0 ? t('ui.indoorsCount', { count: inside }) : t(`tier.${s.tier}`)];
   }
 
   draw(ctx: CanvasRenderingContext2D, s: GameState, env: Env, W: number): void {
@@ -75,7 +127,35 @@ export class Spotlight {
     } else if (this.target.kind === 'adventurer') {
       const a = s.adventurers.find((x) => x.id === this.target!.id);
       if (!a) return;
-      pos = a; head = `${a.name} · ${t(`class.${a.cls}`)} ${t('ui.level', { level: a.level })}`; line = t(`ui.${a.status}`);
+      pos = a;
+      head = `${a.name} · ${t(`class.${a.cls}`)} ${t('ui.level', { level: a.level })}`;
+      line = a.status === 'resting' && a.pastime === 'train' ? t('ui.training')
+        : a.status === 'resting' && a.pastime === 'sally' ? t('ui.defending')
+        : a.status === 'resting' && a.pastime === 'drink' ? t('act.drink')
+        : t(`ui.${a.status}`);
+    } else if (this.target.kind === 'party') {
+      const p = s.parties.find((x) => x.id === this.target!.id);
+      if (!p) return;
+      pos = p;
+      const leader = s.adventurers.find((a) => a.id === p.memberIds[p.memberIds.length - 1]) ?? s.adventurers.find((a) => p.memberIds.includes(a.id));
+      head = `${leader ? leader.name : t('ui.party')} · ×${p.memberIds.length}`;
+      line = p.phase === 'return' ? t('ui.partyReturn', { gold: Math.round(p.loot.gold) }) : t('ui.partyTravel', { dungeon: t(`dungeon.${p.dungeon}`) });
+    } else if (this.target.kind === 'caravan') {
+      if (!s.caravan) return;
+      pos = s.caravan;
+      head = t('ui.caravanTitle');
+      line = s.caravan.phase === 'trade' ? t('ui.caravanTrade') : t('ui.caravanRoad');
+    } else if (this.target.kind === 'dungeon') {
+      const d = s.dungeons.find((x) => x.id === this.target!.id);
+      const def = DUNGEONS.find((x) => x.id === this.target!.id);
+      if (!d || !def) return;
+      pos = d;
+      head = `${t(`dungeon.${d.id}`)} · ${t('ui.level', { level: def.level })}`;
+      line = t('ui.dungeonRuns', { runs: d.runs, status: t(d.bossDefeated ? 'ui.bossDown' : 'ui.bossAlive') });
+    } else if (this.target.kind === 'building') {
+      const b = s.buildings.find((x) => x.id === this.target!.id);
+      if (!b) return;
+      pos = b; [head, line] = this.describeBuilding(s, b);
     }
     if (!pos) return;
     this.last = { x: pos.x, y: pos.y };

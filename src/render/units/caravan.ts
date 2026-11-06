@@ -1,7 +1,7 @@
 // The merchant caravan: merchant on foot, two laden mules and a covered wagon.
 import { TILE } from '../constants';
-import { circle, ellipse, poly, rect, line, groundShadow, rgba, type Env } from '../palette';
-import { facing, pose, body, withUnit, spriteFigures } from './shared';
+import { circle, ellipse, poly, rect, line, groundShadow, type Env } from '../palette';
+import { bubble, facing, pose, body, withUnit, spriteFigures } from './shared';
 import { drawSprite } from '../sprites';
 import { ANIMAL, MERCHANT } from '../spriteMap';
 import type { Caravan } from '../../sim/types';
@@ -32,9 +32,27 @@ export function drawCaravan(ctx: CanvasRenderingContext2D, c: Caravan, env: Env)
     ctx.restore();
   }
   if (c.phase === 'trade') {
-    // Spread a rug with wares next to the wagon.
-    rect(ctx, px + dir * 4 - 8, py + 2, 16, 6, '#b84040'); rect(ctx, px + dir * 4 - 7, py + 3, 14, 4, '#d8a040');
-    circle(ctx, px + dir * 4 - 4, py + 4.5, 1.4, '#5aa0e0'); circle(ctx, px + dir * 4, py + 4.5, 1.4, '#f0d050'); circle(ctx, px + dir * 4 + 4, py + 4.5, 1.4, '#8fcf7a');
+    // Spread a rug with wares, a striped market awning, crates and rising gold coins.
+    const sx = px + dir * 6;
+    rect(ctx, sx - 10, py + 1, 20, 7, '#b84040'); rect(ctx, sx - 9, py + 2, 18, 5, '#d8a040');
+    // Wooden crate and open chest of goods.
+    rect(ctx, sx - 8, py - 2, 5, 4, '#8a6036'); rect(ctx, sx - 8, py - 2, 5, 1, '#b08450');
+    circle(ctx, sx - 1.5, py + 4, 1.5, '#5aa0e0'); circle(ctx, sx + 2, py + 4.5, 1.5, '#f0d050'); circle(ctx, sx + 5.5, py + 4, 1.5, '#8fcf7a');
+    // Striped canopy on two poles.
+    rect(ctx, sx - 9.5, py - 14, 1.2, 16, '#5a3a1e'); rect(ctx, sx + 8.3, py - 14, 1.2, 16, '#5a3a1e');
+    for (let k = 0; k < 5; k++) {
+      const cx0 = sx - 10 + k * 4;
+      poly(ctx, [cx0, py - 14, cx0 + 4, py - 14, cx0 + 4.5, py - 10, cx0 - 0.5, py - 10], k % 2 ? '#f5ecd8' : '#c84438');
+    }
+    rect(ctx, sx - 10.5, py - 10.2, 21, 1.2, '#e0b040');
+    // Floating gold coins above the stall.
+    for (let i = 0; i < 3; i++) {
+      const ct = (env.clock * 0.9 + i * 0.33) % 1;
+      const cy0 = py - 4 - ct * 14, cx0 = sx - 5 + i * 5 + Math.sin(env.clock * 3 + i) * 1.2;
+      ctx.globalAlpha = 1 - ct;
+      circle(ctx, cx0, cy0, 1.8, '#f0c840'); circle(ctx, cx0 - 0.4, cy0 - 0.4, 0.8, '#fff8c0');
+      ctx.globalAlpha = 1;
+    }
   }
   // Merchant leads on foot with a staff and a wide hat.
   const p = pose(moving, false, env.clock, 11);
@@ -43,6 +61,10 @@ export function drawCaravan(ctx: CanvasRenderingContext2D, c: Caravan, env: Env)
     line(ctx, 4.5, 0, 4.5, -14, '#8a6a3a', 1.2);
     ellipse(ctx, -4.5, -6, 2.4, 2, '#b08a52');
   });
+  if (c.phase === 'trade') {
+    const k = (env.clock * 0.4) % 1;
+    bubble(ctx, px + dir * 2, py - 24, '✦', k < 0.45 ? 1 : 0, '#d89820');
+  }
   // Covered wagon at the back.
   const wx = px - dir * 34, wy = py;
   groundShadow(ctx, wx, wy + 1, 12, 3, 0.25);

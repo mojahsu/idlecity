@@ -160,12 +160,14 @@ tests/        bun tests
     stars, and even-numbered clear winter nights the aurora.
 
 11. The renderer also reacts to things the sim already does, without new sim
-    state: a party coming home draws a cheering crowd at the tavern, a new
-    grave gets a funeral procession, a level gained while resting sparkles,
-    a forged gear level throws sparks at the smithy, and the newest log line
-    shows as a caption in the corner of the map. The dungeon panel announces
-    floors and bosses with a banner, pops chests open, and shows floor
-    progress as dots.
+    state: a party setting out from the guild sounds a horn ripple and raises
+    weapons, a party coming home trails gold sparkles and draws a cheering
+    crowd at the tavern, a trading caravan pitches a striped market awning with
+    rising coins, a new grave gets a funeral procession, a level gained while
+    resting sparkles, a forged gear level throws sparks at the smithy, and the
+    newest log line shows as a caption in the corner of the map. The dungeon
+    panel announces floors, bosses, retreats and victories with a banner, leaves
+    fireball scorch marks, pops chests open, and shows floor progress as dots.
 
 12. Lives (`population.ts`): everyone has an age; a life-year is one season
     (`LIFE_YEAR_DAYS`). Newcomers arrive at 16–26, marry in the chapel, have
@@ -190,9 +192,16 @@ tests/        bun tests
     on the hens and an owl sits on a roof (`render/townlife/night.ts`).
 15. The spotlight (`render/spotlight.ts`) picks a villager or adventurer every
     so often and follows them for a while with a card: name, age, job, what
-    they are doing. Buildings grow with the town's tier: huts get chimneys and
-    flower boxes, city houses stone ground floors and slate roofs, the market
-    lanterns and a flower stall, the square a stone ring, benches and paving.
+    they are doing; clicking any person, party, caravan, dungeon or building on
+    the map locks the spotlight onto it for 18 s (showing fallen heroes on
+    graves, loot on returning parties, or occupancy on buildings). People also
+    show small contextual speech bubbles over their heads (`><>` when a fish
+    bites, `?`/`!` over chess, `♥` at meals and picnics, `✦` when praying,
+    sparks when sparring). Buildings grow with the town's tier and carry
+    landmark signs: a swinging mug at the tavern, a crossed-swords crest and
+    noticeboard at the guild, a glowing hearth at the smithy, and golden
+    pennants, statue admirers and doves over the Dark Tower once the Demon Lord
+    falls.
 16. Offline progress is replayed over the first frames after loading
     (a 12 ms slice of simulation per timer tick, `runCatchUp` in main.ts) with a "catching up" toast,
     so the town appears at once instead of the page freezing.

@@ -58,8 +58,11 @@ export interface ViewState {
   chest: number;
   motes: { x: number; y: number; vx: number; vy: number; ttl: number; life: number }[];
   puffs: { x: number; y: number; ttl: number }[];
+  scorch: { x: number; ttl: number }[];
+  outro: number;
+  retreating: boolean;
 }
 
 export function newViewState(floor: number): ViewState {
-  return { floor, hadEncounter: false, boss: false, heroLunge: new Map(), heroHurt: new Map(), heal: new Map(), shownHp: new Map(), enemies: [], dying: [], floorFlash: 0.8, shake: 0, nums: [], sparks: [], scroll: 0, shots: [], taunt: 0, tauntIdx: 0, frozen: 0, beam: 0, beamIdx: 0, block: 0, blockIdx: 0, revive: 0, reviveIdx: 0, casting: 0, castIdx: 0, breath: 0, breathFrom: 0, curse: 0, curseIdx: 0, banner: null, bossIntro: 0, chest: 0, motes: [], puffs: [] };
+  return { floor, hadEncounter: false, boss: false, heroLunge: new Map(), heroHurt: new Map(), heal: new Map(), shownHp: new Map(), enemies: [], dying: [], floorFlash: 0.8, shake: 0, nums: [], sparks: [], scroll: 0, shots: [], taunt: 0, tauntIdx: 0, frozen: 0, beam: 0, beamIdx: 0, block: 0, blockIdx: 0, revive: 0, reviveIdx: 0, casting: 0, castIdx: 0, breath: 0, breathFrom: 0, curse: 0, curseIdx: 0, banner: null, bossIntro: 0, chest: 0, motes: [], puffs: [], scorch: [], outro: 0, retreating: false };
 }

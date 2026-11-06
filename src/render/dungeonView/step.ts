@@ -35,7 +35,7 @@ export function step(s: GameState, p: Party, v: ViewState, env: Env, dt: number)
         case 'volley': for (let k = 0; k < 3; k++) v.shots.push({ kind: 'arrow', x: hx + 6, y: floorY - 14 - k * 3, tx: tx - 4 + k * 2, ty: ty - k * 3, t: -k * 0.07, life: 0.25, onLand: k === 2 ? () => hitEnemy(ti, f.amount, '#c8f0a0') : undefined }); label(t('skill.volley'), hx, floorY - 36, '#c8f0a0'); break;
         case 'crit': v.shots.push({ kind: 'arrow', x: hx + 6, y: floorY - 14, tx: tx - 4, ty, t: 0, life: 0.2, onLand: () => { hitEnemy(ti, f.amount, '#ffd040'); v.shake = Math.max(v.shake, 0.15); } }); label(t('skill.crit'), hx, floorY - 44, '#ffd040', 1.3, true); break;
         case 'bolt': v.casting = 0.3; v.castIdx = ai; v.shots.push({ kind: 'bolt', x: hx + 8, y: floorY - 18, tx, ty, t: 0, life: 0.3, onLand: () => hitEnemy(ti, f.amount, '#a0e0ff') }); break;
-        case 'fireball': v.casting = 0.4; v.castIdx = ai; v.shots.push({ kind: 'fire', x: hx + 8, y: floorY - 18, tx, ty, t: 0, life: 0.4, onLand: () => { hitEnemy(ti, f.amount, '#ffa060'); burst(v, tx, ty, '#ff9040', 18); burst(v, tx, ty, '#ffe080', 8); for (const i of f.splash ?? []) hitEnemy(i, Math.round(f.amount / 2), '#ffa060'); v.shake = Math.max(v.shake, 0.15); } }); label(t('skill.fireball'), hx, floorY - 36, '#ffa060'); break;
+        case 'fireball': v.casting = 0.4; v.castIdx = ai; v.shots.push({ kind: 'fire', x: hx + 8, y: floorY - 18, tx, ty, t: 0, life: 0.4, onLand: () => { hitEnemy(ti, f.amount, '#ffa060'); burst(v, tx, ty, '#ff9040', 18); burst(v, tx, ty, '#ffe080', 8); v.scorch.push({ x: tx, ttl: 2.2 }); for (const i of f.splash ?? []) hitEnemy(i, Math.round(f.amount / 2), '#ffa060'); v.shake = Math.max(v.shake, 0.22); } }); label(t('skill.fireball'), hx, floorY - 36, '#ffa060'); break;
         case 'heal': { const ti2 = hi(f.targetId ?? f.actorId); v.heal.set(f.targetId ?? f.actorId, 0.6); num(`+${f.amount}`, heroX(ti2), floorY - 46, '#90f090'); v.casting = 0.3; v.castIdx = ai; break; }
         case 'holyLight': { const ti2 = hi(f.targetId ?? f.actorId); v.beam = 0.7; v.beamIdx = ti2; v.heal.set(f.targetId ?? f.actorId, 0.7); num(`+${f.amount}`, heroX(ti2), floorY - 46, '#fff0a0'); label(t('skill.holyLight'), heroX(ti2), floorY - 40, '#fff0a0'); break; }
       }
@@ -57,7 +57,7 @@ export function step(s: GameState, p: Party, v: ViewState, env: Env, dt: number)
     } else if (f.kind === 'skill') {
       const ai = hi(f.actorId), ti = f.targetId !== undefined ? hi(f.targetId) : ai;
       switch (f.skill) {
-        case 'taunt': v.taunt = 0.7; v.tauntIdx = ai; break;
+        case 'taunt': v.taunt = 0.8; v.tauntIdx = ai; label(t('skill.taunt'), heroX(ai), floorY - 38, '#ffd060'); break;
         case 'frost': v.frozen = 1.4; label(t('skill.frost'), PANEL_W * 0.74, floorY - 48, '#a0e0ff', 1.3); break;
         case 'block': v.block = 0.45; v.blockIdx = ti; label(t('skill.block'), heroX(ti), floorY - 36, '#c0d0e0'); break;
         case 'revive': v.revive = 1.2; v.reviveIdx = ti; label(t('skill.revive'), heroX(ti), floorY - 44, '#ffffff', 1.6, true); break;
@@ -69,12 +69,16 @@ export function step(s: GameState, p: Party, v: ViewState, env: Env, dt: number)
   // Floor change.
   if (p.floor !== v.floor) { v.floor = p.floor; v.floorFlash = 0.8; const def = DUNGEONS.find((d) => d.id === p.dungeon)!; v.banner = { text: t('ui.floor', { floor: p.floor, floors: def.floors }), color: p.floor === def.floors ? '#ffb0f0' : '#f0e0c0', ttl: 1.3, life: 1.3, big: false }; }
   if (p.phase === 'explore') v.scroll += dt * 24;
+  if (v.outro > 0 && v.retreating) {
+    v.scroll -= dt * 36;
+    if (Math.random() < dt * 10 && team.length) v.puffs.push({ x: heroX(Math.floor(Math.random() * team.length)) + 4, y: floorY + 1, ttl: 0.4 });
+  }
   // The pack appears.
   if (e && !v.hadEncounter) {
     v.boss = e.boss; v.enemies = enemies.map(() => ({ lunge: 0, hurt: 0, shownHp: 1 })); v.shake = e.boss ? 0.5 : 0;
     if (e.boss) { v.bossIntro = 1.8; v.banner = { text: t(`monster.${e.monster}`), color: e.monster === 'demonLord' ? '#ff60c0' : '#ff8080', ttl: 1.8, life: 1.8, big: true }; }
   }
-  if (!e) v.enemies = [];
+  if (!e && v.outro <= 0) v.enemies = [];
   v.hadEncounter = !!e;
   // Shown bars chase the real values so a blow reads as a drop.
   enemies.forEach((en, i) => { const ev = v.enemies[i]; if (ev) ev.shownHp += (Math.max(0, en.hp) / en.maxHp - ev.shownHp) * Math.min(1, dt * 6); });
@@ -97,6 +101,7 @@ export function step(s: GameState, p: Party, v: ViewState, env: Env, dt: number)
   v.nums = v.nums.filter((x) => (x.ttl -= dt) > 0); for (const x of v.nums) x.y -= 18 * dt;
   v.sparks = v.sparks.filter((sp) => (sp.ttl -= dt) > 0); for (const sp of v.sparks) { sp.x += sp.vx * dt; sp.y += sp.vy * dt; sp.vy += 60 * dt; }
   v.puffs = v.puffs.filter((q) => (q.ttl -= dt) > 0);
+  v.scorch = v.scorch.filter((sc) => (sc.ttl -= dt) > 0);
   if (v.motes.length < 14 && Math.random() < dt * 3) v.motes.push({ x: Math.random() * PANEL_W, y: 6 + Math.random() * (floorY - 10), vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 2, ttl: 4 + Math.random() * 4, life: 8 });
   v.motes = v.motes.filter((m) => (m.ttl -= dt) > 0); for (const m of v.motes) { m.x += (m.vx - (p.phase === 'explore' ? 10 : 0)) * dt; m.y += m.vy * dt + Math.sin(env.clock + m.x) * 0.3 * dt; }
 }

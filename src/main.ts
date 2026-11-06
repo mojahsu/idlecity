@@ -40,6 +40,7 @@ function toggleMute(): void {
 hud.setMuted(audio.isMuted());
 fullscreen.onChange(() => { hud.setFullscreen(fullscreen.isFullscreen()); showCursor(); });
 canvas.addEventListener('dblclick', () => { void fullscreen.toggle(); });
+canvas.addEventListener('click', (e) => { guarded('click', () => renderer.handleClick(state, e.clientX, e.clientY)); });
 
 // Hide the mouse cursor after a few idle seconds while fullscreen (watch mode).
 let cursorTimer = 0;

@@ -122,6 +122,15 @@ export class Renderer {
     return ev;
   }
 
+  /** Lock the spotlight onto whatever is at the clicked canvas position. */
+  handleClick(s: GameState, clientX: number, clientY: number): void {
+    const rect = this.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const tx = ((clientX - rect.left) / rect.width) * s.width;
+    const ty = ((clientY - rect.top) / rect.height) * s.height;
+    this.spotlight.selectAt(s, tx, ty);
+  }
+
   /** The newest event as a caption in the bottom right corner, so you never miss what just happened. */
   private drawCaption(ctx: CanvasRenderingContext2D, s: GameState, dt: number, W: number, H: number): void {
     const last = s.log[s.log.length - 1] ?? null;

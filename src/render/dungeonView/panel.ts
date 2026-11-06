@@ -45,8 +45,9 @@ export function drawPanel(ctx: CanvasRenderingContext2D, s: GameState, p: Party,
     drawFigures(ctx, s, p, v, env, floorY, team, mx0);
   }
   // Hero HP bars and names (figures are drawn by drawFigures).
+  const retreatShift = v.outro > 0 && v.retreating ? (1.35 - v.outro) * 26 : 0;
   team.forEach((a, i) => {
-    const hx = heroX(i);
+    const hx = heroX(i) - retreatShift;
     const w = 26, hp = Math.max(0, v.shownHp.get(a.id) ?? a.hp / a.maxHp);
     hpBar(ctx, hx - w / 2, floorY + 6, w, 3.5, hp, hp > 0.5 ? '#7ad07a' : hp > 0.25 ? '#e0b040' : '#e05050');
     ctx.textAlign = 'center'; ctx.fillStyle = CLASSES[a.cls].color;
