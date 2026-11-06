@@ -78,6 +78,7 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
   const moving = w.path.length > 0;
   const working = !!w.task && 'phase' in w.task && w.task.phase === 'work';
   const sleeping = w.task?.kind === 'sleep' && w.task.phase === 'sleep';
+  const fleeing = env.raid && w.task?.kind === 'sleep' && w.task.phase === 'go';
   const dousing = w.task?.kind === 'douse';
   const rest = w.task?.kind === 'rest' && w.task.phase === 'do' ? w.task : null;
   const p = pose(moving, working || rest?.activity === 'feed', env.clock, w.id);
@@ -91,6 +92,13 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
   if (elder) p.bob += 1.2; // a slight stoop
   const sit = { walk: 0, bob: 0, swing: 0 };
   if (sleeping || rest?.activity === 'nap') {
+    if (env.raid && !env.night) {
+      // Crouching by the fire if no indoor building exists yet during a daytime raid.
+      withUnit(ctx, w.x, w.y, dir, 3, () => { body(ctx, tunic, skin, hair, sit, true, fig); hat(ctx, w.job); });
+      const k = (env.clock * 0.45 + w.id * 0.27) % 1;
+      bubble(ctx, px, py - 18, '!', k < 0.4 ? 1 : 0, '#c83020');
+      return;
+    }
     // Dozing: reclined/leaning back, breathing slowly, the odd "z".
     const breath = Math.sin(env.clock * 1.5 + w.id) * 0.4;
     withUnit(ctx, w.x, w.y, dir, 3 + breath, () => {
@@ -205,9 +213,10 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
       ellipse(ctx, -4.5, -6, 2.6, 1.8, '#b08a52');
       for (let i = 0; i < 3; i++) { const gt = (env.clock * 2.2 + i * 0.33 + w.id) % 1; circle(ctx, 3 + gt * 5, -6 + gt * 6, 0.7, '#f0d060'); }
     }
-    else if (!rest && (working || !w.carrying)) tool(ctx, w, p);
+    else if (!rest && !fleeing && (working || !w.carrying)) tool(ctx, w, p);
   });
   if (dousing) { const k = (env.clock * 0.4 + w.id * 0.23) % 1; bubble(ctx, px, py - 20, t('talk.w.fire'), k < 0.35 ? 1 : 0, '#c83020'); }
+  else if (fleeing) { const k = (env.clock * 0.55 + w.id * 0.29) % 1; bubble(ctx, px, py - 20, t(w.id % 2 ? 'talk.w.raid.0' : 'talk.w.raid.1'), k < 0.5 ? 1 : 0, '#c83020'); }
   else if (isSpeakingInSkit(w.id)) { /* skit overlay draws the full multi-turn bubble */ }
   else if (rest?.activity === 'chat' || rest?.activity === 'visit') { const k = (env.clock * 0.45 + (w.id % 2) * 0.5) % 1; bubble(ctx, px + dir * 2, py - 20, w.id % 3 === 0 ? t(w.id % 2 ? 'talk.w.chat.0' : 'talk.w.chat.1') : '…', k < 0.4 ? 1 : 0); }
   else if (listening && !dancing) { const k = (env.clock * 0.35 + w.id * 0.17) % 1; bubble(ctx, px + dir * 2, py - 20, '♪', k < 0.3 ? 1 : 0, '#b86a2a'); }

@@ -32,6 +32,7 @@ import { drawSpriteBuilding, hasSpriteBuilding, spriteBuildingHeight } from './s
  */
 export function isLit(b: Building, env: Env): boolean {
   const def = BUILDINGS[b.type];
+  if ((b.type === 'hut' || b.type === 'house') && env.raid && env.indoors.has(b.id)) return true;
   if (!def.light || env.dark <= 0.35) return false;
   const f = env.dayFrac, h = hash(b.x, b.y, 61);
   if (b.type === 'hut' || b.type === 'house') {

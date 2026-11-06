@@ -51,6 +51,10 @@ export class Skits {
     kids: { id: number; name: string; x: number; y: number }[],
   ): void {
     if (!couple) this.weddingDone = false;
+    if (s.raid) {
+      if (this.running) this.stop();
+      return;
+    }
 
     if (this.running) {
       const { plan } = this.running;

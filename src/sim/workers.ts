@@ -19,6 +19,10 @@ export function updateWorkers(s: GameState, dt: number): void {
 function updateWorker(s: GameState, w: Worker, dt: number): void {
   if (w.tipsy) w.tipsy = Math.max(0, w.tipsy - dt);
   const WORKER_SPEED = isElder(w) ? BASE_SPEED * 0.85 : BASE_SPEED;
+  if (s.raid && w.task?.kind !== 'sleep' && w.task?.kind !== 'douse') {
+    if (w.carrying) { s.resources[w.carrying] += w.carryAmount; w.carrying = null; w.carryAmount = 0; }
+    goHome(s, w);
+  }
   if (!w.task) assignTask(s, w);
   const t = w.task;
   if (!t) { w.timer -= dt; return; }
@@ -63,9 +67,10 @@ function updateWorker(s: GameState, w: Worker, dt: number): void {
     }
 
     case 'sleep': {
-      // Everyone wakes a little after sunrise, staggered so the street fills gradually.
-      if (!isNight(s) && !isBlizzard(s) && dayFraction(s) > 0.17 + ((w.id * 37) % 10) * 0.006) { w.task = null; return; }
-      if (t.phase === 'go' && moveAlong(w, WORKER_SPEED, dt)) t.phase = 'sleep';
+      // Everyone wakes a little after sunrise (once any raid is over), staggered so the street fills gradually.
+      if (!isNight(s) && !isBlizzard(s) && !s.raid && dayFraction(s) > 0.17 + ((w.id * 37) % 10) * 0.006) { w.task = null; return; }
+      const speed = s.raid ? WORKER_SPEED * 1.45 : WORKER_SPEED;
+      if (t.phase === 'go' && moveAlong(w, speed, dt)) t.phase = 'sleep';
       return;
     }
 
@@ -127,7 +132,7 @@ function deposit(s: GameState, w: Worker): void {
 
 function assignTask(s: GameState, w: Worker): void {
   if (s.fire && dousers(s) < brigadeSize(s)) { draftToFire(s, w); return; }
-  if (isNight(s) || isBlizzard(s)) { goHome(s, w); return; }
+  if (isNight(s) || isBlizzard(s) || s.raid) { goHome(s, w); return; }
   if (maybeRest(s, w)) return;
   const job = JOBS[w.job];
   if (w.job === 'builder') {
@@ -225,7 +230,13 @@ export function isIndoors(s: GameState, w: Worker): boolean {
 }
 
 function goHome(s: GameState, w: Worker): void {
-  const home = homeOf(s, w);
+  let home = homeOf(s, w);
+  if (s.raid && (!home || home.type === 'campfire')) {
+    const shelters = s.buildings.filter((b) => b.built && (b.type === 'hut' || b.type === 'house' || b.type === 'tavern' || b.type === 'keep' || b.type === 'guildHall' || b.type === 'chapel' || b.type === 'granary'));
+    if (shelters.length) {
+      home = shelters.reduce((best, b) => (Math.hypot(b.x - w.x, b.y - w.y) < Math.hypot(best.x - w.x, best.y - w.y) ? b : best), shelters[0]);
+    }
+  }
   if (!home) return;
   w.task = { kind: 'sleep', buildingId: home.id, phase: 'go' };
   // Sit at the fire's edge rather than on it.

@@ -10,7 +10,7 @@ export class Kids {
   private kidsById = new Map<number, Walker>();
 
   update(s: GameState, env: Env, dt: number, roads: Roads): void {
-    const playtime = env.dark < 0.4 && !env.night && !env.rainy && s.workers.length >= 6;
+    const playtime = !s.raid && env.dark < 0.4 && !env.night && !env.rainy && s.workers.length >= 6;
     // The town's real children wander the streets by day, each with a name in the sim.
     const real = s.children ?? [];
     for (const c of real) {

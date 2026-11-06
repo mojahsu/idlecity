@@ -26,13 +26,13 @@ export class Visitors {
   }
 
   private circusActive(s: GameState, env: Env): boolean {
-    if (!this.circusSpot || env.storm || env.season === 'winter') return false;
+    if (!this.circusSpot || env.storm || env.season === 'winter' || s.raid) return false;
     const dayIdx = Math.floor(s.time / 120);
     return dayIdx % 3 === 1 && env.dayFrac > 0.32 && env.dayFrac < 0.86;
   }
 
   private alchemistActive(s: GameState, env: Env): boolean {
-    if (!this.alchemistSpot || env.storm) return false;
+    if (!this.alchemistSpot || env.storm || s.raid) return false;
     const dayIdx = Math.floor(s.time / 120);
     return dayIdx % 3 === 2 && env.dayFrac > 0.25 && env.dayFrac < 0.88;
   }

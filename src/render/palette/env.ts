@@ -35,6 +35,8 @@ export interface Env {
   holiday: boolean;
   /** The season's special day, if today is one. */
   seasonal: SeasonalEvent | null;
+  /** True while a monster raid is marching on or fighting the town. */
+  raid: boolean;
 }
 
 export function makeEnv(s: GameState, clock: number): Env {
@@ -54,7 +56,7 @@ export function makeEnv(s: GameState, clock: number): Env {
   const indoors = new Set<number>();
   for (const w of s.workers) if (w.task?.kind === 'sleep' && w.task.phase === 'sleep') indoors.add(w.task.buildingId);
   const festival = sea === 'autumn' && (day - 1) % 10 === 5 && f > 0.78;
-  return { season: sea, dark, dayFrac: f, clock, day, rainy, storm, snowy, foggy, rainbow, clearNight, night: isNight(s), bell, indoors, festival, holiday: isHoliday(s), seasonal: seasonalEvent(s) };
+  return { season: sea, dark, dayFrac: f, clock, day, rainy, storm, snowy, foggy, rainbow, clearNight, night: isNight(s), bell, indoors, festival, holiday: isHoliday(s), seasonal: seasonalEvent(s), raid: !!s.raid };
 }
 
 /** Warm/cool tint of the whole scene for the time of day, as an rgba fill. */

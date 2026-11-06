@@ -149,6 +149,9 @@ tests/        bun tests
    Townsfolk sleep: at sunset workers finish their trip and go home (a bed in a
    hut or house, otherwise the campfire); windows light up as they arrive and go
    dark one by one late at night; everyone is back out a little after sunrise.
+   Whenever a monster raid attacks the town, villagers, children and street
+   visitors immediately drop their outdoor activities and sprint indoors to
+   their homes or the nearest shelter until the raiders are repelled.
    Daytime work yields `DAY_WORK_BONUS` more to make up for all the time off;
    workers are busy about 40% of the day.
 9. Events (`sim/events.ts`): once the market stands, a merchant caravan visits
