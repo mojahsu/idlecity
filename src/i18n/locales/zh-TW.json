@@ -128,6 +128,7 @@
   "log.blizzard": "暴風雪來襲！今天沒有人出門。",
   "log.fishing": "夏日抓魚比賽開始！河邊排滿了釣竿。",
   "ui.catchingUp": "正在補跑離開的 {minutes} 分鐘…",
+  "ui.diagCopied": "診斷資訊已複製到剪貼簿",
   "ui.age": "{age} 歲",
   "ui.child": "孩童",
   "ui.lazy": "天生懶散",

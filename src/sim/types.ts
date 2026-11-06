@@ -147,6 +147,8 @@ export interface Party {
   reviveUsed?: boolean;
   /** Monster is frozen and skips its next attack. */
   frozen?: boolean;
+  /** Watchdog: seconds spent without moving on the road, and where that was. */
+  stuck?: number; stuckX?: number; stuckY?: number;
   /** Whose turn is next in the fight: heroes in order, then each enemy. */
   actIdx?: number;
 }

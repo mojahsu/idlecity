@@ -27,8 +27,9 @@ bun run typecheck
 bun run build      # static files in dist/
 ```
 
-Keyboard: `space` pause, `1` / `2` / `3` for 1x / 2x / 4x, `F` (or double-click
-the map) for fullscreen. The canvas re-renders at its displayed size, so
+Keyboard: `space` pause, `1` / `2` / `3` for 1x / 2x / 4x, `M` mute, `D` copies a
+JSON summary of parties, adventurers and dungeons for bug reports, `F` (or
+double-click the map) for fullscreen. The canvas re-renders at its displayed size, so
 fullscreen on a large monitor stays sharp. The mouse cursor hides after 3 s
 idle while fullscreen. Fullscreen lives behind `src/platform/fullscreen.ts`
 so a desktop build can swap in window-level fullscreen.

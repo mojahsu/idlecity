@@ -128,6 +128,7 @@
   "log.blizzard": "A blizzard! Nobody leaves the house today.",
   "log.fishing": "The summer fishing contest! Lines go in at the river bank.",
   "ui.catchingUp": "Catching up on {minutes} minutes away…",
+  "ui.diagCopied": "Diagnostics copied to the clipboard",
   "ui.age": "age {age}",
   "ui.child": "child",
   "ui.lazy": "takes it easy",

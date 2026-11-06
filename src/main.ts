@@ -136,11 +136,31 @@ if (import.meta.env.DEV) {
   };
 }
 
+/** A compact picture of the moving parts, for bug reports (press D). */
+function diagnostics(s: GameState): string {
+  const r1 = (n: number) => Math.round(n * 10) / 10;
+  return JSON.stringify({
+    time: r1(s.time), day: Math.floor(s.time / 60) + 1, width: s.width, height: s.height, victory: s.victory, catchUp: r1(catchUp), speed,
+    parties: s.parties.map((p) => ({ id: p.id, dungeon: p.dungeon, phase: p.phase, floor: p.floor, x: r1(p.x), y: r1(p.y), path: p.path.length, next: p.path[0], timer: r1(p.timer), actIdx: p.actIdx, stuck: r1(p.stuck ?? 0), members: p.memberIds, enc: p.encounter && { m: p.encounter.monster, boss: p.encounter.boss, hp: p.encounter.hp, enemies: p.encounter.enemies?.map((e) => [e.monster, Math.round(e.hp)]) } })),
+    adventurers: s.adventurers.map((a) => ({ id: a.id, name: a.name, cls: a.cls, lv: a.level, status: a.status, hp: Math.round(a.hp), max: Math.round(a.maxHp), x: r1(a.x), y: r1(a.y), path: a.path.length, pastime: a.pastime, party: a.partyId })),
+    dungeons: s.dungeons.map((d) => ({ id: d.id, x: d.x, y: d.y, unlocked: d.unlocked, boss: d.bossDefeated, bossHp: d.bossHp, runs: d.runs })),
+    raid: s.raid && { m: s.raid.monster, phase: s.raid.phase, x: r1(s.raid.x), y: r1(s.raid.y), hp: Math.round(s.raid.hp) },
+    buildings: s.buildings.filter((b) => b.type === 'tavern' || b.type === 'guildHall').map((b) => [b.type, b.x, b.y, b.built]),
+    log: s.log.slice(-8).map((l) => l.key),
+  });
+}
+
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(storage, state); });
 window.addEventListener('beforeunload', () => saveGame(storage, state));
 window.addEventListener('keydown', (e) => {
   if (e.key === ' ') { e.preventDefault(); const sp = speed === 0 ? (settings.speed || 1) : 0; speed = sp; hud.setSpeed(sp); }
   if (e.key === 'f' || e.key === 'F') { void fullscreen.toggle(); }
   if (e.key === 'm' || e.key === 'M') toggleMute();
+  if (e.key === 'd' || e.key === 'D') {
+    // Copy a state summary for bug reports; where the clipboard is off limits, show it to copy by hand.
+    const text = diagnostics(state);
+    const fallback = () => window.prompt('Idle Town diagnostics', text);
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => hud.showToast(t('ui.diagCopied'), 4), fallback); else fallback();
+  }
   if (e.key === '1' || e.key === '2' || e.key === '3') { speed = [1, 2, 4][Number(e.key) - 1]; hud.setSpeed(speed); settings.speed = speed; saveSettings(storage, settings); }
 });

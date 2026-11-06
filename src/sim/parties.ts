@@ -22,6 +22,7 @@ function updateParty(s: GameState, p: Party, dt: number): void {
   const team = members(s, p);
   if (!team.length) { dissolve(s, p); return; }
   for (const a of team) { a.x = p.x; a.y = p.y; }
+  watchdog(s, p, dt);
 
   switch (p.phase) {
     case 'travel':
@@ -36,6 +37,7 @@ function updateParty(s: GameState, p: Party, dt: number): void {
       return;
     case 'fight':
       if (p.encounter && !p.encounter.enemies) p.encounter.enemies = [{ monster: p.encounter.monster, hp: p.encounter.hp, maxHp: p.encounter.maxHp, atk: p.encounter.atk, acts: 0 }];
+      if (p.encounter && !p.encounter.enemies!.some((x) => x.hp > 0)) { onPackCleared(s, p); return; } // never wait on a pack that is already dead
       p.timer += dt;
       while (p.timer >= ACT_TIME) { p.timer -= ACT_TIME; act(s, p); if (p.phase !== 'fight') return; }
       return;
@@ -43,6 +45,22 @@ function updateParty(s: GameState, p: Party, dt: number): void {
       if (moveAlong(p, PARTY_SPEED, dt)) arriveHome(s, p);
       return;
   }
+}
+
+/**
+ * A party on the road that has not moved for a while gets a fresh path, and
+ * one that still cannot move finishes its leg, so a blocked road never leaves
+ * adventurers standing at a dungeon mouth for good.
+ */
+function watchdog(s: GameState, p: Party, dt: number): void {
+  if (p.phase !== 'travel' && p.phase !== 'return') { p.stuck = 0; return; }
+  if (p.stuckX === p.x && p.stuckY === p.y) p.stuck = (p.stuck ?? 0) + dt;
+  else { p.stuck = 0; p.stuckX = p.x; p.stuckY = p.y; }
+  if (p.stuck > 20 && p.stuck - dt <= 20) {
+    const d = s.dungeons.find((x) => x.id === p.dungeon);
+    p.path = findPath(s, p, p.phase === 'travel' && d ? d : tavernPos(s));
+  }
+  if (p.stuck > 45) p.path = []; // give up: the next move completes the leg
 }
 
 /** Only a healthy, full-strength party faces a boss. Others turn back and live to try again. */
