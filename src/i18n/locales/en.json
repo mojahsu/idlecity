@@ -36,6 +36,8 @@
   "ui.unmute": "Sound on (M)",
   "ui.cameraOn": "Cinematic Camera ON (C)",
   "ui.cameraOff": "Cinematic Camera OFF (C)",
+  "ui.mode3dOn": "3D HD-2D Diorama ON (V · Right-drag orbit, wheel zoom)",
+  "ui.mode3dOff": "2D Classic View ON (V)",
   "ui.floor": "Floor {floor} / {floors}",
   "ui.exploring": "Exploring",
   "ui.slain": "Slain!",

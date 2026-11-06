@@ -31,10 +31,11 @@ bun run typecheck
 bun run build      # static files in dist/
 ```
 
-Keyboard: `space` pause, `1` / `2` / `3` for 1x / 2x / 4x, `M` mute, `C` (or the
-`🎥` button) toggles the HD-2D Cinematic follow-camera, `D` copies a
-JSON summary of parties, adventurers and dungeons for bug reports, `F` (or
-double-click the map) for fullscreen. The canvas re-renders at its displayed size, so
+Keyboard: `space` pause, `1` / `2` / `3` for 1x / 2x / 4x, `M` mute, `V` (or the
+`🧊 3D` button) toggles the Three.js 3D HD-2D Diorama mode (right-drag to orbit,
+scroll wheel to zoom), `C` (or the `🎥` button) toggles the HD-2D Cinematic
+follow-camera, `D` copies a JSON summary of parties, adventurers and dungeons
+for bug reports, `F` (or double-click the map) for fullscreen. The canvas re-renders at its displayed size, so
 fullscreen on a large monitor stays sharp. The mouse cursor hides after 3 s
 idle while fullscreen. Fullscreen lives behind `src/platform/fullscreen.ts`
 so a desktop build can swap in window-level fullscreen.
@@ -90,6 +91,9 @@ src/
                     seasonal, visitors, clickEasterEggs, skits, skitScripts, chapters
     lighting/       night, rays, fog, bloom, clouds, vignette
     camera.ts       smooth HD-2D cinematic pan & zoom follow-camera
+    diorama3d.ts    Three.js 3D HD-2D miniature diorama renderer (3D pedestal,
+                    terrain cliffs, water & waterfalls, 3D building roofs/towers,
+                    spinning windmills, shadow maps, point lights & pop-up slices)
     dungeonView/    state, step (HP → animation), panel, figures, chest, hud;
                     backdrops/{goblinCave,ancientRuins,emeraldCavern,emberPeak,darkTower}
   ui/         HUD (DOM), VictoryModal (victoryModal.ts), stylesheet

@@ -17,6 +17,7 @@ import { Spotlight } from './spotlight';
 import { Lighting, drawVignette } from './lighting';
 import { DungeonView } from './dungeonView';
 import { CinematicCamera } from './camera';
+import { Diorama3D } from './diorama3d';
 import { isIndoors } from '../sim/workers';
 import { trainingPosts } from '../sim/adventurers';
 import { drawTrainingPost } from './units/trainingPost';
@@ -35,6 +36,7 @@ export class Renderer {
   private lighting = new Lighting();
   private dungeonView = new DungeonView();
   private camera = new CinematicCamera();
+  private diorama: Diorama3D;
   private clock = 0;
   private scale = 1;
   private lastLog: LogEntry | null = null;
@@ -42,6 +44,7 @@ export class Renderer {
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d')!;
+    this.diorama = new Diorama3D(canvas);
     loadSprites();
   }
 
@@ -76,12 +79,6 @@ export class Renderer {
     this.dungeonView.update(s, env, dt);
 
     ctx.clearRect(0, 0, W, H);
-    ctx.save();
-    this.camera.apply(ctx, W, H);
-    this.terrain.draw(ctx, s, env, this.scale);
-    drawWater(ctx, s, env);
-    drawTreeShadows(ctx, s, env);
-    drawBuildingShadows(ctx, s, env);
 
     // Depth-sorted scene.
     const items: Drawable[] = [];
@@ -103,21 +100,61 @@ export class Renderer {
     for (const g of this.effects.groundActors()) items.push(g);
     for (const g of this.townLife.groundActors(s, env)) items.push(g);
     items.sort((a, b) => a.y - b.y);
-    for (const it of items) it.draw(ctx, env);
-
-    this.effects.drawLow(ctx);
-    this.effects.drawFloats(ctx);
-    this.effects.drawHigh(ctx, env);
-    this.effects.drawWeather(ctx);
-    this.effects.drawRainbow(ctx, env, W, H);
 
     const lights: LightSource[] = env.dark > 0 ? [...lightSources(s, env), ...urbanLights(s, env), ...this.unitLights(s, env), ...this.townLife.lights(s, env)] : [];
-    this.lighting.draw(ctx, s, env, W, H, lights, env.dark > 0 ? this.effects.nightLights() : []);
-    this.effects.drawSky(ctx, env, W, H);
-    this.townLife.drawOverlay(ctx, env, s);
-    this.spotlight.draw(ctx, s, env, W, skit);
-    this.effects.drawBirds(ctx, env);
-    ctx.restore();
+
+    if (this.diorama.isActive()) {
+      this.diorama.render(
+        ctx,
+        s,
+        env,
+        dt,
+        W,
+        H,
+        this.canvas.width,
+        this.canvas.height,
+        this.camera.state(),
+        (gCtx) => {
+          this.terrain.draw(gCtx, s, env, 2);
+          drawWater(gCtx, s, env);
+          drawTreeShadows(gCtx, s, env);
+          drawBuildingShadows(gCtx, s, env);
+          this.effects.drawLow(gCtx);
+        },
+        items,
+        (cCtx) => {
+          this.effects.drawFloats(cCtx);
+          this.effects.drawHigh(cCtx, env);
+          this.townLife.drawOverlay(cCtx, env, s);
+          this.effects.drawBirds(cCtx, env);
+        },
+        lights,
+      );
+      this.effects.drawRainbow(ctx, env, W, H);
+      this.effects.drawSky(ctx, env, W, H);
+      this.spotlight.draw(ctx, s, env, W, skit, (px, py, h) => this.diorama.projectToCanvas(px, py, h ?? 0, W, H));
+    } else {
+      ctx.save();
+      this.camera.apply(ctx, W, H);
+      this.terrain.draw(ctx, s, env, this.scale);
+      drawWater(ctx, s, env);
+      drawTreeShadows(ctx, s, env);
+      drawBuildingShadows(ctx, s, env);
+      for (const it of items) it.draw(ctx, env);
+
+      this.effects.drawLow(ctx);
+      this.effects.drawFloats(ctx);
+      this.effects.drawHigh(ctx, env);
+      this.effects.drawWeather(ctx);
+      this.effects.drawRainbow(ctx, env, W, H);
+
+      this.lighting.draw(ctx, s, env, W, H, lights, env.dark > 0 ? this.effects.nightLights() : []);
+      this.effects.drawSky(ctx, env, W, H);
+      this.townLife.drawOverlay(ctx, env, s);
+      this.spotlight.draw(ctx, s, env, W, skit);
+      this.effects.drawBirds(ctx, env);
+      ctx.restore();
+    }
 
     this.townLife.drawScreenOverlay(ctx, env, s);
     this.drawCaption(ctx, s, dt, W, H);
@@ -134,6 +171,15 @@ export class Renderer {
     return this.camera.enabled;
   }
 
+  /** Toggle the Three.js 3D HD-2D Diorama mode. */
+  toggle3D(): boolean {
+    return this.diorama.toggle();
+  }
+
+  is3DEnabled(): boolean {
+    return this.diorama.isActive();
+  }
+
   /** Render-side happenings since the last call (lightning, fireworks), for the soundtrack. */
   drainEvents(): string[] {
     const ev = this.effects.events;
@@ -145,9 +191,13 @@ export class Renderer {
   handleClick(s: GameState, clientX: number, clientY: number): void {
     const rect = this.canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
-    const { tx, ty } = this.camera.screenToTile(s, rect, clientX, clientY);
-    this.spotlight.selectAt(s, tx, ty);
-    this.townLife.handleClick(s, tx, ty);
+    let pt: { tx: number; ty: number } | null = null;
+    if (this.diorama.isActive()) {
+      pt = this.diorama.screenToTile(rect, clientX, clientY);
+    }
+    if (!pt) pt = this.camera.screenToTile(s, rect, clientX, clientY);
+    this.spotlight.selectAt(s, pt.tx, pt.ty);
+    this.townLife.handleClick(s, pt.tx, pt.ty);
   }
 
   /** The newest event as a caption in the bottom right corner, so you never miss what just happened. */

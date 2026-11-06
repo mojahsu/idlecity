@@ -16,6 +16,10 @@ export class CinematicCamera {
     return this.enabled;
   }
 
+  state(): { cx: number; cy: number; zoom: number } {
+    return { cx: this.cx, cy: this.cy, zoom: this.zoom };
+  }
+
   update(
     s: GameState,
     dt: number,

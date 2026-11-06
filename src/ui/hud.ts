@@ -17,6 +17,7 @@ export interface HudCallbacks {
   onFullscreen(): void;
   onMute(): void;
   onCamera?(): void;
+  on3D?(): void;
 }
 
 const SPEEDS = [0, 1, 2, 4];
@@ -32,6 +33,7 @@ export class Hud {
   private fullscreen = false;
   private muted = false;
   private cameraOn = false;
+  private mode3dOn = true;
   private lastLogLen = -1;
   private lastChronLen = -1;
   private lastLocale = '';
@@ -65,6 +67,16 @@ export class Hud {
     if (b) {
       b.classList.toggle('active', on);
       b.title = t(on ? 'ui.cameraOff' : 'ui.cameraOn');
+    }
+  }
+
+  /** Relabel and highlight the Three.js 3D HD-2D mode button. */
+  set3D(on: boolean): void {
+    this.mode3dOn = on;
+    const b = document.getElementById('mode3d-btn');
+    if (b) {
+      b.classList.toggle('active', on);
+      b.title = t(on ? 'ui.mode3dOff' : 'ui.mode3dOn');
     }
   }
 
@@ -118,6 +130,11 @@ export class Hud {
     fs.id = 'fullscreen';
     fs.onclick = () => this.cb.onFullscreen();
     c.appendChild(fs);
+    const m3d = document.createElement('button');
+    m3d.id = 'mode3d-btn';
+    m3d.textContent = '🧊 3D';
+    m3d.onclick = () => this.cb.on3D?.();
+    c.appendChild(m3d);
     const cam = document.createElement('button');
     cam.id = 'camera-btn';
     cam.textContent = '🎥';
@@ -129,6 +146,7 @@ export class Hud {
     c.appendChild(mu);
     this.setMuted(this.muted);
     this.setCamera(this.cameraOn);
+    this.set3D(this.mode3dOn);
     this.setSpeed(this.speed);
   }
 
@@ -144,6 +162,7 @@ export class Hud {
       this.setFullscreen(this.fullscreen);
       this.setMuted(this.muted);
       this.setCamera(this.cameraOn);
+      this.set3D(this.mode3dOn);
       this.lastLogLen = -1; this.lastChronLen = -1;
     }
     this.updateTop(s);

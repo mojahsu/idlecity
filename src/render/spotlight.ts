@@ -140,10 +140,17 @@ export class Spotlight {
     return [head, inside > 0 ? t('ui.indoorsCount', { count: inside }) : t(`tier.${s.tier}`)];
   }
 
-  draw(ctx: CanvasRenderingContext2D, s: GameState, env: Env, W: number, skit: ActiveSkitView | null = null): void {
+  draw(
+    ctx: CanvasRenderingContext2D,
+    s: GameState,
+    env: Env,
+    W: number,
+    skit: ActiveSkitView | null = null,
+    project?: (px: number, py: number, h?: number) => { x: number; y: number },
+  ): void {
     if (!this.target || this.fade <= 0) return;
     if (this.target.kind === 'skit' && skit) {
-      this.drawSkitCard(ctx, env, W, skit);
+      this.drawSkitCard(ctx, env, W, skit, project);
       return;
     }
     let pos: { x: number; y: number } | null = null, head = '', line = '';
@@ -186,7 +193,9 @@ export class Spotlight {
     }
     if (!pos) return;
     this.last = { x: pos.x, y: pos.y };
-    const px = pos.x * TILE + TILE / 2, py = pos.y * TILE + TILE / 2 + 6;
+    const rawX = pos.x * TILE + TILE / 2, rawY = pos.y * TILE + TILE / 2 + 6;
+    const pt = project ? project(rawX, rawY, 0) : { x: rawX, y: rawY };
+    const px = pt.x, py = pt.y;
     ctx.save(); ctx.globalAlpha = this.fade;
     // A soft ring on the ground and a pointer above the head.
     ctx.strokeStyle = '#ffe080'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(px, py, 9 + Math.sin(env.clock * 4) * 1, 4, 0, 0, Math.PI * 2); ctx.stroke();
@@ -205,11 +214,21 @@ export class Spotlight {
     ctx.restore();
   }
 
-  private drawSkitCard(ctx: CanvasRenderingContext2D, env: Env, W: number, skit: ActiveSkitView): void {
+  private drawSkitCard(
+    ctx: CanvasRenderingContext2D,
+    env: Env,
+    W: number,
+    skit: ActiveSkitView,
+    project?: (px: number, py: number, h?: number) => { x: number; y: number },
+  ): void {
     const sp = skit.activeIdx === 0 ? skit.a : skit.b;
-    const ax = skit.a.x * TILE + TILE / 2, ay = skit.a.y * TILE + TILE / 2 + 6;
-    const bx = skit.b.x * TILE + TILE / 2, by = skit.b.y * TILE + TILE / 2 + 6;
-    const sx = sp.x * TILE + TILE / 2, sy = sp.y * TILE + TILE / 2 + 6;
+    const rawAx = skit.a.x * TILE + TILE / 2, rawAy = skit.a.y * TILE + TILE / 2 + 6;
+    const rawBx = skit.b.x * TILE + TILE / 2, rawBy = skit.b.y * TILE + TILE / 2 + 6;
+    const rawSx = sp.x * TILE + TILE / 2, rawSy = sp.y * TILE + TILE / 2 + 6;
+    const pa = project ? project(rawAx, rawAy, 0) : { x: rawAx, y: rawAy };
+    const pb = project ? project(rawBx, rawBy, 0) : { x: rawBx, y: rawBy };
+    const ps = project ? project(rawSx, rawSy, 0) : { x: rawSx, y: rawSy };
+    const ax = pa.x, ay = pa.y, bx = pb.x, by = pb.y, sx = ps.x, sy = ps.y;
     ctx.save();
     ctx.globalAlpha = this.fade;
     ctx.strokeStyle = '#ffe080';

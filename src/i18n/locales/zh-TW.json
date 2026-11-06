@@ -36,6 +36,8 @@
   "ui.unmute": "開啟聲音（M）",
   "ui.cameraOn": "已開啟電影跟隨運鏡（C）",
   "ui.cameraOff": "已關閉電影跟隨運鏡（C）",
+  "ui.mode3dOn": "已開啟 Three.js 3D 立體箱庭模式（V · 右鍵拖曳旋轉、滾輪縮放）",
+  "ui.mode3dOff": "已切換為 2D 經典平面模式（V）",
   "ui.floor": "第 {floor} / {floors} 層",
   "ui.exploring": "探索中",
   "ui.slain": "擊倒！",

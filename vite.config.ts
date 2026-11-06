@@ -4,5 +4,15 @@ import { defineConfig } from 'vite';
 // (needed for a future Electron/Tauri Steam wrapper).
 export default defineConfig({
   base: './',
-  build: { target: 'es2022' },
+  build: {
+    target: 'es2022',
+    chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          three: ['three'],
+        },
+      },
+    },
+  },
 });

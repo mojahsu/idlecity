@@ -32,7 +32,14 @@ const hud = new Hud({
   onFullscreen() { void fullscreen.toggle(); },
   onMute() { toggleMute(); },
   onCamera() { toggleCamera(); },
+  on3D() { toggle3D(); },
 });
+hud.set3D(renderer.is3DEnabled());
+function toggle3D(): void {
+  const on = renderer.toggle3D();
+  hud.set3D(on);
+  hud.showToast(t(on ? 'ui.mode3dOn' : 'ui.mode3dOff'), 3);
+}
 function toggleCamera(): void {
   const on = renderer.toggleCamera();
   hud.setCamera(on);
@@ -162,6 +169,7 @@ window.addEventListener('beforeunload', () => saveGame(storage, state));
 window.addEventListener('keydown', (e) => {
   if (e.key === ' ') { e.preventDefault(); const sp = speed === 0 ? (settings.speed || 1) : 0; speed = sp; hud.setSpeed(sp); }
   if (e.key === 'f' || e.key === 'F') { void fullscreen.toggle(); }
+  if (e.key === 'v' || e.key === 'V') toggle3D();
   if (e.key === 'c' || e.key === 'C') toggleCamera();
   if (e.key === 'm' || e.key === 'M') toggleMute();
   if (e.key === 'd' || e.key === 'D') {
