@@ -68,13 +68,22 @@ const CATCH_UP_PER_FRAME = 20; // game seconds per sim call inside the time slic
 
 // Driven by a timer rather than the frame loop, so a tab opened in the
 // background (where frames are throttled) still catches up.
+// One bad frame must not stop the town: errors are logged (once per message) and the loop goes on.
+const reported = new Set<string>();
+function guarded(where: string, fn: () => void): void {
+  try { fn(); } catch (err) {
+    const msg = `${where}: ${err instanceof Error ? err.message : String(err)}`;
+    if (!reported.has(msg)) { reported.add(msg); console.error('[idle town]', msg, err); }
+  }
+}
+
 function runCatchUp(): void {
   // Replay as much as fits in a slice of wall time, so throttled timers still finish quickly.
   const until = performance.now() + 12;
   while (catchUp > 0 && performance.now() < until) {
     const chunk = Math.min(catchUp, CATCH_UP_PER_FRAME);
-    advance(state, chunk);
-    catchUp -= chunk;
+    guarded('catch-up', () => advance(state, chunk));
+    catchUp -= chunk; // a throw must not leave the town waiting on a catch-up that never ends
   }
   if (catchUp > 0) { hud.showToast(t('ui.catchingUp', { minutes: Math.ceil(catchUp / 60) }), 2); setTimeout(runCatchUp, 16); return; }
   const r = state.resources;
@@ -101,10 +110,10 @@ function frame(now: number): void {
   else {
     acc += dt * speed;
     let ticks = 0;
-    while (acc >= TICK && ticks < MAX_TICKS_PER_FRAME) { step(state); acc -= TICK; ticks++; }
+    while (acc >= TICK && ticks < MAX_TICKS_PER_FRAME) { guarded('sim', () => step(state)); acc -= TICK; ticks++; }
     if (ticks === MAX_TICKS_PER_FRAME) acc = 0;
   }
-  renderer.render(state, dt);
+  guarded('render', () => renderer.render(state, dt));
   soundtrack.update(state, dt, speed, renderer.drainEvents());
   hudTimer += dt;
   if (hudTimer > 0.25) { hudTimer = 0; hud.update(state); }

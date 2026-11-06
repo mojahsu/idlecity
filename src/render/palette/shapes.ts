@@ -3,11 +3,12 @@ import { rgba } from './colors';
 
 // ---- tiny shape helpers ---------------------------------------------------
 export function ellipse(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, color: string): void {
-  ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+  // A negative radius throws and would kill the frame loop; clamp instead of trusting every caller's arithmetic.
+  ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(x, y, Math.max(0, rx), Math.max(0, ry), 0, 0, Math.PI * 2); ctx.fill();
 }
 
 export function circle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string): void {
-  ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, Math.max(0, r), 0, Math.PI * 2); ctx.fill();
 }
 
 export function poly(ctx: CanvasRenderingContext2D, pts: number[], color: string): void {

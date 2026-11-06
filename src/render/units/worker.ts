@@ -143,7 +143,7 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
   }
   if (rest?.activity === 'snowman') {
     // Rolling a ball that grows as the break goes on; the finished snowman is kept by the town-life layer.
-    const k = Math.min(1, 1 - w.timer / 20);
+    const k = Math.max(0, Math.min(1, 1 - w.timer / 20)); // breaks can run past 20 s; the ball never shrinks below nothing
     const bx = px + dir * 10, by = py + 6;
     circle(ctx, bx, by - 3 * k, 3 + 4 * k, '#f4f7f9'); circle(ctx, bx - 1, by - 4 * k, 2 + 3 * k, '#ffffff');
     withUnit(ctx, w.x, w.y, dir, p.bob, () => { body(ctx, tunic, skin, hair, { walk: 0, bob: 0, swing: 0 }, false, fig); hat(ctx, w.job); rect(ctx, 2.8, -8, 4.5, 1.5, tunic); circle(ctx, 7.5, -7.5, 1.1, skin); });
