@@ -10,7 +10,7 @@ import { monsterHeight } from '../monsters';
 import type { ViewState } from './state';
 import { drawBackdrop } from './backdrops';
 import { drawFigures } from './figures';
-import { drawChest } from './chest';
+import { drawChest, drawEventProp } from './chest';
 
 export function drawPanel(ctx: CanvasRenderingContext2D, s: GameState, p: Party, v: ViewState, env: Env): void {
   const def = DUNGEONS.find((d) => d.id === p.dungeon)!;
@@ -56,6 +56,7 @@ export function drawPanel(ctx: CanvasRenderingContext2D, s: GameState, p: Party,
   // Monster.
   const mx = PANEL_W * 0.74;
   if (v.chest > 0) drawChest(ctx, mx - 30, floorY, v.chest, env);
+  if (v.eventProp) drawEventProp(ctx, mx - 28, floorY, v.eventProp, env);
   if (e) {
     const enemies = e.enemies ?? [];
     const n = enemies.length;

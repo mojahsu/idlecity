@@ -25,12 +25,16 @@ export const HERO_ANIM_TINT: Record<string, string | null> = { warrior: null, ar
 /** On the map (raids): a Tiny tile per monster. */
 export const MONSTER_TILE: Record<string, SpriteRef> = {
   rat: D(123), goblin: D(112), goblinChief: C(96), wolf: C(93), skeleton: C(1), ghoul: C(0), bandit: D(109),
-  lich: C(65), imp: C(39), demon: C(38), orc: C(11), dragon: C(33), demonLord: C(123),
+  lich: C(65), spider: C(130), troll: C(12), wraith: C(64), broodMother: C(131),
+  hellhound: C(92), golem: C(86), wyvern: C(32), elderDragon: C(33),
+  imp: C(39), demon: C(38), orc: C(11), dragon: C(33), demonLord: C(123),
 };
 /** In the panel: a 0x72 animation prefix where one fits, else the map tile. */
 export const MONSTER_ANIM: Partial<Record<string, string>> = {
-  goblin: 'goblin', goblinChief: 'masked_orc', skeleton: 'skelet', ghoul: 'zombie', lich: 'necromancer', imp: 'imp',
-  demon: 'chort', orc: 'orc_warrior', demonLord: 'big_demon',
+  goblin: 'goblin', goblinChief: 'masked_orc', skeleton: 'skelet', ghoul: 'zombie', lich: 'necromancer',
+  spider: 'swampy', troll: 'ogre', wraith: 'ice_zombie', broodMother: 'big_zombie',
+  hellhound: 'wogol', golem: 'muddy', wyvern: 'lizard_m',
+  imp: 'imp', demon: 'chort', orc: 'orc_warrior', demonLord: 'big_demon',
 };
 
 // ---- animals (Tiny Creatures) -------------------------------------------------

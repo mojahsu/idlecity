@@ -120,11 +120,15 @@ function summarise(e: Encounter): void {
 function enemyStyle(monster: string, acts: number): EnemyStyle {
   const third = acts % 3 === 2;
   switch (monster) {
-    case 'rat': case 'wolf': return 'bite';
+    case 'rat': case 'wolf': case 'spider': return 'bite';
+    case 'hellhound': return third ? 'breath' : 'bite';
     case 'ghoul': return 'claw';
+    case 'wraith': return third ? 'curse' : 'claw';
+    case 'broodMother': return third ? 'curse' : 'bite';
+    case 'troll': case 'golem': return third ? 'smash' : 'slash';
     case 'imp': return 'bolt';
     case 'demon': case 'demonLord': return third ? 'breath' : 'smash';
-    case 'dragon': return third ? 'breath' : 'claw';
+    case 'dragon': case 'wyvern': case 'elderDragon': return third ? 'breath' : 'claw';
     case 'lich': return third ? 'curse' : 'bolt';
     default: return 'slash';
   }
@@ -286,6 +290,25 @@ function onPackCleared(s: GameState, p: Party): void {
   const dungeon = s.dungeons.find((d) => d.id === p.dungeon)!;
   const team = members(s, p);
   if (chance(s, 0.15)) { const g = 10 + p.floor * 4; p.loot.gold += g; s.fx.push({ kind: 'treasure', partyId: p.id, gold: g }); log(s, 'adventure', 'log.treasure', { leader: leader(team)!.name }); }
+  else if (!e.boss && chance(s, 0.16)) {
+    const ev = pick(s, ['spring', 'altar', 'rescue'] as const);
+    const lead = leader(team)!.name;
+    if (ev === 'spring') {
+      for (const a of team) a.hp = Math.min(a.maxHp, a.hp + Math.round(a.maxHp * 0.22));
+      s.fx.push({ kind: 'dungeonEvent', partyId: p.id, event: 'spring' });
+      log(s, 'adventure', 'log.dungeonSpring', { leader: lead });
+    } else if (ev === 'altar') {
+      const xp = 10 * p.floor;
+      for (const a of team) gainXp(s, a, xp);
+      s.fx.push({ kind: 'dungeonEvent', partyId: p.id, event: 'altar', amount: xp });
+      log(s, 'adventure', 'log.dungeonAltar', { leader: lead });
+    } else {
+      const g = 14 + p.floor * 5;
+      p.loot.gold += g;
+      s.fx.push({ kind: 'dungeonEvent', partyId: p.id, event: 'rescue', amount: g });
+      log(s, 'adventure', 'log.dungeonRescue', { leader: lead, gold: g });
+    }
+  }
   if (p.floor > dungeon.deepestFloor) dungeon.deepestFloor = p.floor;
   if (e.boss) { startReturn(s, p); return; }
   const avgHp = team.reduce((n, a) => n + a.hp / a.maxHp, 0) / team.length;

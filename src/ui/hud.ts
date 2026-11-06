@@ -8,6 +8,7 @@ import { currentDay, season, year } from '../sim/time';
 import { resourceColor } from '../sim/workers';
 import { alive } from '../sim/adventurers';
 import { LOCALES, getLocale, setLocale, t, type Locale } from '../i18n';
+import { VictoryModal } from './victoryModal';
 
 export interface HudCallbacks {
   onSpeed(speed: number): void;
@@ -33,8 +34,11 @@ export class Hud {
   private lastChronLen = -1;
   private lastLocale = '';
   private toast: { text: string; until: number } | null = null;
+  private victoryModal: VictoryModal;
+  private currentState: GameState | null = null;
 
   constructor(private cb: HudCallbacks) {
+    this.victoryModal = new VictoryModal(document.getElementById('stage')!, () => this.cb.onReset());
     this.buildControls();
   }
 
@@ -79,6 +83,12 @@ export class Hud {
     const spacer = document.createElement('span');
     spacer.className = 'spacer';
     c.appendChild(spacer);
+    const vic = document.createElement('button');
+    vic.id = 'victory-btn';
+    vic.textContent = '🏆';
+    vic.hidden = true;
+    vic.onclick = () => { if (this.currentState) this.victoryModal.show(this.currentState); };
+    c.appendChild(vic);
     const sel = document.createElement('select');
     for (const l of LOCALES) {
       const o = document.createElement('option');
@@ -106,6 +116,7 @@ export class Hud {
 
   /** Called a few times per second; cheap DOM updates only. */
   update(s: GameState): void {
+    this.currentState = s;
     const localeChanged = this.lastLocale !== getLocale();
     if (localeChanged) {
       this.lastLocale = getLocale();
@@ -128,6 +139,7 @@ export class Hud {
     }
     document.getElementById('stats')!.textContent = t('ui.stats', { built: s.stats.built, slain: s.stats.monstersSlain, runs: s.stats.dungeonRuns });
     this.updateBanner(s);
+    this.victoryModal.update(s, document.getElementById('victory-btn') as HTMLButtonElement | null);
   }
   private lastLogTail: unknown = null;
 

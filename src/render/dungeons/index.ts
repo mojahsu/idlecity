@@ -5,9 +5,17 @@ import { circle, ellipse, poly, rect, rgba, type Env } from '../palette';
 import type { DungeonArt, DungeonState } from './shared';
 import { drawGoblinCave } from './goblinCave';
 import { drawAncientRuins } from './ancientRuins';
+import { drawEmeraldCavern } from './emeraldCavern';
+import { drawEmberPeak } from './emberPeak';
 import { drawDarkTower } from './darkTower';
 
-const ART: Record<DungeonState['id'], (a: DungeonArt) => void> = { goblinCave: drawGoblinCave, ancientRuins: drawAncientRuins, darkTower: drawDarkTower };
+const ART: Record<DungeonState['id'], (a: DungeonArt) => void> = {
+  goblinCave: drawGoblinCave,
+  ancientRuins: drawAncientRuins,
+  emeraldCavern: drawEmeraldCavern,
+  emberPeak: drawEmberPeak,
+  darkTower: drawDarkTower,
+};
 
 export function drawDungeonEntrance(ctx: CanvasRenderingContext2D, s: GameState, d: DungeonState, env: Env): void {
   const px = d.x * TILE, py = d.y * TILE;

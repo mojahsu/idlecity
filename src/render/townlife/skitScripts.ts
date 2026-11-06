@@ -81,6 +81,20 @@ export function buildSkitPlans(
     const kName = k.name || t('ui.child');
     const ks: SkitSpeaker = { kind: 'child', id: k.id, name: kName, x: k.x, y: k.y };
     const hs = aSpeaker(hero);
+    if (s.victory) {
+      push({
+        key: `era.victoryKid.${hero.id}`,
+        topicKey: 'skit.topic.hero',
+        weight: 14,
+        a: ks,
+        b: hs,
+        turns: [
+          { speaker: 0, text: t('skit.era.victoryKid.a'), color: '#b85a20' },
+          { speaker: 1, text: t('skit.era.victoryKid.b'), color: '#2a6a4a' },
+          { speaker: 0, text: t('skit.era.victoryKid.c', { b: hero.name }), color: '#b85a20' },
+        ],
+      });
+    }
     if (hero.cls === 'mage') {
       push({
         key: `kidHero.mage.${hero.id}`,
@@ -115,6 +129,20 @@ export function buildSkitPlans(
     const hero = heroes.find((h) => Math.hypot(h.x - w.x, h.y - w.y) <= 3.2);
     if (!hero) continue;
     const ws = wSpeaker(w), hs = aSpeaker(hero);
+    if (s.victory) {
+      push({
+        key: `era.victoryHero.${w.id}.${hero.id}`,
+        topicKey: 'skit.topic.hero',
+        weight: 12,
+        a: ws,
+        b: hs,
+        turns: [
+          { speaker: 0, text: t('skit.era.victoryHero.a', { b: hero.name }), color: '#7a5a18' },
+          { speaker: 1, text: t('skit.era.victoryHero.b', { a: w.name }), color: '#2a5a8a' },
+          { speaker: 0, text: t('skit.era.victoryHero.c'), color: '#7a5a18' },
+        ],
+      });
+    }
     if (s.equipment >= 2 && (w.id + hero.id) % 2 === 0) {
       push({
         key: `townHero.gear.${w.id}.${hero.id}`,
@@ -374,7 +402,22 @@ export function buildSkitPlans(
       }
 
       const darkTower = s.dungeons.find((d) => d.id === 'darkTower' && d.unlocked);
+      const towerFight = !s.victory && s.parties.some((p) => p.dungeon === 'darkTower' && (p.phase === 'explore' || p.phase === 'fight'));
       const anyDungeon = s.dungeons.filter((d) => d.unlocked);
+      if (towerFight) {
+        push({
+          key: `era.towerFight.${a.id}`,
+          topicKey: 'skit.topic.chronicle',
+          weight: 15 * restingBonus,
+          a: as,
+          b: bs,
+          turns: [
+            { speaker: 0, text: t('skit.era.towerFight.a'), color: '#8a2050' },
+            { speaker: 1, text: t('skit.era.towerFight.b'), color: '#3a2a1a' },
+            { speaker: 0, text: t('skit.era.towerFight.c'), color: '#2a5a4a' },
+          ],
+        });
+      }
       if (s.victory) {
         push({
           key: `era.victory.${a.id}`,
@@ -403,6 +446,31 @@ export function buildSkitPlans(
         });
       } else if (anyDungeon.length > 0) {
         const d = anyDungeon[anyDungeon.length - 1];
+        if (d.id === 'emberPeak') {
+          push({
+            key: `era.ember.${a.id}`,
+            topicKey: 'skit.topic.chronicle',
+            weight: 8 * restingBonus,
+            a: as,
+            b: bs,
+            turns: [
+              { speaker: 0, text: t('skit.era.ember.a'), color: '#9a3018' },
+              { speaker: 1, text: t('skit.era.ember.b'), color: '#3a2a1a' },
+            ],
+          });
+        } else if (d.id === 'emeraldCavern') {
+          push({
+            key: `era.emerald.${a.id}`,
+            topicKey: 'skit.topic.chronicle',
+            weight: 8 * restingBonus,
+            a: as,
+            b: bs,
+            turns: [
+              { speaker: 0, text: t('skit.era.emerald.a'), color: '#1e6a4e' },
+              { speaker: 1, text: t('skit.era.emerald.b'), color: '#3a2a1a' },
+            ],
+          });
+        }
         push({
           key: `era.dungeon.${d.id}`,
           topicKey: 'skit.topic.chronicle',

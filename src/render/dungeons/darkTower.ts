@@ -1,12 +1,22 @@
 // Dark Tower: a tall spire with bats and a pulsing glow, gold once the Demon Lord is dead.
-import { circle, poly, rect, roundRect, groundShadow, glow, rgba } from '../palette';
+import { circle, line, poly, rect, groundShadow, glow, rgba } from '../palette';
 import type { DungeonArt } from './shared';
 
 export function drawDarkTower(art: DungeonArt): void {
   const { ctx, s, env, cx, cy } = art;
   // Dark tower: tall spire, bats, a pulsing purple glow (gold and blooming with doves once the Demon Lord is dead).
   const pulse = 0.5 + 0.5 * Math.sin(env.clock * 2);
+  const besieged = !s.victory && s.parties.some((p) => p.dungeon === 'darkTower' && (p.phase === 'explore' || p.phase === 'fight'));
   groundShadow(ctx, cx, cy + 10, 11, 4, 0.35);
+  if (besieged) {
+    glow(ctx, cx, cy - 22, 22, '#d02070', 0.25 + 0.2 * Math.sin(env.clock * 6));
+    // Crackling dark-magic lightning around the spire during an active assault.
+    if (Math.sin(env.clock * 11) > 0.2) {
+      const side = Math.sin(env.clock * 7) > 0 ? 1 : -1;
+      line(ctx, cx, cy - 38, cx + side * 8, cy - 24, '#ff70c0', 1.1);
+      line(ctx, cx + side * 8, cy - 24, cx + side * 4, cy - 12, '#ffe0ff', 0.9);
+    }
+  }
   rect(ctx, cx - 7, cy - 18, 14, 28, s.victory ? '#4a4656' : '#2a1a3a'); rect(ctx, cx - 7, cy - 18, 2, 28, s.victory ? '#625e70' : '#3a2a4a');
   rect(ctx, cx - 9, cy - 22, 18, 5, s.victory ? '#5a5468' : '#3a2a4a'); for (let i = 0; i < 4; i++) rect(ctx, cx - 9 + i * 5, cy - 26, 3, 4, s.victory ? '#5a5468' : '#3a2a4a');
   poly(ctx, [cx - 4, cy - 26, cx, cy - 38, cx + 4, cy - 26], s.victory ? '#3a4a68' : '#1f1230');

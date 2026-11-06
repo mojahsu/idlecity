@@ -74,12 +74,13 @@ export function generateTiles(s: Pick<GameState, 'seed'>, w: number, h: number):
   return tiles;
 }
 
-export function dungeonCorner(corner: 'ne' | 'se' | 'nw' | 'sw', w: number, h: number): Point {
+export function dungeonCorner(corner: 'ne' | 'se' | 'nw' | 'sw' | 'n', w: number, h: number): Point {
   switch (corner) {
     case 'ne': return { x: w - 3, y: 2 };
     case 'se': return { x: w - 3, y: h - 3 };
     case 'nw': return { x: 4, y: 2 };
     case 'sw': return { x: 4, y: h - 3 };
+    case 'n':  return { x: Math.floor(w / 2) + 4, y: 2 };
   }
 }
 

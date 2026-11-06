@@ -106,7 +106,7 @@ export interface Adventurer {
   pastimeTimer?: number;
 }
 
-export type DungeonId = 'goblinCave' | 'ancientRuins' | 'darkTower';
+export type DungeonId = 'goblinCave' | 'ancientRuins' | 'emeraldCavern' | 'emberPeak' | 'darkTower';
 
 /** One monster in a fight. */
 export interface Enemy {
@@ -226,6 +226,8 @@ export type Fx =
   | { kind: 'skill'; partyId: number; actorId: number; skill: string; targetId?: number; amount?: number }
   /** A hidden chest found underground. */
   | { kind: 'treasure'; partyId: number; gold: number }
+  /** A story encounter underground: healing spring, war altar, or rescued traveller. */
+  | { kind: 'dungeonEvent'; partyId: number; event: 'spring' | 'altar' | 'rescue'; amount?: number }
   /** A hero acts: a blow, a shot, a spell or a heal on `targetIdx` (enemy index) or `targetId` (hero). */
   | { kind: 'strike'; partyId: number; actorId: number; style: StrikeStyle; targetIdx?: number; targetId?: number; amount: number; splash?: number[] }
   /** An enemy acts on a hero (or on everyone, for a breath). */

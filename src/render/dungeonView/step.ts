@@ -71,6 +71,24 @@ export function step(s: GameState, p: Party, v: ViewState, env: Env, dt: number)
     } else if (f.kind === 'treasure') {
       v.chest = 1.4; v.cheer = 0.85; burst(v, PANEL_W * 0.74 - 30, floorY - 6, '#ffd040', 22); label(`+${f.gold}g`, PANEL_W * 0.74 - 30, floorY - 20, '#ffd040', 1.3);
       if (team.length) say('hero', heroX(team.length - 1), floorY - 30, t('talk.h.treasure'));
+    } else if (f.kind === 'dungeonEvent') {
+      v.eventProp = { kind: f.event, t: 1.7 };
+      v.cheer = 0.85;
+      const px = PANEL_W * 0.74 - 28;
+      if (f.event === 'spring') {
+        for (const a of team) v.heal.set(a.id, 0.7);
+        burst(v, px, floorY - 6, '#60e8ff', 22);
+        label(t('ui.eventSpring'), px, floorY - 22, '#80f4ff', 1.4);
+        if (team.length) say('hero', heroX(team.length - 1), floorY - 30, t('talk.h.spring'));
+      } else if (f.event === 'altar') {
+        burst(v, px, floorY - 8, '#ffe070', 24);
+        label(t('ui.eventAltar'), px, floorY - 22, '#ffe080', 1.4);
+        if (team.length) say('hero', heroX(team.length - 1), floorY - 30, t('talk.h.altar'));
+      } else {
+        burst(v, px, floorY - 6, '#ffd040', 22);
+        label(`+${f.amount ?? 20}g`, px, floorY - 22, '#ffd040', 1.4);
+        if (team.length) say('hero', heroX(team.length - 1), floorY - 30, t('talk.h.rescue'));
+      }
     }
   }
   // Floor change.
@@ -96,7 +114,8 @@ export function step(s: GameState, p: Party, v: ViewState, env: Env, dt: number)
     say('enemy', ex(0), floorY - eh(0) - 10, t(`talk.m.${e.monster}`), 2.1);
     if (team.length) {
       const leadIdx = team.length - 1;
-      setTimeoutLike(v, 0.5, () => say('hero', heroX(leadIdx), floorY - 30, t(e.boss ? 'talk.h.boss' : `talk.h.engage.${p.floor % 3}`), 1.9));
+      const replyKey = e.boss ? `talk.h.boss.${e.monster}` : `talk.h.engage.${p.floor % 3}`;
+      setTimeoutLike(v, 0.5, () => say('hero', heroX(leadIdx), floorY - 30, t(replyKey), 1.9));
     }
   }
   if (!e && v.outro <= 0) v.enemies = [];
@@ -111,6 +130,7 @@ export function step(s: GameState, p: Party, v: ViewState, env: Env, dt: number)
   v.dying = v.dying.filter((d) => d.t < 1.1);
   v.floorFlash = Math.max(0, v.floorFlash - dt); v.shake = Math.max(0, v.shake - dt);
   v.bossIntro = Math.max(0, v.bossIntro - dt); v.chest = Math.max(0, v.chest - dt);
+  if (v.eventProp && (v.eventProp.t -= dt) <= 0) v.eventProp = null;
   v.breath = Math.max(0, v.breath - dt); v.curse = Math.max(0, v.curse - dt);
   if (v.banner && (v.banner.ttl -= dt) <= 0) v.banner = null;
   v.taunt = Math.max(0, v.taunt - dt); v.frozen = Math.max(0, v.frozen - dt); v.beam = Math.max(0, v.beam - dt); v.block = Math.max(0, v.block - dt); v.revive = Math.max(0, v.revive - dt); v.casting = Math.max(0, v.casting - dt);

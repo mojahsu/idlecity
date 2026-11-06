@@ -17,6 +17,14 @@ import { drawDemon } from './demon';
 import { drawOrc } from './orc';
 import { drawDragon } from './dragon';
 import { drawDemonLord } from './demonLord';
+import { drawSpider } from './spider';
+import { drawTroll } from './troll';
+import { drawWraith } from './wraith';
+import { drawBroodMother } from './broodMother';
+import { drawHellhound } from './hellhound';
+import { drawGolem } from './golem';
+import { drawWyvern } from './wyvern';
+import { drawElderDragon } from './elderDragon';
 
 const ART: Record<string, (a: MonsterArt) => void> = {
   rat: drawRat,
@@ -27,6 +35,14 @@ const ART: Record<string, (a: MonsterArt) => void> = {
   ghoul: drawGhoul,
   bandit: drawBandit,
   lich: drawLich,
+  spider: drawSpider,
+  troll: drawTroll,
+  wraith: drawWraith,
+  broodMother: drawBroodMother,
+  hellhound: drawHellhound,
+  golem: drawGolem,
+  wyvern: drawWyvern,
+  elderDragon: drawElderDragon,
   imp: drawImp,
   demon: drawDemon,
   orc: drawOrc,
@@ -36,7 +52,9 @@ const ART: Record<string, (a: MonsterArt) => void> = {
 
 /** How tall each monster stands at scale 1 when drawn from the sheets (pixels). */
 const SPRITE_HEIGHT: Record<string, number> = {
-  rat: 13, goblin: 20, goblinChief: 26, wolf: 20, skeleton: 22, ghoul: 22, bandit: 22, lich: 26, imp: 16, demon: 28, orc: 26, dragon: 34, demonLord: 38,
+  rat: 13, goblin: 20, goblinChief: 26, wolf: 20, skeleton: 22, ghoul: 22, bandit: 22, lich: 26,
+  spider: 18, troll: 26, wraith: 22, broodMother: 30, hellhound: 20, golem: 26, wyvern: 24, elderDragon: 36,
+  imp: 16, demon: 28, orc: 26, dragon: 34, demonLord: 38,
 };
 
 /**

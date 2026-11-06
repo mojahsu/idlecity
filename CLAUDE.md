@@ -1,7 +1,8 @@
 # Idle Town — notes for agents
 
 Idle Town is a watch-only medieval idle game: a town grows on its own,
-adventurers arrive, fight through three dungeons and finally the Demon Lord.
+adventurers arrive, fight through five dungeons (Goblin Cave, Ancient Ruins,
+Emerald Cavern, Ember Peak, Dark Tower) and finally the Demon Lord.
 It runs in the browser (Vite + TypeScript + canvas 2D), is deployed to GitHub
 Pages at https://mojahsu.github.io/idlecity/ from `main`, and a Steam/desktop
 port is planned (see README "Steam / desktop port"). Read `README.md` first:

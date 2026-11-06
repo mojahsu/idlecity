@@ -5,7 +5,7 @@ import { CLASSES, xpForLevel } from '../data/adventurers';
 import { DUNGEONS } from '../data/dungeons';
 import { tierIndex } from '../data/tiers';
 import { chance, pick, random, uniqueName } from './rng';
-import { edgeSpawnPoint, findPath, isPassable, isReachable, moveAlong } from './world';
+import { dungeonCorner, edgeSpawnPoint, findPath, isPassable, isReachable, moveAlong } from './world';
 import { countBuildings, hasBuilding } from './buildings';
 import { chronicle, log } from './log';
 import { PARTY_SPEED } from './constants';
@@ -98,9 +98,17 @@ export function updateAdventurers(s: GameState, dt: number): void {
   // Unlock dungeons as the town matures.
   if (hasBuilding(s, 'guildHall')) {
     for (const def of DUNGEONS) {
-      const d = s.dungeons.find((x) => x.id === def.id)!;
+      let d = s.dungeons.find((x) => x.id === def.id);
+      if (!d) {
+        const p = dungeonCorner(def.corner, s.width, s.height);
+        d = { id: def.id, x: p.x, y: p.y, unlocked: false, deepestFloor: 0, bossDefeated: false, runs: 0 };
+        s.dungeons.push(d);
+        const t = s.tiles[p.y * s.width + p.x];
+        if (t && t.building < 0) { t.terrain = 'grass'; t.amount = 0; }
+      }
       if (d.unlocked) continue;
       if (tierIndex(s.tier) < tierIndex(def.tier)) continue;
+      if (def.id === 'emeraldCavern' && !s.dungeons.some((x) => x.id === 'goblinCave' && x.runs >= 1)) continue;
       if (def.id === 'darkTower' && !hasBuilding(s, 'keep')) continue;
       d.unlocked = true;
       chronicle(s, 'adventure', 'log.dungeonFound', { dungeon: `dungeon.${def.id}` });

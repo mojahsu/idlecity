@@ -5,9 +5,17 @@ import type { ViewState } from '../state';
 import type { BackdropArt } from './shared';
 import { drawGoblinCave } from './goblinCave';
 import { drawAncientRuins } from './ancientRuins';
+import { drawEmeraldCavern } from './emeraldCavern';
+import { drawEmberPeak } from './emberPeak';
 import { drawDarkTower } from './darkTower';
 
-const ART: Record<string, (a: BackdropArt) => void> = { goblinCave: drawGoblinCave, ancientRuins: drawAncientRuins, darkTower: drawDarkTower };
+const ART: Record<string, (a: BackdropArt) => void> = {
+  goblinCave: drawGoblinCave,
+  ancientRuins: drawAncientRuins,
+  emeraldCavern: drawEmeraldCavern,
+  emberPeak: drawEmberPeak,
+  darkTower: drawDarkTower,
+};
 
 export function drawBackdrop(ctx: CanvasRenderingContext2D, id: string, v: ViewState, env: Env, floorY: number): void {
   // Three parallax layers: far walls crawl, the middle ground walks, the floor runs.

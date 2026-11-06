@@ -26,6 +26,7 @@ import { Pastimes } from './pastimes';
 import { NightLife } from './night';
 import { Seasonal } from './seasonal';
 import { Skits, type ActiveSkitView } from './skits';
+import { Chapters } from './chapters';
 
 export class TownLife {
   private roads = new Roads();
@@ -49,6 +50,7 @@ export class TownLife {
   private night = new NightLife();
   private seasonal = new Seasonal();
   private skits = new Skits();
+  private chapters = new Chapters();
 
   update(s: GameState, env: Env, dt: number): void {
     this.roads.refresh(s);
@@ -69,6 +71,7 @@ export class TownLife {
     this.night.update(s, env, dt, this.roads);
     this.seasonal.update(s, env, dt, this.roads);
     this.skits.update(s, env, dt, this.wedding.couple(), this.kids.namedSpots(s));
+    this.chapters.update(s, dt);
     this.bits.update(dt);
   }
 
@@ -95,6 +98,7 @@ export class TownLife {
     this.seasonal.overlay(ctx, env, s);
     this.music.overlay(ctx);
     this.skits.drawOverlay(ctx, s);
+    this.chapters.overlay(ctx, env, s);
   }
 
   /** Guard torches and festival lanterns at night. */

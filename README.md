@@ -85,11 +85,12 @@ src/
                     birds, chickens, cart, floats
     townlife/       roads + one file per subsystem: walkers, kids, dog, cats,
                     guards, music, cheers, processions, sparkles, wedding,
-                    wolves, deer, river, festival, statue
+                    wolves, deer, river, festival, statue, pastimes, night,
+                    seasonal, skits, skitScripts, chapters
     lighting/       night, rays, fog, vignette
     dungeonView/    state, step (HP → animation), panel, figures, chest, hud;
-                    backdrops/{goblinCave,ancientRuins,darkTower}
-  ui/         HUD (DOM), stylesheet
+                    backdrops/{goblinCave,ancientRuins,emeraldCavern,emberPeak,darkTower}
+  ui/         HUD (DOM), VictoryModal (victoryModal.ts), stylesheet
   platform/   Save storage interface + localStorage impl, save/load, offline progress,
               fullscreen, the synthesised audio engine (audio.ts) and the soundtrack
               that reads game state and decides what is heard (soundtrack.ts)
@@ -160,14 +161,22 @@ tests/        bun tests
     stars, and even-numbered clear winter nights the aurora.
 
 11. The renderer also reacts to things the sim already does, without new sim
-    state: a party setting out from the guild sounds a horn ripple and raises
-    weapons, a party coming home trails gold sparkles and draws a cheering
-    crowd at the tavern, a trading caravan pitches a striped market awning with
-    rising coins, a new grave gets a funeral procession, a level gained while
-    resting sparkles, a forged gear level throws sparks at the smithy, and the
-    newest log line shows as a caption in the corner of the map. The dungeon
-    panel announces floors, bosses, retreats and victories with a banner, leaves
-    fireball scorch marks, pops chests open, and shows floor progress as dots.
+    state: a party setting out from the guild sounds a horn ripple, raises
+    weapons and draws a waving send-off crowd, a party coming home trails gold
+    sparkles and draws a cheering crowd at the tavern, a trading caravan pitches
+    a striped market awning with rising coins, a new grave gets a funeral
+    procession, a level gained while resting sparkles, a forged gear level
+    raises a golden forge pillar and sparks at the smithy, major progression
+    milestones unfurl a parchment chapter scroll banner across the top of the
+    map (`render/townlife/chapters.ts`), and the newest log line shows as a
+    caption in the corner of the map. When the Demon Lord falls, a Dawn of Peace
+    light pillar cleaves the Dark Tower's clouds, townsfolk flood the square in
+    a victory parade, and the Victory Chronicle scroll (`ui/victoryModal.ts`,
+    reopenable anytime via the 🏆 button) honours the champions, the five
+    dungeons and the fallen. The dungeon panel announces floors, bosses,
+    retreats and victories with a banner, leaves fireball scorch marks, pops
+    chests open, plays out story encounters (glowing elf-springs, war altars
+    and rescued explorers), and shows floor progress as dots.
 
 12. Lives (`population.ts`): everyone has an age; a life-year is one season
     (`LIFE_YEAR_DAYS`). Newcomers arrive at 16–26, marry in the chapel, have

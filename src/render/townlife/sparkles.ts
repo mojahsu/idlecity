@@ -22,7 +22,11 @@ export class Sparkles {
     }
     if (this.equipment >= 0 && s.equipment > this.equipment) {
       const sm = s.buildings.find((b) => b.built && b.type === 'blacksmith');
-      if (sm) { this.forge = 1.2; for (let k = 0; k < 24; k++) bits.push({ x: sm.x * TILE + TILE / 2 - 3, y: sm.y * TILE + TILE - 6, vx: (Math.random() - 0.5) * 70, vy: -30 - Math.random() * 60, ttl: 0.5 + Math.random() * 0.5, color: k % 3 ? '#ffd040' : '#ffffff' }); }
+      if (sm) {
+        this.forge = 2.6;
+        this.sparkles.push({ x: sm.x, y: sm.y - 0.3, ttl: 2.2, text: `${t('ui.equipment')} ${t('ui.levelUpShort', { level: s.equipment })}` });
+        for (let k = 0; k < 28; k++) bits.push({ x: sm.x * TILE + TILE / 2 - 3, y: sm.y * TILE + TILE - 6, vx: (Math.random() - 0.5) * 75, vy: -35 - Math.random() * 65, ttl: 0.6 + Math.random() * 0.6, color: k % 3 ? '#ffd040' : '#ffffff' });
+      }
     }
     this.equipment = s.equipment;
     this.forge = Math.max(0, this.forge - dt);
@@ -37,7 +41,19 @@ export class Sparkles {
       ctx.font = 'bold 9px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(sp.text, px, py - 20 - k * 12); ctx.fillStyle = '#ffe060'; ctx.fillText(sp.text, px, py - 20 - k * 12);
     }
     ctx.globalAlpha = 1;
-    if (this.forge > 0) { const sm = s.buildings.find((b) => b.built && b.type === 'blacksmith'); if (sm) circle(ctx, sm.x * TILE + TILE / 2 - 3, sm.y * TILE + TILE - 4, 14 * this.forge, rgba('#ffb040', 0.35 * this.forge)); }
+    if (this.forge > 0) {
+      const sm = s.buildings.find((b) => b.built && b.type === 'blacksmith');
+      if (sm) {
+        const fx = sm.x * TILE + TILE / 2 - 3, fy = sm.y * TILE + TILE - 4;
+        const a = Math.min(1, this.forge);
+        const g = ctx.createLinearGradient(fx, fy - 42, fx, fy);
+        g.addColorStop(0, 'rgba(255,216,96,0)');
+        g.addColorStop(1, `rgba(255,200,70,${0.42 * a})`);
+        ctx.fillStyle = g;
+        ctx.fillRect(fx - 8, fy - 42, 16, 42);
+        circle(ctx, fx, fy, 15 * a, rgba('#ffb040', 0.35 * a));
+      }
+    }
   }
 }
 
