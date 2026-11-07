@@ -12,9 +12,12 @@ import { isElder } from '../../sim/population';
 
 /**
  * Custom heroic figure for the Founding Pioneer / Protagonist's Father (`w.father`).
- * Draws a tall, broad-shouldered pioneer lord with a billowing royal-sapphire & gold
- * cloak, silver pauldrons, sheathed broadsword, windswept hair, and a golden circlet
- * set with a sapphire star gem.
+ * Clothing evolves with `stage` (`0..3`):
+ * - Stage 0 (Camp): Coarse unbleached linen tunic, hemp rope belt, cloth leg-wraps,
+ *   bare arms with cloth wrist-wraps, and a simple linen headband with tails.
+ * - Stage 1 (Hamlet): Slate homespun tunic, leather boots, short travel mantle, wooden-hilt sword.
+ * - Stage 2 (Village / Vanguard): Azure surcoat, silver pauldrons, flowing blue cape, sapphire headband.
+ * - Stage 3 (Town / City / Mentor): Gold-trimmed royal sapphire cloak, golden circlet & master regalia.
  */
 export function drawFatherFigure(
   ctx: CanvasRenderingContext2D,
@@ -23,51 +26,95 @@ export function drawFatherFigure(
   id: number,
   sitting = false,
   mentor = false,
+  minStage: 0 | 1 | 2 | 3 = 0,
 ): void {
+  const stage = (mentor ? 3 : Math.max(env.clothTier, minStage)) as 0 | 1 | 2 | 3;
   const wave = Math.sin(env.clock * 6.5 + id) * 1.5;
   const legA = sitting ? 0 : p.walk * 2.2;
   const legB = sitting ? 0 : -p.walk * 2.2;
 
-  // 1. Billowing Royal Sapphire & Gold-bordered Cloak behind shoulders.
-  poly(
-    ctx,
-    [-2.8, -11.2, -8.2, -1.2 + wave * 0.7, -3.2, -0.6 + wave * 0.4, 2.2, -11.0],
-    '#f0c850',
-  );
-  poly(
-    ctx,
-    [-2.4, -11.0, -7.4, -1.8 + wave * 0.65, -3.0, -1.2 + wave * 0.35, 1.8, -10.8],
-    '#1b4688',
-  );
-  poly(
-    ctx,
-    [-1.8, -10.5, -5.6, -3.0 + wave * 0.5, -2.6, -2.4 + wave * 0.3, 1.0, -10.5],
-    '#2e68c0',
-  );
-
-  // 2. Boots & trousers.
-  if (!sitting) {
-    rect(ctx, -2.7 + legA * 0.32, -4.4, 2.2, 4.4, '#242a38');
-    rect(ctx, 0.5 + legB * 0.32, -4.4, 2.2, 4.4, '#1c2230');
-    // Gold-trimmed riding boot cuffs.
-    rect(ctx, -2.8 + legA * 0.32, -2.6, 2.4, 0.7, '#d8b048');
-    rect(ctx, 0.4 + legB * 0.32, -2.6, 2.4, 0.7, '#d8b048');
-  } else {
-    rect(ctx, 0.5, -4.2, 4.2, 1.8, '#242a38');
+  // 1. Cloak / Mantle (none at stage 0, short weathered mantle at stage 1, full cape at 2, gold-trimmed at 3).
+  if (stage === 1) {
+    poly(
+      ctx,
+      [-2.4, -10.8, -5.4, -4.5 + wave * 0.4, -2.4, -4.0 + wave * 0.25, 1.4, -10.6],
+      '#586474',
+    );
+  } else if (stage >= 2) {
+    if (stage === 3) {
+      poly(
+        ctx,
+        [-2.8, -11.2, -8.2, -1.2 + wave * 0.7, -3.2, -0.6 + wave * 0.4, 2.2, -11.0],
+        '#f0c850',
+      );
+    }
+    poly(
+      ctx,
+      [-2.4, -11.0, -7.4, -1.8 + wave * 0.65, -3.0, -1.2 + wave * 0.35, 1.8, -10.8],
+      '#1b4688',
+    );
+    poly(
+      ctx,
+      [-1.8, -10.5, -5.6, -3.0 + wave * 0.5, -2.6, -2.4 + wave * 0.3, 1.0, -10.5],
+      '#2e68c0',
+    );
   }
 
-  // 3. Royal Azure Surcoat & Silver Breastplate / Tabard.
-  rect(ctx, -3.5, -11.2, 7.0, 7.2, '#1e3f74');
-  // Central sapphire & gold tabard stripe.
-  rect(ctx, -1.3, -11.0, 2.6, 7.0, '#3474d0');
-  rect(ctx, -0.45, -11.0, 0.9, 7.0, '#f4d060');
-  // Chest armor trim & leather belt with golden buckle.
-  rect(ctx, -3.5, -11.2, 7.0, 1.1, '#a8c4e0');
-  rect(ctx, -3.5, -5.4, 7.0, 1.2, '#3a2618');
-  rect(ctx, -1.1, -5.5, 2.2, 1.4, '#ffd858');
+  // 2. Legs / Boots (cloth leg-wraps at stage 0, leather boots at 1, dark riding boots at 2-3).
+  if (!sitting) {
+    const legCol1 = stage === 0 ? '#9a8c74' : stage === 1 ? '#4a3828' : '#242a38';
+    const legCol2 = stage === 0 ? '#887a62' : stage === 1 ? '#3c2c1e' : '#1c2230';
+    rect(ctx, -2.7 + legA * 0.32, -4.4, 2.2, 4.4, legCol1);
+    rect(ctx, 0.5 + legB * 0.32, -4.4, 2.2, 4.4, legCol2);
+    if (stage === 0) {
+      // Criss-cross coarse cloth leg-wrap bindings.
+      rect(ctx, -2.7 + legA * 0.32, -2.6, 2.2, 0.6, '#cbbca2');
+      rect(ctx, 0.5 + legB * 0.32, -2.6, 2.2, 0.6, '#cbbca2');
+    } else if (stage === 3) {
+      rect(ctx, -2.8 + legA * 0.32, -2.6, 2.4, 0.7, '#d8b048');
+      rect(ctx, 0.4 + legB * 0.32, -2.6, 2.4, 0.7, '#d8b048');
+    }
+  } else {
+    rect(ctx, 0.5, -4.2, 4.2, 1.8, stage === 0 ? '#9a8c74' : '#242a38');
+  }
 
-  // 4. Sheathed Pioneer's Broadsword at hip (or Mentor's Golden Staff).
-  if (!mentor) {
+  // 3. Tunic / Surcoat.
+  if (stage === 0) {
+    // Stage 0: Coarse unbleached linen cloth tunic with stitched hem & knotted hemp rope belt.
+    rect(ctx, -3.3, -10.8, 6.6, 6.8, '#cbbca2');
+    rect(ctx, -1.2, -10.8, 2.4, 6.6, '#dfd2ba');
+    line(ctx, 0, -10.8, 0, -7.8, '#7a6850', 0.7); // open v-neck collar lace
+    rect(ctx, -3.4, -5.4, 6.8, 1.1, '#8c7248'); // hemp rope belt
+    line(ctx, 0.8, -5.0, 1.8, -2.8, '#8c7248', 0.9); // hanging rope knot tail
+  } else if (stage === 1) {
+    // Stage 1: Dyed slate-blue homespun tunic with leather belt.
+    rect(ctx, -3.4, -11.0, 6.8, 7.0, '#36547a');
+    rect(ctx, -1.2, -10.8, 2.4, 6.8, '#4a6e98');
+    rect(ctx, -3.4, -5.4, 6.8, 1.2, '#4a301e');
+    rect(ctx, -0.9, -5.5, 1.8, 1.3, '#a8b2bc');
+  } else {
+    // Stage 2 & 3: Royal Azure Surcoat & Silver Breastplate / Tabard.
+    rect(ctx, -3.5, -11.2, 7.0, 7.2, '#1e3f74');
+    rect(ctx, -1.3, -11.0, 2.6, 7.0, '#3474d0');
+    if (stage === 3) rect(ctx, -0.45, -11.0, 0.9, 7.0, '#f4d060');
+    rect(ctx, -3.5, -11.2, 7.0, 1.1, '#a8c4e0');
+    rect(ctx, -3.5, -5.4, 7.0, 1.2, '#3a2618');
+    rect(ctx, -1.1, -5.5, 2.2, 1.4, stage === 3 ? '#ffd858' : '#c8d8e8');
+  }
+
+  // 4. Sidearm / Staff (none at stage 0, simple short sword at stage 1, Pioneer Broadsword at 2+, Mentor Staff when mentor).
+  if (mentor) {
+    line(ctx, -3.8, 0, -3.4, -13.5, '#c89838', 1.3);
+    circle(ctx, -3.4, -14.2, 1.5, '#ffd860');
+    circle(ctx, -3.4, -14.2, 0.9, '#68d0ff');
+  } else if (stage === 1) {
+    ctx.save();
+    ctx.translate(-2.1, -5.0);
+    ctx.rotate(0.42);
+    rect(ctx, -0.6, 0, 1.2, 5.2, '#5a4632');
+    rect(ctx, -1.6, -0.5, 3.2, 0.8, '#8a94a0');
+    ctx.restore();
+  } else if (stage >= 2) {
     ctx.save();
     ctx.translate(-2.2, -5.2);
     ctx.rotate(0.45);
@@ -76,49 +123,63 @@ export function drawFatherFigure(
     rect(ctx, -2.0, -0.6, 4.0, 0.9, '#ffd050');
     circle(ctx, 0, -1.4, 0.9, '#58c8ff');
     ctx.restore();
-  } else {
-    // Retired Father Mentor carries a gleaming golden commander's staff at his side.
-    line(ctx, -3.8, 0, -3.4, -13.5, '#c89838', 1.3);
-    circle(ctx, -3.4, -14.2, 1.5, '#ffd860');
-    circle(ctx, -3.4, -14.2, 0.9, '#68d0ff');
   }
 
-  // 5. Silver-blue Pauldrons & Golden Cloak Clasps + Arms.
-  rect(ctx, -4.7, -10.2, 1.7, 4.8, '#285698');
-  rect(ctx, 3.0, -10.2, 1.7, 4.8, '#285698');
-  circle(ctx, -4.0, -5.2, 1.0, '#f4ceb0');
-  circle(ctx, 3.8, -5.2, 1.0, '#f4ceb0');
-  ellipse(ctx, -3.4, -10.6, 2.1, 1.3, '#c8ddf0');
-  ellipse(ctx, 3.4, -10.6, 2.1, 1.3, '#c8ddf0');
-  circle(ctx, -2.5, -10.5, 0.9, '#ffd858');
-  circle(ctx, 2.5, -10.5, 0.9, '#ffd858');
+  // 5. Arms & Shoulders (bare arms + cloth wrist-wraps at stage 0; sleeves at stage 1; pauldrons & clasps at 2-3).
+  if (stage === 0) {
+    rect(ctx, -4.5, -10.0, 1.5, 4.6, '#f4ceb0');
+    rect(ctx, 3.0, -10.0, 1.5, 4.6, '#f4ceb0');
+    rect(ctx, -4.5, -7.2, 1.5, 1.2, '#b5a488'); // cloth wrist-wraps
+    rect(ctx, 3.0, -7.2, 1.5, 1.2, '#b5a488');
+    circle(ctx, -3.8, -5.2, 1.0, '#f4ceb0');
+    circle(ctx, 3.8, -5.2, 1.0, '#f4ceb0');
+  } else {
+    rect(ctx, -4.7, -10.2, 1.7, 4.8, stage === 1 ? '#36547a' : '#285698');
+    rect(ctx, 3.0, -10.2, 1.7, 4.8, stage === 1 ? '#36547a' : '#285698');
+    circle(ctx, -4.0, -5.2, 1.0, '#f4ceb0');
+    circle(ctx, 3.8, -5.2, 1.0, '#f4ceb0');
+    if (stage >= 2) {
+      ellipse(ctx, -3.4, -10.6, 2.1, 1.3, '#c8ddf0');
+      ellipse(ctx, 3.4, -10.6, 2.1, 1.3, '#c8ddf0');
+      circle(ctx, -2.5, -10.5, 0.9, stage === 3 ? '#ffd858' : '#a8c8e8');
+      circle(ctx, 2.5, -10.5, 0.9, stage === 3 ? '#ffd858' : '#a8c8e8');
+    }
+  }
 
-  // 6. Handsome Head, Sharp Eyes, Windswept Heroic Hair & Golden Sapphire Circlet.
+  // 6. Handsome Head, Sharp Eyes, Windswept Heroic Hair & Headband / Circlet.
   circle(ctx, 0, -14.0, 3.6, '#f4ceb0');
-  // Determined brow & sparkling sapphire-blue eye with white highlight.
   line(ctx, 0.6, -15.0, 2.5, -14.7, '#1c2840', 0.8);
   rect(ctx, 1.1, -14.4, 1.2, 1.1, '#183060');
   rect(ctx, 1.5, -14.4, 0.5, 0.5, '#ffffff');
 
-  // Windswept spiky/flowing hair.
   const hairCol = mentor ? '#dce6f2' : '#1e2c48';
   const hairHi = mentor ? '#ffffff' : '#385488';
   ctx.fillStyle = hairCol;
   ctx.beginPath();
   ctx.arc(0, -14.6, 3.8, Math.PI * 0.95, Math.PI * 2.08);
   ctx.fill();
-  // Dynamic windswept locks at the back and crown.
   poly(ctx, [-2.8, -16.8, -6.2 - wave * 0.3, -15.6, -3.2, -14.2], hairCol);
   poly(ctx, [-2.2, -14.8, -5.8 - wave * 0.4, -13.0, -2.6, -12.6], hairCol);
   poly(ctx, [-0.8, -17.6, -2.8, -19.5, 0.6, -17.8], hairCol);
   poly(ctx, [0.4, -17.6, 2.4, -19.0, 2.8, -16.6], hairHi);
-  // Sideburn lock.
   poly(ctx, [-1.2, -14.6, -0.4, -11.8, 0.4, -14.2], hairCol);
 
-  // Golden Pioneer Circlet / Headband with glowing Sapphire Star Gem.
-  rect(ctx, -3.5, -15.9, 7.1, 1.1, '#ffd858');
-  circle(ctx, 2.2, -15.4, 1.1, '#38b8ff');
-  circle(ctx, 2.4, -15.6, 0.45, '#ffffff');
+  if (stage === 0) {
+    // Simple unbleached cloth headband with fluttering cloth knot tails at the back.
+    rect(ctx, -3.5, -15.9, 7.1, 1.0, '#dfd4be');
+    line(ctx, -3.5, -15.4, -6.2, -14.2 + wave * 0.35, '#dfd4be', 0.9);
+  } else if (stage === 1) {
+    rect(ctx, -3.5, -15.9, 7.1, 1.0, '#4a7ab8');
+    line(ctx, -3.5, -15.4, -6.2, -14.2 + wave * 0.35, '#4a7ab8', 0.9);
+  } else if (stage === 2) {
+    rect(ctx, -3.5, -15.9, 7.1, 1.0, '#3868b0');
+    circle(ctx, 2.2, -15.4, 1.0, '#38b8ff');
+    circle(ctx, 2.4, -15.6, 0.4, '#ffffff');
+  } else {
+    rect(ctx, -3.5, -15.9, 7.1, 1.1, '#ffd858');
+    circle(ctx, 2.2, -15.4, 1.1, '#38b8ff');
+    circle(ctx, 2.4, -15.6, 0.45, '#ffffff');
+  }
 }
 
 function drawFatherAura(ctx: CanvasRenderingContext2D, px: number, py: number, env: Env, id: number): void {
@@ -221,8 +282,14 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
   let dir = rest ? rest.dir : facing(w.x, w.path, w.id);
   const elder = isElder(w) && !w.father;
   const skin = SKIN[Math.floor(hash(w.id, 1) * SKIN.length)], hair = elder ? '#d8d8d8' : HAIR[Math.floor(hash(w.id, 2) * HAIR.length)];
-  const tunic = JOBS[w.job].color;
-  const fig = villagerFig(w.id, elder);
+  const COARSE_CLOTH = ['#b8ab92', '#a89b82', '#c2b59c', '#9e9078'];
+  const tunic = env.clothTier === 0
+    ? COARSE_CLOTH[w.id % COARSE_CLOTH.length]
+    : env.clothTier === 1
+      ? shade(JOBS[w.job].color, -0.18)
+      : JOBS[w.job].color;
+  const baseFig = villagerFig(w.id, elder);
+  const fig = { ...baseFig, tintA: env.clothTier === 0 ? 0.62 : env.clothTier === 1 ? 0.46 : 0.38 };
   const spr = spriteFigures();
   const px = w.x * TILE + TILE / 2, py = w.y * TILE + TILE / 2;
   if (elder) p.bob += 1.2; // a slight stoop
@@ -230,7 +297,15 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
   const uScale = w.father ? HERO_SCALE : WORKER_SCALE;
   const drawBody = (sittingPose: boolean) => {
     if (w.father) drawFatherFigure(ctx, sittingPose ? sit : p, env, w.id, sittingPose, !!w.mentor);
-    else { body(ctx, tunic, skin, hair, sittingPose ? sit : p, sittingPose, fig); hat(ctx, w.job); }
+    else {
+      body(ctx, tunic, skin, hair, sittingPose ? sit : p, sittingPose, fig);
+      if (env.clothTier >= 1) hat(ctx, w.job);
+      if (env.clothTier >= 3 && !sittingPose) {
+        // Fine town attire: gold-trimmed collar and belt buckle.
+        rect(ctx, -2.8, -10.5, 5.6, 0.7, '#ebd078');
+        rect(ctx, -0.8, -5.2, 1.6, 1.0, '#e8c458');
+      }
+    }
   };
   if (sleeping || rest?.activity === 'nap') {
     if (env.raid && !env.night) {

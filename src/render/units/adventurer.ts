@@ -10,7 +10,7 @@ import { classArt } from './classes';
 import { drawFatherFigure } from './worker';
 
 function drawFatherWarrior(ctx: CanvasRenderingContext2D, p: ReturnType<typeof pose>, env: Env, id: number, sitting: boolean): void {
-  drawFatherFigure(ctx, p, env, id, sitting, true);
+  drawFatherFigure(ctx, p, env, id, sitting, false, 2);
   // Royal Sapphire & Gold kite shield on left arm.
   poly(ctx, [-5.6, -9.2, -2.4, -9.2, -2.6, -4.6, -4.0, -2.8, -5.4, -4.6], '#ffd858');
   poly(ctx, [-5.2, -8.8, -2.8, -8.8, -3.0, -4.8, -4.0, -3.4, -5.0, -4.8], '#1e4e98');

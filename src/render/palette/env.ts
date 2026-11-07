@@ -37,6 +37,8 @@ export interface Env {
   seasonal: SeasonalEvent | null;
   /** True while a monster raid is marching on or fighting the town. */
   raid: boolean;
+  /** Clothing quality stage (0 = coarse linen cloth, 1 = simple homespun, 2 = dyed tunic & cape, 3 = fine town/royal attire). */
+  clothTier: 0 | 1 | 2 | 3;
 }
 
 export function makeEnv(s: GameState, clock: number): Env {
@@ -56,7 +58,17 @@ export function makeEnv(s: GameState, clock: number): Env {
   const indoors = new Set<number>();
   for (const w of s.workers) if (w.task?.kind === 'sleep' && w.task.phase === 'sleep') indoors.add(w.task.buildingId);
   const festival = sea === 'autumn' && (day - 1) % 10 === 5 && f > 0.78;
-  return { season: sea, dark, dayFrac: f, clock, day, rainy, storm, snowy, foggy, rainbow, clearNight, night: isNight(s), bell, indoors, festival, holiday: isHoliday(s), seasonal: seasonalEvent(s), raid: !!s.raid };
+  const hasMarket = s.buildings.some((b) => b.built && b.type === 'market');
+  const hasTavernOrSmith = s.buildings.some((b) => b.built && (b.type === 'tavern' || b.type === 'blacksmith'));
+  const hasHomespun = s.tier !== 'camp' || s.buildings.some((b) => b.built && b.type === 'farm');
+  const clothTier: 0 | 1 | 2 | 3 = (s.tier === 'town' || s.tier === 'city') && hasMarket
+    ? 3
+    : s.tier === 'village' || s.tier === 'town' || s.tier === 'city' || hasTavernOrSmith
+      ? 2
+      : hasHomespun
+        ? 1
+        : 0;
+  return { season: sea, dark, dayFrac: f, clock, day, rainy, storm, snowy, foggy, rainbow, clearNight, night: isNight(s), bell, indoors, festival, holiday: isHoliday(s), seasonal: seasonalEvent(s), raid: !!s.raid, clothTier };
 }
 
 /** Warm/cool tint of the whole scene for the time of day, as an rgba fill. */

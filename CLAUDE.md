@@ -13,9 +13,7 @@ every system and why it is tuned the way it is.
 
 - The owner writes Traditional Chinese (zh-TW). Reply in zh-TW; keep code,
   comments, commit messages and docs in English.
-- For anything bigger than a fix, propose the design first (a short numbered
-  list of options) and wait for a choice before coding. The owner answers
-  with picks like "A+B" or "三項都作".
+- **Always propose a modification plan first and wait for the owner's confirmation before editing any code** (for every request, large or small). Present a clear numbered plan (files to change and what will change) and wait for the owner's approval (e.g., "可以", "A+B", "全作") before touching files.
 - The game is meant to be watched: when adding a feature, ask what the viewer
   will see, and make it legible at 1x speed.
 
