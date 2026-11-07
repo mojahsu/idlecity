@@ -84,6 +84,7 @@ export function step(s: GameState, p: Party, v: ViewState, env: Env, dt: number)
         case 'frost': v.frozen = 1.4; label(t('skill.frost'), PANEL_W * 0.74, floorY - 48, '#a0e0ff', 1.3); say('hero', heroX(ai), floorY - 30, t('talk.h.frost')); break;
         case 'block': v.block = 0.45; v.blockIdx = ti; label(t('skill.block'), heroX(ti), floorY - 36, '#c0d0e0'); say('hero', heroX(ti), floorY - 30, t('talk.h.block'), 1.5); break;
         case 'revive': v.revive = 1.2; v.reviveIdx = ti; label(t('skill.revive'), heroX(ti), floorY - 44, '#ffffff', 1.6, true); say('hero', heroX(ai), floorY - 30, t('talk.h.revive')); setTimeoutLike(v, 0.5, () => say('hero', heroX(ti), floorY - 28, t('talk.h.thanks'), 1.6)); break;
+        case 'pioneerSlash': v.block = 0.55; v.blockIdx = ai; label(t('skill.pioneerSlash'), heroX(ai), floorY - 44, '#78c4ff', 1.4, true); say('hero', heroX(ai), floorY - 30, t('talk.h.pioneerSlash')); break;
         case 'sunblade': v.beam = 0.75; v.beamIdx = ai; for (const a of team) v.heal.set(a.id, 0.5); label(t('skill.sunblade'), heroX(ai), floorY - 44, '#ffe066', 1.4, true); say('hero', heroX(ai), floorY - 30, t('talk.h.sunblade')); break;
       }
     } else if (f.kind === 'treasure') {

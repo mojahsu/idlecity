@@ -216,6 +216,12 @@ function heroAct(s: GameState, p: Party, a: Adventurer, slot: number, alive: { x
     splash = alive.filter((q) => q !== tgt).map((q) => q.i);
     for (const b of team) b.hp = Math.min(b.maxHp, b.hp + Math.round(b.maxHp * 0.06));
     fx('sunblade');
+  } else if (a.father && round % 3 === 0) {
+    // The Father's Pioneer Resolve slash: sapphire cleave + guards the frontline.
+    hit *= 1.42;
+    style = 'crit';
+    splash = alive.filter((q) => q !== tgt).map((q) => q.i);
+    fx('pioneerSlash');
   }
   strike(s, p, a, tgt, Math.round(hit), style, splash);
   void e;
@@ -367,9 +373,9 @@ function onMemberDown(s: GameState, p: Party, a: Adventurer): void {
     startReturn(s, p);
     return;
   }
-  if (a.hero) {
+  if (a.hero || a.father) {
     a.hp = 1;
-    log(s, 'adventure', 'log.heroSurvived', { name: a.name });
+    log(s, 'adventure', a.hero ? 'log.heroSurvived' : 'log.fatherSurvived', { name: a.name });
     startReturn(s, p);
     return;
   }

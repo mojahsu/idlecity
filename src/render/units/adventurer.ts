@@ -42,6 +42,17 @@ export function drawAdventurer(ctx: CanvasRenderingContext2D, a: Adventurer, env
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffe060';
     ctx.fillText('★', px, py - 15 + Math.sin(env.clock * 4) * 1.2);
+  } else if (a.father) {
+    // Sapphire Pioneer aura ring underfoot and floating ✦ crest above the Father's head.
+    ctx.strokeStyle = rgba('#68b8ff', 0.72);
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.ellipse(px, py + 3.5, 6.4 + Math.sin(env.clock * 3.8) * 0.7, 2.3, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.font = 'bold 8px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#78c4ff';
+    ctx.fillText('✦', px, py - 15 + Math.sin(env.clock * 3.8) * 1.1);
   }
   if (training && p.swing > 0.55) {
     // Sparks fly off the training dummy at the peak of each blow.
@@ -97,7 +108,7 @@ export function drawParty(ctx: CanvasRenderingContext2D, s: GameState, p: Party,
     const ox = (i >= n - 2 ? 0.24 : -0.24) * dir, oy = (i % 2 ? 0.2 : -0.2);
     const pz = pose(true, false, env.clock, a.id);
     if (departing && i === n - 1) pz.swing = 0.9; // lead warrior raises weapon on departure
-    const mounted = a.level >= 12 || (!!a.hero && a.level >= 8);
+    const mounted = a.level >= 12 || (!!a.hero && a.level >= 8) || (!!a.father && a.level >= 7);
     if (mounted) {
       const mx = (p.x + ox) * TILE + TILE / 2, my = (p.y + oy) * TILE + TILE / 2 + 5;
       const trot = Math.sin(env.clock * 11 + a.id * 1.7) * 1.2;

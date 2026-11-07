@@ -206,12 +206,19 @@ tests/        bun tests
     children (tracked in `state.children`, no job and no food cost) who come of
     age at `ADULT_AGE` and pick up a job under their own name, turn grey and
     slow at `ELDER_AGE`, and pass away between `LIFESPAN` years, leaving a
-    grave. Once the Adventurers' Guild stands in the mid-game, a Chosen Child
-    (`Child.hero` / `state.protagonistId`) is born in the village under a
-    falling star, practices with a wooden sword in the streets, and upon
-    reaching `ADULT_AGE` awakens as the Village Hero (`Adventurer.hero`) with
-    the Sunblade Cleave skill and protection from permanent death. Over an
-    evening a town turns over a whole generation.
+    grave. The very first settler who lights the campfire (`Worker.father` /
+    `state.fatherId`) is the Protagonist's Father: he weds in the early
+    settlement, enlists at the Tavern as the town's Pioneer Vanguard Warrior
+    (`Adventurer.father`) with the Pioneer's Blade skill to clear early
+    dungeons, and once the Adventurers' Guild stands welcomes his newborn
+    Chosen Child (`Child.hero` / `state.protagonistId`) under a falling star.
+    While the child practices with a wooden sword in the streets, father and
+    child share training skits in town; upon the child reaching `ADULT_AGE`,
+    the Father retires to the village as a respected Mentor (`Worker.mentor`)
+    and passes his blade and battle experience to the newly awakened Village
+    Hero (`Adventurer.hero`), who wields the Sunblade Cleave skill and is
+    protected from permanent death. Over an evening a town turns over a whole
+    generation.
 13. Sound: `platform/audio.ts` synthesises everything on Web Audio (no files):
     wind, rain, river and fire beds; birds, crickets, owls, wolves; axes, picks
     and hammers; hits, skills, roars, thunder, bells, fanfares, a tavern tune.

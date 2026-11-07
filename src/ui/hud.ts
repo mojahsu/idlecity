@@ -198,7 +198,7 @@ export class Hud {
   }
 
   private updateAdventurers(s: GameState): void {
-    const list = [...s.adventurers].sort((a, b) => (a.status === 'dead' ? 1 : 0) - (b.status === 'dead' ? 1 : 0) || (b.hero ? 1 : 0) - (a.hero ? 1 : 0) || b.level - a.level).slice(0, 14);
+    const list = [...s.adventurers].sort((a, b) => (a.status === 'dead' ? 1 : 0) - (b.status === 'dead' ? 1 : 0) || (b.hero ? 2 : b.father ? 1 : 0) - (a.hero ? 2 : a.father ? 1 : 0) || b.level - a.level).slice(0, 14);
     const html = list.map((a) => {
       let status = t(`ui.${a.status}`);
       if (a.status === 'resting' && a.pastime === 'sally') status = t('ui.defending');
@@ -209,9 +209,10 @@ export class Hud {
         else if (p && p.phase !== 'travel' && p.phase !== 'return') status = t('ui.questing', { dungeon: `dungeon.${p.dungeon}`, floor: p.floor });
         else if (p) status = t(`dungeon.${p.dungeon}`);
       }
-      const roleLabel = a.hero ? `★ ${t('ui.heroTitle')}` : t(`class.${a.cls}`);
+      const roleLabel = a.hero ? `★ ${t('ui.heroTitle')}` : a.father ? `✦ ${t('ui.fatherWarriorTitle')}` : t(`class.${a.cls}`);
+      const dotColor = a.hero ? '#ffd040' : a.father ? '#68b8ff' : CLASSES[a.cls].color;
       return `<li class="adv ${a.status === 'dead' ? 'dead' : ''}">
-        <i class="cls" style="background:${a.hero ? '#ffd040' : CLASSES[a.cls].color}"></i>
+        <i class="cls" style="background:${dotColor}"></i>
         <span class="name">${esc(a.name)}<small>${esc(roleLabel)} ${esc(t('ui.level', { level: a.level }))}</small>${skillsFor(a.cls, a.level).map((sk) => `<b class="sk ${sk.level > 1 ? 'adv' : ''}" style="color:${sk.level > 1 ? '#f0d050' : CLASSES[a.cls].color}" title="${esc(t(`skill.${sk.id}`))}">${sk.level > 1 ? '★' : '◆'}</b>`).join('')}</span>
         <span class="status">${esc(status)}</span>
         <span class="hp"><i style="width:${Math.max(0, Math.min(100, (a.hp / a.maxHp) * 100)).toFixed(0)}%"></i></span>

@@ -42,10 +42,14 @@ describe('simulation', () => {
 
   test('growth keeps going: resources never all stall over 2 hours', () => {
     const s = newGame(11);
+    expect(s.workers[0].father).toBe(true);
+    expect(s.fatherId).toBe(s.workers[0].id);
     advance(s, 3600);
     const built1 = s.stats.built;
+    expect(s.adventurers.some((a) => a.father)).toBe(true);
     advance(s, 3600);
     expect(s.stats.built).toBeGreaterThan(built1);
+    expect(s.protagonistId).toBeDefined();
   });
 });
 

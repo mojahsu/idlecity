@@ -62,7 +62,9 @@ export class Chapters {
 
   private reached(s: GameState): string[] {
     const out: string[] = [];
+    if (s.buildings.some((b) => b.built && b.type === 'hut')) out.push('fatherPioneer');
     if (s.buildings.some((b) => b.built && b.type === 'tavern')) out.push('1');
+    if (s.adventurers.some((a) => a.father)) out.push('fatherCrusade');
     if (s.dungeons.some((d) => d.id === 'goblinCave' && d.unlocked)) out.push('2');
     if (s.protagonistId) out.push('heroBorn');
     if (s.adventurers.some((a) => a.hero)) out.push('heroAwakened');

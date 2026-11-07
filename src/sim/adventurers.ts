@@ -21,7 +21,7 @@ export function alive(s: GameState): Adventurer[] {
 }
 
 function maxAdventurers(s: GameState): number {
-  const heroBonus = s.adventurers.some((a) => a.hero && a.status !== 'dead') ? 1 : 0;
+  const heroBonus = s.adventurers.some((a) => (a.hero || a.father) && a.status !== 'dead') ? 1 : 0;
   return 4 * countBuildings(s, 'tavern') + 4 * countBuildings(s, 'guildHall') + 2 * countBuildings(s, 'keep') + heroBonus;
 }
 
@@ -29,13 +29,13 @@ function maxAdventurers(s: GameState): number {
 export const FORMATION: Record<AdventurerClass, number> = { mage: 0, priest: 1, archer: 2, warrior: 3 };
 
 /** A team sorted into its battle line (back first), highest level first within a rank. */
-export function formationOrder<T extends { cls: AdventurerClass; level: number; hero?: boolean }>(team: T[]): T[] {
-  return [...team].sort((a, b) => FORMATION[a.cls] - FORMATION[b.cls] || (b.hero ? 1 : 0) - (a.hero ? 1 : 0) || b.level - a.level);
+export function formationOrder<T extends { cls: AdventurerClass; level: number; hero?: boolean; father?: boolean }>(team: T[]): T[] {
+  return [...team].sort((a, b) => FORMATION[a.cls] - FORMATION[b.cls] || ((b.hero || b.father) ? 1 : 0) - ((a.hero || a.father) ? 1 : 0) || b.level - a.level);
 }
 
-/** The party's leader is the village Protagonist if present, otherwise its highest-level member. */
-export function leader<T extends { level: number; hero?: boolean }>(team: T[]): T | undefined {
-  const hero = team.find((a) => a.hero);
+/** The party's leader is the village Protagonist (or their Father before them) if present, otherwise its highest-level member. */
+export function leader<T extends { level: number; hero?: boolean; father?: boolean }>(team: T[]): T | undefined {
+  const hero = team.find((a) => a.hero) ?? team.find((a) => a.father);
   if (hero) return hero;
   return team.reduce<T | undefined>((best, a) => (!best || a.level > best.level ? a : best), undefined);
 }
@@ -84,7 +84,50 @@ export function spawnAdventurer(s: GameState): Adventurer {
   return a;
 }
 
+/** Act II: Once the tavern stands, the founding Father takes up his sword as the town's first Vanguard Warrior. */
+export function enlistFather(s: GameState, name: string): Adventurer {
+  const cls: AdventurerClass = 'warrior';
+  const def = CLASSES[cls];
+  const tav = tavernPos(s);
+  const baseHp = Math.round(def.hp * 1.18);
+  const baseAtk = Math.round(def.atk * 1.18);
+  const a: Adventurer = {
+    id: s.nextId++,
+    name,
+    cls,
+    level: 2,
+    xp: 0,
+    hp: baseHp + def.hpUp,
+    maxHp: baseHp + def.hpUp,
+    atk: baseAtk + def.atkUp,
+    def: def.def + 1,
+    status: 'resting',
+    x: s.center.x,
+    y: s.center.y,
+    path: findPath(s, s.center, tav),
+    partyId: -1,
+    kills: 0,
+    bossKills: 0,
+    father: true,
+  };
+  s.adventurers.push(a);
+  chronicle(s, 'adventure', 'log.fatherEnlists', { name: a.name });
+  return a;
+}
+
 export function awakenProtagonist(s: GameState, c: Child): Adventurer {
+  // Retire the Father from frontline combat so he can pass his blade to his child and remain in town as Mentor.
+  const faIdx = s.adventurers.findIndex((x) => x.father);
+  const fa = faIdx >= 0 ? s.adventurers[faIdx] : undefined;
+  const fatherLevel = fa ? fa.level : 4;
+  if (faIdx >= 0) s.adventurers.splice(faIdx, 1);
+  if (s.workers.length) {
+    const mentor = s.workers.find((w) => w.father) ?? s.workers[0];
+    mentor.father = true;
+    mentor.mentor = true;
+    if (s.fatherName) mentor.name = s.fatherName;
+  }
+
   const cls: AdventurerClass = 'warrior';
   const def = CLASSES[cls];
   const guild = s.buildings.find((b) => b.built && b.type === 'guildHall') ?? s.center;
@@ -112,7 +155,7 @@ export function awakenProtagonist(s: GameState, c: Child): Adventurer {
   };
   const roster = alive(s);
   const avg = roster.length ? roster.reduce((n, x) => n + x.level, 0) / roster.length : 1;
-  const startLevel = Math.max(4, Math.min(14, 2 + Math.floor(avg * 0.65)));
+  const startLevel = Math.max(4, fatherLevel, Math.min(14, 2 + Math.floor(avg * 0.65)));
   while (a.level < startLevel) {
     a.level++;
     a.maxHp += def.hpUp + 2;
@@ -120,18 +163,18 @@ export function awakenProtagonist(s: GameState, c: Child): Adventurer {
   }
   a.hp = a.maxHp;
   s.adventurers.push(a);
-  chronicle(s, 'victory', 'log.heroAwakened', { name: a.name });
+  chronicle(s, 'victory', 'log.heroAwakened', { name: a.name, father: c.parentName ?? s.fatherName ?? '' });
   return a;
 }
 
 export function gainXp(s: GameState, a: Adventurer, xp: number): void {
-  a.xp += a.hero ? xp * 1.22 : xp;
+  a.xp += a.hero ? xp * 1.22 : a.father ? xp * 1.15 : xp;
   while (a.xp >= xpForLevel(a.level)) {
     a.xp -= xpForLevel(a.level);
     a.level++;
     const def = CLASSES[a.cls];
-    a.maxHp += def.hpUp + (a.hero ? 2 : 0);
-    a.atk += def.atkUp + (a.hero ? 0.5 : 0);
+    a.maxHp += def.hpUp + (a.hero ? 2 : a.father ? 1 : 0);
+    a.atk += def.atkUp + (a.hero ? 0.5 : a.father ? 0.3 : 0);
     a.hp = a.maxHp;
     if (a.level % 2 === 0) log(s, 'adventure', 'log.levelUp', { name: a.name, level: a.level });
   }
@@ -227,7 +270,7 @@ function tryFormParty(s: GameState): void {
  * in battle-line order so the fight and the panel agree on who stands where.
  */
 function pickParty(ready: Adventurer[]): Adventurer[] {
-  const byLevel = [...ready].sort((a, b) => (b.level + (b.hero ? 1.5 : 0)) - (a.level + (a.hero ? 1.5 : 0)));
+  const byLevel = [...ready].sort((a, b) => (b.level + (b.hero ? 1.5 : b.father ? 1.2 : 0)) - (a.level + (a.hero ? 1.5 : a.father ? 1.2 : 0)));
   const chosen: Adventurer[] = [];
   for (const role of ['warrior', 'priest'] as AdventurerClass[]) { const c = byLevel.find((a) => a.cls === role); if (c) chosen.push(c); }
   for (const a of byLevel) {

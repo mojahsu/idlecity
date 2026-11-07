@@ -98,9 +98,9 @@ export class Spotlight {
     for (const w of s.workers) {
       if (w.task?.kind === 'sleep') continue;
       const rest = w.task?.kind === 'rest' && w.task.phase === 'do';
-      pool.push({ t: { kind: 'worker', id: w.id }, w: rest ? 4 : w.carrying ? 2 : 1 });
+      pool.push({ t: { kind: 'worker', id: w.id }, w: w.father ? 5 : rest ? 4 : w.carrying ? 2 : 1 });
     }
-    for (const a of s.adventurers) if (a.status === 'resting' && env.dark < 0.6) pool.push({ t: { kind: 'adventurer', id: a.id }, w: a.hero ? 6 : 2 });
+    for (const a of s.adventurers) if (a.status === 'resting' && env.dark < 0.6) pool.push({ t: { kind: 'adventurer', id: a.id }, w: a.hero ? 6 : a.father ? 5 : 2 });
     const total = pool.reduce((n, p) => n + p.w, 0);
     if (!total) return null;
     let r = Math.random() * total;
@@ -109,7 +109,8 @@ export class Spotlight {
   }
 
   private describe(s: GameState, w: Worker): [string, string] {
-    const head = `${w.name} · ${t('ui.age', { age: Math.floor(ageOf(w)) })} · ${t(`job.${w.job}`)}${isLazy(w) ? ' · ' + t('ui.lazy') : ''}`;
+    const roleTag = w.father ? `${t(w.mentor ? 'ui.fatherMentorTitle' : 'ui.fatherPioneerTitle')} · ` : '';
+    const head = `${w.father ? '✦ ' : ''}${w.name} · ${roleTag}${t('ui.age', { age: Math.floor(ageOf(w)) })} · ${t(`job.${w.job}`)}${isLazy(w) ? ' · ' + t('ui.lazy') : ''}`;
     const tk = w.task;
     let line = t('act.idle');
     if (!tk) line = t('act.idle');
@@ -164,7 +165,9 @@ export class Spotlight {
       pos = a;
       head = a.hero
         ? `★ ${a.name} · ${t('ui.heroTitle')} ${t('ui.level', { level: a.level })}`
-        : `${a.name} · ${t(`class.${a.cls}`)} ${t('ui.level', { level: a.level })}`;
+        : a.father
+          ? `✦ ${a.name} · ${t('ui.fatherWarriorTitle')} ${t('ui.level', { level: a.level })}`
+          : `${a.name} · ${t(`class.${a.cls}`)} ${t('ui.level', { level: a.level })}`;
       const actText = a.status === 'resting' && a.pastime === 'train' ? t('ui.training')
         : a.status === 'resting' && a.pastime === 'sally' ? t('ui.defending')
         : a.status === 'resting' && a.pastime === 'drink' ? t('act.drink')

@@ -70,6 +70,10 @@ export interface Worker {
   age?: number;
   /** Id of the spouse, if married. */
   spouse?: number;
+  /** True for the Protagonist's Father (the founding pioneer of the village). */
+  father?: boolean;
+  /** True once the Father has passed his blade to the Protagonist and retired as Village Mentor. */
+  mentor?: boolean;
 }
 
 /** A child growing up in town; becomes a worker (or the Chosen Hero) at ADULT_AGE. Not a worker: no job, no food maths. */
@@ -109,6 +113,8 @@ export interface Adventurer {
   pastimeTimer?: number;
   /** True if this adventurer is the village-born Protagonist. */
   hero?: boolean;
+  /** True if this adventurer is the Protagonist's Father (first vanguard warrior). */
+  father?: boolean;
   /** Name of the villager parent who raised the Protagonist. */
   parentName?: string;
 }
@@ -277,6 +283,9 @@ export interface GameState {
   children?: Child[];
   /** Id of the village-born Protagonist (first in children, then in adventurers). */
   protagonistId?: number;
+  /** Id and name of the Protagonist's Father (the founding settler / first warrior). */
+  fatherId?: number;
+  fatherName?: string;
   nextId: number;
   log: LogEntry[];
   chronicle: LogEntry[];

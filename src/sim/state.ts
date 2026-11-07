@@ -52,7 +52,10 @@ export function newGame(seed = Date.now() % 2147483647): GameState {
     t.terrain = 'grass'; t.amount = 0;
   }
   placeBuilding(s, 'campfire', s.center, true);
-  spawnWorker(s, true);
+  const founder = spawnWorker(s, true);
+  founder.father = true;
+  s.fatherId = founder.id;
+  s.fatherName = founder.name;
   log(s, 'info', 'log.founded');
   return s;
 }

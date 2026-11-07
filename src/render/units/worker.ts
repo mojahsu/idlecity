@@ -199,6 +199,10 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
   if (dancing) dir = Math.sin(env.clock * 3 + w.id) > 0 ? 1 : -1;
   const throwing = rest?.activity === 'snowball' ? Math.max(0, Math.sin(env.clock * 2.5 + w.id * 1.7)) : 0;
   withUnit(ctx, w.x + wobble / TILE, w.y, dir, p.bob + (tipsy ? Math.sin(env.clock * 5 + w.id) : 0) + sway, () => {
+    if (w.father) {
+      const wave = Math.sin(env.clock * 7 + w.id) * 1.3;
+      poly(ctx, [-1.5, -10.5, -6.8, -4.5 + wave, -3.6, -2.5 + wave, -1, -6.5], '#2c5aa0');
+    }
     load(ctx, w);
     body(ctx, tunic, skin, hair, p, false, fig);
     hat(ctx, w.job);
@@ -215,9 +219,25 @@ export function drawWorker(ctx: CanvasRenderingContext2D, w: Worker, env: Env): 
     }
     else if (!rest && !fleeing && (working || !w.carrying)) tool(ctx, w, p);
   });
+  if (w.father) {
+    ctx.strokeStyle = rgba('#68b8ff', 0.68);
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.ellipse(px, py + 3.5, 6.2 + Math.sin(env.clock * 3.5) * 0.7, 2.2, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.font = 'bold 8px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#80c8ff';
+    ctx.fillText('✦', px, py - 15 + Math.sin(env.clock * 3.5) * 1.1);
+  }
   if (dousing) { const k = (env.clock * 0.4 + w.id * 0.23) % 1; bubble(ctx, px, py - 20, t('talk.w.fire'), k < 0.35 ? 1 : 0, '#c83020'); }
   else if (fleeing) { const k = (env.clock * 0.55 + w.id * 0.29) % 1; bubble(ctx, px, py - 20, t(w.id % 2 ? 'talk.w.raid.0' : 'talk.w.raid.1'), k < 0.5 ? 1 : 0, '#c83020'); }
   else if (isSpeakingInSkit(w.id)) { /* skit overlay draws the full multi-turn bubble */ }
+  else if (w.father && ((env.clock * 0.18 + w.id * 0.13) % 1) < 0.24) {
+    const fk = (env.clock * 0.18 + w.id * 0.13) % 1;
+    const key = w.mentor ? (fk < 0.12 ? 'talk.father.mentor.0' : 'talk.father.mentor.1') : (fk < 0.12 ? 'talk.father.pioneer.0' : 'talk.father.pioneer.1');
+    bubble(ctx, px + dir * 2, py - 22, t(key), 1, '#2c5aa0');
+  }
   else if (rest?.activity === 'chat' || rest?.activity === 'visit') { const k = (env.clock * 0.45 + (w.id % 2) * 0.5) % 1; bubble(ctx, px + dir * 2, py - 20, w.id % 3 === 0 ? t(w.id % 2 ? 'talk.w.chat.0' : 'talk.w.chat.1') : '…', k < 0.4 ? 1 : 0); }
   else if (listening && !dancing) { const k = (env.clock * 0.35 + w.id * 0.17) % 1; bubble(ctx, px + dir * 2, py - 20, '♪', k < 0.3 ? 1 : 0, '#b86a2a'); }
   else if (rest?.activity === 'watch') { const k = (env.clock * 0.3 + w.id * 0.13) % 1; bubble(ctx, px + dir * 2, py - 20, '!', k < 0.25 ? 1 : 0, '#c86030'); }

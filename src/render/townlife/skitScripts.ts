@@ -81,6 +81,21 @@ export function buildSkitPlans(
     const kName = k.name || t('ui.child');
     const ks: SkitSpeaker = { kind: 'child', id: k.id, name: kName, x: k.x, y: k.y };
     const hs = aSpeaker(hero);
+    const childObj = (s.children ?? []).find((c) => c.id === k.id);
+    if (hero.father && childObj?.hero) {
+      push({
+        key: `fatherTrain.${hero.id}.${k.id}`,
+        topicKey: 'skit.topic.family',
+        weight: 22,
+        a: hs,
+        b: ks,
+        turns: [
+          { speaker: 0, text: t('skit.fatherTrain.a', { child: kName }), color: '#245898' },
+          { speaker: 1, text: t('skit.fatherTrain.b', { father: hero.name }), color: '#c87020' },
+          { speaker: 0, text: t('skit.fatherTrain.c'), color: '#245898' },
+        ],
+      });
+    }
     if (s.victory) {
       push({
         key: `era.victoryKid.${hero.id}`,
@@ -129,6 +144,20 @@ export function buildSkitPlans(
     const hero = heroes.find((h) => Math.hypot(h.x - w.x, h.y - w.y) <= 3.2);
     if (!hero) continue;
     const ws = wSpeaker(w), hs = aSpeaker(hero);
+    if (w.father && hero.hero) {
+      push({
+        key: `fatherHero.${w.id}.${hero.id}`,
+        topicKey: 'skit.topic.family',
+        weight: 22,
+        a: ws,
+        b: hs,
+        turns: [
+          { speaker: 0, text: t('skit.fatherHero.a', { child: hero.name }), color: '#245898' },
+          { speaker: 1, text: t('skit.fatherHero.b', { father: w.name }), color: '#b87818' },
+          { speaker: 0, text: t('skit.fatherHero.c'), color: '#245898' },
+        ],
+      });
+    }
     if (s.victory) {
       push({
         key: `era.victoryHero.${w.id}.${hero.id}`,
@@ -206,6 +235,21 @@ export function buildSkitPlans(
 
       // B2. Married spouses (picnic or meeting in town).
       if (a.spouse === b.id) {
+        if ((a.father || b.father) && !s.protagonistId) {
+          const [fa, sp] = a.father ? [as, bs] : [bs, as];
+          push({
+            key: `fatherSpouse.${fa.id}.${sp.id}`,
+            topicKey: 'skit.topic.family',
+            weight: 18 * restingBonus,
+            a: fa,
+            b: sp,
+            turns: [
+              { speaker: 0, text: t('skit.fatherSpouse.a', { b: sp.name }), color: '#245898' },
+              { speaker: 1, text: t('skit.fatherSpouse.b', { a: fa.name }), color: '#b83a5a' },
+              { speaker: 0, text: t('skit.fatherSpouse.c'), color: '#245898' },
+            ],
+          });
+        }
         const variant = actA === 'picnic' || actB === 'picnic' ? 1 : (a.id + b.id) % 2;
         push({
           key: `spouse.${variant}.${a.id}.${b.id}`,

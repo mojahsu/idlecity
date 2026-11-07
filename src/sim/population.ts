@@ -7,7 +7,7 @@ import { chronicle, log } from './log';
 import { tierForPop, tierIndex } from '../data/tiers';
 import { ADULT_AGE, ARRIVAL_AGE, BIRTH_INTERVAL, DAY_LENGTH, LIFE_YEAR_DAYS, ELDER_AGE, FOOD_PER_PERSON_PER_DAY, LAZY_SHARE, LIFESPAN, WEDDING_INTERVAL } from './constants';
 import { hash } from './rng';
-import { awakenProtagonist } from './adventurers';
+import { awakenProtagonist, enlistFather } from './adventurers';
 
 export function spawnWorker(s: GameState, atCenter = false): Worker {
   const from = atCenter ? { x: s.center.x + 1, y: s.center.y + 1 } : edgeSpawnPoint(s);
@@ -79,33 +79,66 @@ function updateLives(s: GameState, dt: number): void {
   for (const w of s.workers) w.age = ageOf(w) + years;
   for (const c of s.children) c.age += years * (c.hero ? 1.8 : 1);
 
-  // Mid-game Protagonist birth in the village once the Adventurers' Guild stands.
+  // Backfill the Father on older saves that started before fatherId existed.
+  if (!s.fatherId && s.workers.length) {
+    const founder = s.workers[0];
+    founder.father = true;
+    s.fatherId = founder.id;
+    s.fatherName = founder.name;
+  }
+
+  // Act I: Once the hamlet forms, the founding Father weds his life partner in the growing village.
+  const fatherWorker = s.workers.find((w) => w.father && !w.mentor);
+  if (fatherWorker && fatherWorker.spouse === undefined && s.workers.length >= 3 && s.tier !== 'camp') {
+    const partner = s.workers.find((w) => w !== fatherWorker && w.spouse === undefined);
+    if (partner) {
+      fatherWorker.spouse = partner.id;
+      partner.spouse = fatherWorker.id;
+      chronicle(s, 'people', 'log.fatherWedding', { a: fatherWorker.name, b: partner.name });
+    }
+  }
+
+  // Act II: Once the Tavern stands, the Father hands his tools to a fellow villager and takes up the sword as First Warrior!
+  if (fatherWorker && hasBuilding(s, 'tavern') && !s.adventurers.some((a) => a.father || a.hero) && !s.protagonistId) {
+    const fname = s.fatherName ?? fatherWorker.name;
+    s.fatherName = fname;
+    enlistFather(s, fname);
+    const usedNames = new Set([...s.workers.map((w) => w.name), ...s.children.map((x) => x.name), ...s.adventurers.map((a) => a.name)]);
+    fatherWorker.father = false;
+    fatherWorker.name = WORKER_NAMES.find((n) => !usedNames.has(n)) ?? fatherWorker.name;
+  }
+
+  // Act III: Mid-game Protagonist birth in the village once the Adventurers' Guild stands.
   if (!s.protagonistId && hasBuilding(s, 'guildHall') && s.workers.length >= 4) {
     const parent = s.workers.find((w) => w.spouse !== undefined) ?? s.workers[0];
+    const fatherName = s.fatherName ?? parent.name;
     const used = new Set([...s.workers.map((w) => w.name), ...s.children.map((x) => x.name), ...s.adventurers.map((a) => a.name)]);
     const heroName = ADVENTURER_NAMES.find((n) => !used.has(n)) ?? 'Arin';
     const c: Child = {
       id: s.nextId++,
       name: heroName,
       age: 4,
-      parentId: parent.id,
+      parentId: s.fatherId ?? parent.id,
       hero: true,
-      parentName: parent.name,
+      parentName: fatherName,
     };
     s.protagonistId = c.id;
     s.children.push(c);
     s.stats.births = (s.stats.births ?? 0) + 1;
-    chronicle(s, 'victory', 'log.heroBorn', { name: c.name, parent: parent.name });
+    chronicle(s, 'victory', 'log.heroBorn', { name: c.name, parent: fatherName });
   }
 
-  // Children come of age and pick up a job (or awaken as the Village Hero!).
+  // Children come of age and pick up a job (or inherit their Father's sword as the Village Hero!).
   for (const c of [...s.children]) {
     if (c.age < ADULT_AGE) continue;
-    s.children.splice(s.children.indexOf(c), 1);
     if (c.hero) {
+      // Wait if the Father is currently away inside a dungeon so he can pass the sword in town.
+      if (s.adventurers.some((a) => a.father && a.status === 'questing')) continue;
+      s.children.splice(s.children.indexOf(c), 1);
       awakenProtagonist(s, c);
       continue;
     }
+    s.children.splice(s.children.indexOf(c), 1);
     const w = spawnWorker(s, true);
     w.name = c.name; w.age = c.age; w.id = c.id;
     log(s, 'people', 'log.grownUp', { name: c.name });
@@ -139,9 +172,9 @@ function updateLives(s: GameState, dt: number): void {
     }
   }
 
-  // Old age. Checked once a game second per worker; a quiet death at home.
+  // Old age. Checked once a game second per worker; a quiet death at home (the Father lives on to see Victory).
   if (s.tick % 10 === 0) for (const w of [...s.workers]) {
-    if (ageOf(w) < lifespanOf(w) || s.workers.length <= 2) continue;
+    if (w.father || ageOf(w) < lifespanOf(w) || s.workers.length <= 2) continue;
     s.workers.splice(s.workers.indexOf(w), 1);
     const sp = s.workers.find((o) => o.id === w.spouse); if (sp) sp.spouse = undefined;
     s.stats.passed = (s.stats.passed ?? 0) + 1;

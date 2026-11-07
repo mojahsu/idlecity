@@ -47,6 +47,12 @@ export function drawFigures(ctx: CanvasRenderingContext2D, s: GameState, p: Part
       ctx.beginPath();
       ctx.ellipse(lx + next, fy + 1, 8.5, 3.1, 0, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (a.father) {
+      ctx.strokeStyle = `rgba(104,184,255,${0.65 + 0.2 * Math.sin(env.clock * 4.5)})`;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.ellipse(lx + next, fy + 1, 8.0, 2.9, 0, 0, Math.PI * 2);
+      ctx.stroke();
     }
     if (v.taunt > 0 && v.tauntIdx === i) {
       const tk = 1 - v.taunt / 0.8;
@@ -83,6 +89,11 @@ export function drawFigures(ctx: CanvasRenderingContext2D, s: GameState, p: Part
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffe060';
       ctx.fillText('★', lx + next, fy - 24 + cheerHop + Math.sin(env.clock * 4) * 1.2);
+    } else if (a.father) {
+      ctx.font = 'bold 8px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#78c4ff';
+      ctx.fillText('✦', lx + next, fy - 24 + cheerHop + Math.sin(env.clock * 3.8) * 1.1);
     }
   });
   // Dragon's breath: a cone from the breather across the heroes.
