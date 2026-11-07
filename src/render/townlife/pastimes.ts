@@ -65,6 +65,7 @@ export class Pastimes {
     }
     // Someone comes to the door when a neighbour calls.
     for (const w of resting(s, 'visit')) {
+      if (s.workers.length < 2) continue;
       const t = w.task as { buildingId?: number };
       const h = s.buildings.find((b) => b.id === t.buildingId);
       if (!h) continue;

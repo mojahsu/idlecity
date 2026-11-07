@@ -83,12 +83,35 @@ export function chessSeats(s: GameState): [Point, Point] | null {
 }
 
 function chessSpot(s: GameState, w: Worker): RestTask | null {
+  if (s.workers.length < 2) return null;
   const seats = chessSeats(s);
   if (!seats) return null;
   const taken = (p: Point) => s.workers.some((o) => o !== w && o.task?.kind === 'rest' && o.task.activity === 'chess' && o.task.x === p.x && o.task.y === p.y);
   if (!taken(seats[0])) return { kind: 'rest', activity: 'chess', x: seats[0].x, y: seats[0].y, dir: 1, phase: 'go' };
   if (!taken(seats[1])) return { kind: 'rest', activity: 'chess', x: seats[1].x, y: seats[1].y, dir: -1, phase: 'go' };
   return null;
+}
+
+/** Built huts/houses occupied by at least one villager in a different home than `w`. */
+function neighbourHomes(s: GameState, w: Worker) {
+  if (s.workers.length < 2) return [];
+  const homeByWorker = new Map<number, number>();
+  let workerIdx = 0;
+  for (const b of s.buildings) {
+    if (!b.built) continue;
+    const cap = b.type === 'house' ? 5 : b.type === 'hut' ? 2 : 0;
+    for (let i = 0; i < cap && workerIdx < s.workers.length; i++, workerIdx++) {
+      homeByWorker.set(s.workers[workerIdx].id, b.id);
+    }
+  }
+  const myHomeId = homeByWorker.get(w.id);
+  const otherHomeIds = new Set<number>();
+  for (const [wid, bid] of homeByWorker) {
+    if (wid !== w.id && bid !== myHomeId) otherHomeIds.add(bid);
+  }
+  return s.buildings.filter(
+    (b) => otherHomeIds.has(b.id) && isPassable(s, b.x, b.y + 1) && isReachable(s, b.x, b.y + 1),
+  );
 }
 
 /** Where the bard plays: just north of the campfire. Listeners gather in a ring around it. */
@@ -146,13 +169,13 @@ export function chooseRest(s: GameState, w: Worker): RestTask | null {
     case 'chess': return chessSpot(s, w);
     case 'listen': { const ring = around(s, bardSpot(s), 2).filter((p) => p.y >= s.center.y - 1); if (!ring.length) return null; const p = pick(s, ring); return { kind: 'rest', activity: 'listen', x: p.x, y: p.y, dir: facing(p, bardSpot(s)), phase: 'go' }; }
     case 'archery': { const t = archeryTarget(s); if (!t) return null; const lane = pick(s, [2, 3].filter((d) => isPassable(s, t.x - d, t.y) && isReachable(s, t.x - d, t.y))); return lane ? { kind: 'rest', activity: 'archery', x: t.x - lane, y: t.y, dir: 1, phase: 'go' } : null; }
-    case 'visit': { const homes = s.buildings.filter((b) => b.built && (b.type === 'house' || b.type === 'hut') && isPassable(s, b.x, b.y + 1) && isReachable(s, b.x, b.y + 1)); if (!homes.length) return null; const h = pick(s, homes); return { kind: 'rest', activity: 'visit', x: h.x, y: h.y + 1, dir: (w.id % 2) ? 1 : -1, phase: 'go', buildingId: h.id }; }
+    case 'visit': { const homes = neighbourHomes(s, w); if (!homes.length) return null; const h = pick(s, homes); return { kind: 'rest', activity: 'visit', x: h.x, y: h.y + 1, dir: (w.id % 2) ? 1 : -1, phase: 'go', buildingId: h.id }; }
     case 'sunset': return bankSpotFor(s, w, 'sunset', 22);
     case 'picnic': return meadowSpot(s, 'picnic', 1, 3, 6);
     case 'swim': return bankSpotFor(s, w, 'swim', 14);
     case 'snowman': return meadowSpot(s, 'snowman', 1, 2, 5);
-    case 'snowball': return meadowSpot(s, 'snowball', chance(s, 0.5) ? 1 : -1, 1, 3);
-    case 'chat': { const b = building(s, 'well') ?? building(s, 'campfire'); return b ? spotNear(s, b, 'chat', b.id) : null; }
+    case 'snowball': return s.workers.length < 2 ? meadowSpot(s, 'snowman', 1, 2, 5) : meadowSpot(s, 'snowball', chance(s, 0.5) ? 1 : -1, 1, 3);
+    case 'chat': { const b = building(s, 'well') ?? building(s, 'campfire'); return b ? spotNear(s, b, s.workers.length < 2 ? 'stroll' : 'chat', b.id) : null; }
     case 'drink': { const b = building(s, 'tavern'); return b ? spotNear(s, b, 'drink', b.id) : null; }
     case 'fish': return fishingSpot(s, w);
     case 'nap': return napSpot(s, w);
