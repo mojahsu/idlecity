@@ -1,0 +1,27 @@
+# Typecheck, tests and a build on every pull request and on every branch
+# that is not main (main is covered by pages.yml, which also deploys).
+# Both agents and humans get the same red/green signal on their work.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun test
+      - run: bun run build
+      - name: Balance check (victory within hour 2–5 on every seed)
+        run: |
+          out=$(bun scripts/balance/pace.ts)
+          echo "$out"
+          echo "$out" | tr ' ' '\n' | grep -q ':no/' && { echo "a seed never reached victory in 10 h"; exit 1; } || true

@@ -18,7 +18,8 @@ Designed to sit on a second screen. The only controls are speed (pause, 1x, 2x,
 ## Run
 
 Agents and new contributors: `CLAUDE.md` has the commands, the hard rules,
-browser verification tips and the open items; `scripts/balance/` holds the
+browser verification tips and the open items; `STATUS.md` is the current
+handoff state (read it first, rewrite it last); `scripts/balance/` holds the
 headless pacing checks (`bun scripts/balance/pace.ts`).
 
 Requires [bun](https://bun.sh).
