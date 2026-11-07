@@ -64,6 +64,8 @@ export class Chapters {
     const out: string[] = [];
     if (s.buildings.some((b) => b.built && b.type === 'tavern')) out.push('1');
     if (s.dungeons.some((d) => d.id === 'goblinCave' && d.unlocked)) out.push('2');
+    if (s.protagonistId) out.push('heroBorn');
+    if (s.adventurers.some((a) => a.hero)) out.push('heroAwakened');
     if (s.dungeons.some((d) => d.id === 'emeraldCavern' && d.unlocked)) out.push('3');
     if (s.dungeons.some((d) => d.id === 'emberPeak' && d.unlocked)) out.push('4');
     if (s.dungeons.some((d) => d.id === 'darkTower' && d.unlocked)) out.push('5');

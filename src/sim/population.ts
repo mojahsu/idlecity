@@ -1,5 +1,5 @@
 import type { Child, GameState, Worker } from './types';
-import { WORKER_NAMES } from '../data/names';
+import { ADVENTURER_NAMES, WORKER_NAMES } from '../data/names';
 import { chance, pick, randInt, random, uniqueName } from './rng';
 import { edgeSpawnPoint, findBuildSpot, findPath } from './world';
 import { housingCapacity, countBuildings, hasBuilding, placeBuilding } from './buildings';
@@ -7,6 +7,7 @@ import { chronicle, log } from './log';
 import { tierForPop, tierIndex } from '../data/tiers';
 import { ADULT_AGE, ARRIVAL_AGE, BIRTH_INTERVAL, DAY_LENGTH, LIFE_YEAR_DAYS, ELDER_AGE, FOOD_PER_PERSON_PER_DAY, LAZY_SHARE, LIFESPAN, WEDDING_INTERVAL } from './constants';
 import { hash } from './rng';
+import { awakenProtagonist } from './adventurers';
 
 export function spawnWorker(s: GameState, atCenter = false): Worker {
   const from = atCenter ? { x: s.center.x + 1, y: s.center.y + 1 } : edgeSpawnPoint(s);
@@ -76,12 +77,35 @@ function updateLives(s: GameState, dt: number): void {
   const years = dt / (DAY_LENGTH * LIFE_YEAR_DAYS);
   s.children ??= [];
   for (const w of s.workers) w.age = ageOf(w) + years;
-  for (const c of s.children) c.age += years;
+  for (const c of s.children) c.age += years * (c.hero ? 1.8 : 1);
 
-  // Children come of age and pick up a job.
+  // Mid-game Protagonist birth in the village once the Adventurers' Guild stands.
+  if (!s.protagonistId && hasBuilding(s, 'guildHall') && s.workers.length >= 4) {
+    const parent = s.workers.find((w) => w.spouse !== undefined) ?? s.workers[0];
+    const used = new Set([...s.workers.map((w) => w.name), ...s.children.map((x) => x.name), ...s.adventurers.map((a) => a.name)]);
+    const heroName = ADVENTURER_NAMES.find((n) => !used.has(n)) ?? 'Arin';
+    const c: Child = {
+      id: s.nextId++,
+      name: heroName,
+      age: 4,
+      parentId: parent.id,
+      hero: true,
+      parentName: parent.name,
+    };
+    s.protagonistId = c.id;
+    s.children.push(c);
+    s.stats.births = (s.stats.births ?? 0) + 1;
+    chronicle(s, 'victory', 'log.heroBorn', { name: c.name, parent: parent.name });
+  }
+
+  // Children come of age and pick up a job (or awaken as the Village Hero!).
   for (const c of [...s.children]) {
     if (c.age < ADULT_AGE) continue;
     s.children.splice(s.children.indexOf(c), 1);
+    if (c.hero) {
+      awakenProtagonist(s, c);
+      continue;
+    }
     const w = spawnWorker(s, true);
     w.name = c.name; w.age = c.age; w.id = c.id;
     log(s, 'people', 'log.grownUp', { name: c.name });

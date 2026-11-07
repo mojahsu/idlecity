@@ -41,6 +41,13 @@ export function drawFigures(ctx: CanvasRenderingContext2D, s: GameState, p: Part
     const next = p.phase === 'fight' && actIdx === i && !l ? windup * -3 : 0;
     const hurt = v.heroHurt.get(a.id) ?? 0, heal = v.heal.get(a.id) ?? 0;
     ellipse(ctx, lx + next, fy + 1, 6, 2.5, 'rgba(0,0,0,0.4)');
+    if (a.hero) {
+      ctx.strokeStyle = `rgba(255,224,102,${0.65 + 0.2 * Math.sin(env.clock * 5)})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(lx + next, fy + 1, 8.5, 3.1, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     if (v.taunt > 0 && v.tauntIdx === i) {
       const tk = 1 - v.taunt / 0.8;
       ctx.strokeStyle = `rgba(255,212,96,${0.85 * (1 - tk)})`; ctx.lineWidth = 1.6;
@@ -71,6 +78,12 @@ export function drawFigures(ctx: CanvasRenderingContext2D, s: GameState, p: Part
     if (v.curse > 0 && v.curseIdx === i) { const k = v.curse; circle(ctx, hx, floorY - 28, 7, rgba('#8030c0', 0.25 * k)); ctx.font = 'bold 9px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = rgba('#d080ff', Math.min(1, k * 2)); ctx.fillText('\u2620', hx, floorY - 25 - (1 - k) * 6); }
     if (a.cls === 'mage') circle(ctx, hx + 6, floorY - 22, 9, rgba('#80c0ff', 0.12 + 0.05 * Math.sin(env.clock * 4)));
     if (a.cls === 'priest') circle(ctx, hx, floorY - 24, 8, rgba('#ffe890', 0.1 + 0.04 * Math.sin(env.clock * 3)));
+    if (a.hero) {
+      ctx.font = 'bold 8px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffe060';
+      ctx.fillText('★', lx + next, fy - 24 + cheerHop + Math.sin(env.clock * 4) * 1.2);
+    }
   });
   // Dragon's breath: a cone from the breather across the heroes.
   if (v.breath > 0) {

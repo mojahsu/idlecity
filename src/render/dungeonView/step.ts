@@ -37,7 +37,24 @@ export function step(s: GameState, p: Party, v: ViewState, env: Env, dt: number)
         case 'smite': v.casting = 0.3; v.castIdx = ai; v.shots.push({ kind: 'light', x: hx + 4, y: floorY - 20, tx, ty, t: 0, life: 0.3, onLand: () => hitEnemy(ti, f.amount, '#fff0a0') }); break;
         case 'arrow': v.shots.push({ kind: 'arrow', x: hx + 6, y: floorY - 14, tx: tx - 4, ty, t: 0, life: 0.25, onLand: () => hitEnemy(ti, f.amount, '#ffe080') }); break;
         case 'volley': for (let k = 0; k < 3; k++) v.shots.push({ kind: 'arrow', x: hx + 6, y: floorY - 14 - k * 3, tx: tx - 4 + k * 2, ty: ty - k * 3, t: -k * 0.07, life: 0.25, onLand: k === 2 ? () => hitEnemy(ti, f.amount, '#c8f0a0') : undefined }); label(t('skill.volley'), hx, floorY - 36, '#c8f0a0'); if (Math.random() < 0.65) say('hero', hx, floorY - 30, t('talk.h.volley')); break;
-        case 'crit': v.shots.push({ kind: 'arrow', x: hx + 6, y: floorY - 14, tx: tx - 4, ty, t: 0, life: 0.2, onLand: () => { hitEnemy(ti, f.amount, '#ffd040'); v.shake = Math.max(v.shake, 0.15); if (Math.random() < 0.7) say('enemy', tx, floorY - eh(ti) - 10, t(Math.random() < 0.5 ? 'talk.m.hurt.0' : 'talk.m.hurt.1'), 1.5); } }); label(t('skill.crit'), hx, floorY - 44, '#ffd040', 1.3, true); say('hero', hx, floorY - 30, t(Math.random() < 0.5 ? 'talk.h.crit.0' : 'talk.h.crit.1')); break;
+        case 'crit': {
+          const actor = team[ai];
+          if (actor && actor.cls === 'warrior') {
+            v.heroLunge.set(f.actorId, { t: 0.45, tx: tx - 12 });
+            v.puffs.push({ x: hx - 4, y: floorY + 1, ttl: 0.45 });
+            setTimeoutLike(v, 0.18, () => {
+              hitEnemy(ti, f.amount, '#ffd850');
+              burst(v, tx, ty, '#ffe880', 18);
+              for (const i of f.splash ?? []) hitEnemy(i, Math.round(f.amount / 2), '#ffd850');
+              v.shake = Math.max(v.shake, 0.22);
+            });
+          } else {
+            v.shots.push({ kind: 'arrow', x: hx + 6, y: floorY - 14, tx: tx - 4, ty, t: 0, life: 0.2, onLand: () => { hitEnemy(ti, f.amount, '#ffd040'); v.shake = Math.max(v.shake, 0.15); if (Math.random() < 0.7) say('enemy', tx, floorY - eh(ti) - 10, t(Math.random() < 0.5 ? 'talk.m.hurt.0' : 'talk.m.hurt.1'), 1.5); } });
+            label(t('skill.crit'), hx, floorY - 44, '#ffd040', 1.3, true);
+            say('hero', hx, floorY - 30, t(Math.random() < 0.5 ? 'talk.h.crit.0' : 'talk.h.crit.1'));
+          }
+          break;
+        }
         case 'bolt': v.casting = 0.3; v.castIdx = ai; v.shots.push({ kind: 'bolt', x: hx + 8, y: floorY - 18, tx, ty, t: 0, life: 0.3, onLand: () => hitEnemy(ti, f.amount, '#a0e0ff') }); break;
         case 'fireball': v.casting = 0.4; v.castIdx = ai; v.shots.push({ kind: 'fire', x: hx + 8, y: floorY - 18, tx, ty, t: 0, life: 0.4, onLand: () => { hitEnemy(ti, f.amount, '#ffa060'); burst(v, tx, ty, '#ff9040', 18); burst(v, tx, ty, '#ffe080', 8); v.scorch.push({ x: tx, ttl: 2.2 }); for (const i of f.splash ?? []) hitEnemy(i, Math.round(f.amount / 2), '#ffa060'); v.shake = Math.max(v.shake, 0.22); } }); label(t('skill.fireball'), hx, floorY - 36, '#ffa060'); say('hero', hx, floorY - 30, t('talk.h.fireball')); break;
         case 'heal': { const ti2 = hi(f.targetId ?? f.actorId); v.heal.set(f.targetId ?? f.actorId, 0.6); num(`+${f.amount}`, heroX(ti2), floorY - 46, '#90f090'); v.casting = 0.3; v.castIdx = ai; if (ti2 !== ai && Math.random() < 0.55) setTimeoutLike(v, 0.35, () => say('hero', heroX(ti2), floorY - 28, t('talk.h.thanks'), 1.5)); break; }
@@ -67,6 +84,7 @@ export function step(s: GameState, p: Party, v: ViewState, env: Env, dt: number)
         case 'frost': v.frozen = 1.4; label(t('skill.frost'), PANEL_W * 0.74, floorY - 48, '#a0e0ff', 1.3); say('hero', heroX(ai), floorY - 30, t('talk.h.frost')); break;
         case 'block': v.block = 0.45; v.blockIdx = ti; label(t('skill.block'), heroX(ti), floorY - 36, '#c0d0e0'); say('hero', heroX(ti), floorY - 30, t('talk.h.block'), 1.5); break;
         case 'revive': v.revive = 1.2; v.reviveIdx = ti; label(t('skill.revive'), heroX(ti), floorY - 44, '#ffffff', 1.6, true); say('hero', heroX(ai), floorY - 30, t('talk.h.revive')); setTimeoutLike(v, 0.5, () => say('hero', heroX(ti), floorY - 28, t('talk.h.thanks'), 1.6)); break;
+        case 'sunblade': v.beam = 0.75; v.beamIdx = ai; for (const a of team) v.heal.set(a.id, 0.5); label(t('skill.sunblade'), heroX(ai), floorY - 44, '#ffe066', 1.4, true); say('hero', heroX(ai), floorY - 30, t('talk.h.sunblade')); break;
       }
     } else if (f.kind === 'treasure') {
       v.chest = 1.4; v.cheer = 0.85; burst(v, PANEL_W * 0.74 - 30, floorY - 6, '#ffd040', 22); label(`+${f.gold}g`, PANEL_W * 0.74 - 30, floorY - 20, '#ffd040', 1.3);

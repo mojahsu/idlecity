@@ -92,7 +92,7 @@ export class TownLife {
   /** Things standing on the ground, sorted with units by the renderer. */
   groundActors(s: GameState, env: Env): Actor[] {
     return [
-      ...this.walkers.actors(), ...this.kids.actors(env), ...this.dog.actors(), ...this.cats.actors(s), ...this.guards.actors(s),
+      ...this.walkers.actors(), ...this.kids.actors(s, env), ...this.dog.actors(), ...this.cats.actors(s), ...this.guards.actors(s),
       ...this.cheers.actors(), ...this.wedding.actors(), ...this.processions.actors(), ...this.festival.actors(s, env),
       ...this.wolves.actors(), ...this.deer.actors(), ...this.river.actors(), ...this.statue.actors(s, this.roads),
       ...this.pastimes.actors(s, env), ...this.night.actors(s, env), ...this.seasonal.actors(s, env), ...this.visitors.actors(s, env),

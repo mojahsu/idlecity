@@ -209,6 +209,13 @@ function heroAct(s: GameState, p: Party, a: Adventurer, slot: number, alive: { x
     // The fireball splashes half its force over the rest of the pack.
     splash = alive.filter((q) => q !== tgt).map((q) => q.i);
     if (hasSkill(a.cls, a.level, 'frost') && chance(s, T.frostChance)) { p.frozen = true; fx('frost'); }
+  } else if (a.hero && round % 3 === 0) {
+    // The village Protagonist's signature Sunblade Cleave: golden slash over the pack + inspires companions.
+    hit *= 1.55;
+    style = 'crit';
+    splash = alive.filter((q) => q !== tgt).map((q) => q.i);
+    for (const b of team) b.hp = Math.min(b.maxHp, b.hp + Math.round(b.maxHp * 0.06));
+    fx('sunblade');
   }
   strike(s, p, a, tgt, Math.round(hit), style, splash);
   void e;
@@ -357,6 +364,12 @@ function onMemberDown(s: GameState, p: Party, a: Adventurer): void {
     a.hp = 1;
     s.fx.push({ kind: 'skill', partyId: p.id, actorId: priest.id, skill: 'revive', targetId: a.id });
     log(s, 'adventure', 'log.revive', { priest: priest.name, name: a.name });
+    startReturn(s, p);
+    return;
+  }
+  if (a.hero) {
+    a.hp = 1;
+    log(s, 'adventure', 'log.heroSurvived', { name: a.name });
     startReturn(s, p);
     return;
   }

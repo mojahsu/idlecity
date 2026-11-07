@@ -1,7 +1,9 @@
 // Children: the town's real children by name, or a pair of playmates chasing each other before any are born.
 import type { GameState, Point } from '../../sim/types';
+import { t } from '../../i18n';
 import { TILE } from '../constants';
-import { circle, type Env } from '../palette';
+import { circle, poly, rect, rgba, type Env } from '../palette';
+import { bubble } from '../units/shared';
 import { walkerActor, type Actor, type Roads, type Walker } from './shared';
 
 export class Kids {
@@ -42,8 +44,48 @@ export class Kids {
     if (lead.ttl <= 0 || (lead.fade <= 0 && !playtime)) { this.kids = []; this.kidTimer = 20 + Math.random() * 30; }
   }
 
-  actors(env: Env): Actor[] {
+  actors(s: GameState, env: Env): Actor[] {
     const out = [...this.kids, ...this.kidsById.values()].map(walkerActor);
+    // Highlight the village-born Protagonist child with a golden starlight aura, red hero scarf, and wooden practice sword!
+    const heroChild = (s.children ?? []).find((c) => c.hero);
+    if (heroChild) {
+      const hw = this.kidsById.get(heroChild.id);
+      if (hw && hw.fade > 0.2) {
+        out.push({
+          y: hw.y + 0.86,
+          draw: (ctx, e) => {
+            const px = hw.x * TILE + TILE / 2;
+            const py = hw.y * TILE + TILE / 2 + 2;
+            const dir = hw.tx >= hw.x ? 1 : -1;
+            const swing = Math.sin(e.clock * 8 + heroChild.id) * 2.2;
+            ctx.save();
+            ctx.globalAlpha = hw.fade;
+            // Golden starlight ring underfoot
+            ctx.strokeStyle = rgba('#ffe066', 0.78);
+            ctx.lineWidth = 1.3;
+            ctx.beginPath();
+            ctx.ellipse(px, py + 1.5, 5.5 + Math.sin(e.clock * 4) * 0.8, 2.2, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            // Fluttering red hero scarf
+            const wave = Math.sin(e.clock * 9) * 1.4;
+            poly(ctx, [px - dir * 1.5, py - 5.5, px - dir * 6.5, py - 4.2 + wave, px - dir * 5.2, py - 2.2 + wave], '#d83838');
+            // Miniature wooden practice sword
+            rect(ctx, px + dir * 2.8, py - 6.5 + swing * 0.4, dir * 4.5, 1.3, '#d2a058');
+            rect(ctx, px + dir * 2.4, py - 7.4 + swing * 0.4, 1.2, 3, '#8a5a2b');
+            // Floating golden star emblem above head
+            ctx.font = 'bold 8px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#ffe060';
+            ctx.fillText('★', px, py - 13 + Math.sin(e.clock * 4) * 1.2);
+            const talkPhase = (e.clock * 0.22 + heroChild.id * 0.17) % 1;
+            if (talkPhase < 0.24) {
+              bubble(ctx, px, py - 21, t(talkPhase < 0.12 ? 'talk.kid.hero.0' : 'talk.kid.hero.1'), 1, '#c88820');
+            }
+            ctx.restore();
+          },
+        });
+      }
+    }
     // Two children close together toss a ball back and forth.
     const near = [...this.kidsById.values(), ...this.kids].filter((w) => w.fade > 0.9);
     const paired = new Set<Walker>();

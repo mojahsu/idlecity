@@ -100,7 +100,7 @@ export class Spotlight {
       const rest = w.task?.kind === 'rest' && w.task.phase === 'do';
       pool.push({ t: { kind: 'worker', id: w.id }, w: rest ? 4 : w.carrying ? 2 : 1 });
     }
-    for (const a of s.adventurers) if (a.status === 'resting' && env.dark < 0.6) pool.push({ t: { kind: 'adventurer', id: a.id }, w: 2 });
+    for (const a of s.adventurers) if (a.status === 'resting' && env.dark < 0.6) pool.push({ t: { kind: 'adventurer', id: a.id }, w: a.hero ? 6 : 2 });
     const total = pool.reduce((n, p) => n + p.w, 0);
     if (!total) return null;
     let r = Math.random() * total;
@@ -162,11 +162,16 @@ export class Spotlight {
       const a = s.adventurers.find((x) => x.id === this.target!.id);
       if (!a) return;
       pos = a;
-      head = `${a.name} · ${t(`class.${a.cls}`)} ${t('ui.level', { level: a.level })}`;
-      line = a.status === 'resting' && a.pastime === 'train' ? t('ui.training')
+      head = a.hero
+        ? `★ ${a.name} · ${t('ui.heroTitle')} ${t('ui.level', { level: a.level })}`
+        : `${a.name} · ${t(`class.${a.cls}`)} ${t('ui.level', { level: a.level })}`;
+      const actText = a.status === 'resting' && a.pastime === 'train' ? t('ui.training')
         : a.status === 'resting' && a.pastime === 'sally' ? t('ui.defending')
         : a.status === 'resting' && a.pastime === 'drink' ? t('act.drink')
         : t(`ui.${a.status}`);
+      line = a.hero && a.parentName
+        ? `${t('ui.heroChildOf', { parent: a.parentName })} · ${actText}`
+        : actText;
     } else if (this.target.kind === 'party') {
       const p = s.parties.find((x) => x.id === this.target!.id);
       if (!p) return;

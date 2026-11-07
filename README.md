@@ -206,7 +206,12 @@ tests/        bun tests
     children (tracked in `state.children`, no job and no food cost) who come of
     age at `ADULT_AGE` and pick up a job under their own name, turn grey and
     slow at `ELDER_AGE`, and pass away between `LIFESPAN` years, leaving a
-    grave. Over an evening a town turns over a whole generation.
+    grave. Once the Adventurers' Guild stands in the mid-game, a Chosen Child
+    (`Child.hero` / `state.protagonistId`) is born in the village under a
+    falling star, practices with a wooden sword in the streets, and upon
+    reaching `ADULT_AGE` awakens as the Village Hero (`Adventurer.hero`) with
+    the Sunblade Cleave skill and protection from permanent death. Over an
+    evening a town turns over a whole generation.
 13. Sound: `platform/audio.ts` synthesises everything on Web Audio (no files):
     wind, rain, river and fire beds; birds, crickets, owls, wolves; axes, picks
     and hammers; hits, skills, roars, thunder, bells, fanfares, a tavern tune.

@@ -422,5 +422,18 @@
   "skit.visitor.alchemist.a": "公會旁那輛神祕鍊金術師的馬車，藥水瓶都在發光耶。",
   "skit.visitor.alchemist.b": "聽冒險者說，聞一口煙霧全身都充滿力量呢！",
   "skit.monument.a": "你看廣場旁立起的那些首領戰利品紀念碑。",
-  "skit.monument.b": "每一座都是英雄們出生入死換來的榮耀呀。"
+  "skit.monument.b": "每一座都是英雄們出生入死換來的榮耀呀。",
+  "log.heroBorn": "命定流星降臨村莊，{parent}的孩子「{name}」帶著勇者印記在村裡誕生了！",
+  "log.heroAwakened": "在村裡長大的命定之子「{name}」已滿成年，舉起聖劍覺醒為本村的傳說勇者！",
+  "log.heroSurvived": "受命定之星庇護，勇者 {name} 在絕境中倖存並撤回城鎮。",
+  "ui.heroTitle": "村莊勇者",
+  "ui.heroChildOf": "{parent}之子",
+  "skill.sunblade": "聖劍破邪斬",
+  "talk.h.sunblade": "閃耀吧，守護村莊之劍！",
+  "talk.kid.hero.0": "喝呀！看我的勇者木劍！",
+  "talk.kid.hero.1": "長大後我要保護全村的人！",
+  "chapter.heroBorn.title": "命定之子誕生",
+  "chapter.heroBorn.sub": "帶著勇者印記的孩子在村莊裡誕生了",
+  "chapter.heroAwakened.title": "村莊勇者覺醒",
+  "chapter.heroAwakened.sub": "在村裡長大的孩子成年，舉起守護村莊的聖劍"
 }

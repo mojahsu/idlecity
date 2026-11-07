@@ -221,7 +221,8 @@ export class Renderer {
     const out: LightSource[] = [];
     for (const a of s.adventurers) {
       if (a.status !== 'resting' && a.status !== 'arriving') continue;
-      if (a.cls === 'mage') out.push({ x: a.x * TILE + TILE / 2 + 5, y: a.y * TILE + TILE / 2 - 8, r: 14, color: '#80c0ff', flicker: 0.1 });
+      if (a.hero) out.push({ x: a.x * TILE + TILE / 2, y: a.y * TILE + TILE / 2 - 4, r: 22, color: '#ffe070', flicker: 0.08 });
+      else if (a.cls === 'mage') out.push({ x: a.x * TILE + TILE / 2 + 5, y: a.y * TILE + TILE / 2 - 8, r: 14, color: '#80c0ff', flicker: 0.1 });
     }
     for (const p of s.parties) if (p.phase === 'travel' || p.phase === 'return') out.push({ x: p.x * TILE + TILE / 2, y: p.y * TILE + TILE / 2, r: 26, color: '#ffb060', flicker: 0.15 });
     if (s.raid) out.push({ x: s.raid.x * TILE + TILE / 2, y: s.raid.y * TILE + TILE / 2, r: 22, color: '#ff8040', flicker: 0.2 });

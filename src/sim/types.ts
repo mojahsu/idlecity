@@ -72,12 +72,15 @@ export interface Worker {
   spouse?: number;
 }
 
-/** A child growing up in town; becomes a worker at ADULT_AGE. Not a worker: no job, no food maths. */
+/** A child growing up in town; becomes a worker (or the Chosen Hero) at ADULT_AGE. Not a worker: no job, no food maths. */
 export interface Child {
   id: number;
   name: string;
   age: number;
   parentId: number;
+  /** True for the village-born Protagonist (Chosen Child). */
+  hero?: boolean;
+  parentName?: string;
 }
 
 export type AdventurerClass = 'warrior' | 'archer' | 'mage' | 'priest';
@@ -104,6 +107,10 @@ export interface Adventurer {
   pastime?: 'wander' | 'train' | 'drink' | 'sit' | 'sally';
   /** Seconds left of the current pastime. */
   pastimeTimer?: number;
+  /** True if this adventurer is the village-born Protagonist. */
+  hero?: boolean;
+  /** Name of the villager parent who raised the Protagonist. */
+  parentName?: string;
 }
 
 export type DungeonId = 'goblinCave' | 'ancientRuins' | 'emeraldCavern' | 'emberPeak' | 'darkTower';
@@ -268,6 +275,8 @@ export interface GameState {
   caravan?: Caravan | null;
   fire?: Fire | null;
   children?: Child[];
+  /** Id of the village-born Protagonist (first in children, then in adventurers). */
+  protagonistId?: number;
   nextId: number;
   log: LogEntry[];
   chronicle: LogEntry[];

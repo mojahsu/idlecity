@@ -422,5 +422,18 @@
   "skit.visitor.alchemist.a": "That traveling alchemist's potions are glowing like emeralds.",
   "skit.visitor.alchemist.b": "The adventurers swear a single sip makes their blades feel lighter!",
   "skit.monument.a": "Look at the boss trophies standing beside the square.",
-  "skit.monument.b": "Every monument tells the story of how far our town has come."
+  "skit.monument.b": "Every monument tells the story of how far our town has come.",
+  "log.heroBorn": "A shooting star blessed the village: {name}, child of {parent}, was born bearing the Hero's mark!",
+  "log.heroAwakened": "{name}, born and raised in our village, has come of age and awakened as the Chosen Hero!",
+  "log.heroSurvived": "Protected by the Star of Destiny, {name} narrowly escaped death and retreated to town.",
+  "ui.heroTitle": "Village Hero",
+  "ui.heroChildOf": "Child of {parent}",
+  "skill.sunblade": "Sunblade",
+  "talk.h.sunblade": "Shine, Blade of Our Village!",
+  "talk.kid.hero.0": "Hyah! Watch my wooden sword!",
+  "talk.kid.hero.1": "I'll protect everyone when I grow up!",
+  "chapter.heroBorn.title": "Star of the Village",
+  "chapter.heroBorn.sub": "A child bearing the Hero's mark is born among the townsfolk",
+  "chapter.heroAwakened.title": "The Chosen Hero Awakens",
+  "chapter.heroAwakened.sub": "The village's child comes of age and takes up the Sunblade"
 }
