@@ -9,15 +9,17 @@ import type { Actor } from './shared';
 
 export class Festival {
   actors(s: GameState, env: Env): Actor[] {
-    if (!env.festival) return [];
+    if (!env.festival || s.raid || s.workers.length < 2) return [];
     const out: Actor[] = [];
     const c = s.center;
-    for (let i = 0; i < 8; i++) {
+    const count = Math.min(8, s.workers.length);
+    const hasKids = (s.children?.length ?? 0) > 0;
+    for (let i = 0; i < count; i++) {
       const arm = i % 4, inner = i >= 4;
       const r = inner ? 0.5 : 1.15 + Math.sin(env.clock * 2.2 + i) * 0.3;
       const ang = inner ? Math.PI / 4 + arm * Math.PI / 2 + env.clock * 0.8 : arm * Math.PI / 2;
       const x = c.x + Math.cos(ang) * r, y = c.y + Math.sin(ang) * r * 0.8;
-      out.push({ y: y + 0.8, draw: (ctx, e) => drawTownsfolk(ctx, x, y, Math.cos(ang) >= 0 ? -1 : 1, true, e, 900 + i, { child: i >= 6 }) });
+      out.push({ y: y + 0.8, draw: (ctx, e) => drawTownsfolk(ctx, x, y, Math.cos(ang) >= 0 ? -1 : 1, true, e, 900 + i, { child: hasKids && i >= 6 }) });
     }
     return out;
   }

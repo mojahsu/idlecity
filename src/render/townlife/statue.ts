@@ -28,9 +28,9 @@ export class Statue {
       if (!sp) continue;
       out.push({ y: sp.y + 0.8, draw: (ctx, env) => drawTrophyMonument(ctx, sp.x, sp.y, d.id, env) });
     }
-    // An admirer stops by one of the monuments during the day.
+    // An admirer stops by one of the monuments during the day (when not under raid).
     const firstSpot = [...this.spots.values()][0];
-    if (firstSpot) {
+    if (firstSpot && !s.raid && s.workers.length >= 2) {
       out.push({
         y: firstSpot.y + 0.88,
         draw: (ctx, env) => {

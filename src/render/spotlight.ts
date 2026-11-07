@@ -114,7 +114,14 @@ export class Spotlight {
     const tk = w.task;
     let line = t('act.idle');
     if (!tk) line = t('act.idle');
-    else if (tk.kind === 'rest') line = tk.phase === 'do' ? t(`act.${tk.activity}`) : t('act.walk');
+    else if (tk.kind === 'rest') {
+      if (tk.phase !== 'do') line = t('act.walk');
+      else if (tk.activity === 'chat') {
+        const hasCompany = s.workers.some((o) => o !== w && !isIndoors(s, o) && Math.hypot(o.x - w.x, o.y - w.y) <= 3.0)
+          || s.adventurers.some((a) => a.status === 'resting' && Math.hypot(a.x - w.x, a.y - w.y) <= 3.0);
+        line = t(hasCompany ? 'act.chat' : 'act.stroll');
+      } else line = t(`act.${tk.activity}`);
+    }
     else if (tk.kind === 'gather') line = tk.phase === 'return' ? t('act.carry', { res: `res.${tk.resource}` }) : tk.phase === 'work' ? t('act.gather') : t('act.walk');
     else if (tk.kind === 'farm') line = tk.phase === 'return' ? t('act.carry', { res: 'res.food' }) : tk.phase === 'work' ? t('act.farm') : t('act.walk');
     else if (tk.kind === 'build') line = tk.phase === 'work' ? t('act.build') : t('act.walk');

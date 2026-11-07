@@ -49,19 +49,22 @@ export class Seasonal {
   actors(s: GameState, env: Env): Actor[] {
     const out: Actor[] = [];
     // Contest day: a banner on the bank and a small crowd behind the anglers in the afternoon.
-    if (env.seasonal === 'fishing' && env.dayFrac > 0.48 && env.dayFrac < 0.8) {
+    if (!s.raid && env.seasonal === 'fishing' && env.dayFrac > 0.48 && env.dayFrac < 0.8 && s.workers.length >= 2) {
       const anglers = s.workers.filter((w) => w.task?.kind === 'rest' && w.task.activity === 'fish');
       if (anglers.length) {
         const a = anglers[0];
         out.push({ y: a.y + 0.5, draw: (ctx, e) => { const px = (a.x + 1) * TILE + TILE / 2, py = a.y * TILE; rect(ctx, px - 0.6, py - 24, 1.2, 28, '#5a3a1e'); const wv = Math.sin(e.clock * 5) * 1.5; ctx.fillStyle = '#3a7ac0'; ctx.beginPath(); ctx.moveTo(px, py - 24); ctx.lineTo(px + 14, py - 22 + wv); ctx.lineTo(px + 12, py - 16); ctx.lineTo(px + 14, py - 10 + wv); ctx.lineTo(px, py - 8); ctx.closePath(); ctx.fill(); circle(ctx, px + 6, py - 16, 2, '#f4f0e6'); } });
-        anglers.slice(0, 3).forEach((w, i) => out.push({ y: w.y + 0.8, draw: (ctx, e) => drawTownsfolk(ctx, w.x + 1.6, w.y + (i - 1) * 0.5, -1, false, e, 500 + i, { cheer: Math.sin(e.clock + i) > 0.6 }) }));
+        if (s.workers.length >= 4) {
+          anglers.slice(0, 3).forEach((w, i) => out.push({ y: w.y + 0.8, draw: (ctx, e) => drawTownsfolk(ctx, w.x + 1.6, w.y + (i - 1) * 0.5, -1, false, e, 500 + i, { cheer: Math.sin(e.clock + i) > 0.6 }) }));
+        }
       }
     }
-    // Winter riverbank ice skating during the day.
-    if (env.season === 'winter' && env.dark < 0.45 && !env.storm) {
+    // Winter riverbank ice skating during the day (only once the settlement has multiple residents and no raid).
+    if (!s.raid && env.season === 'winter' && env.dark < 0.45 && !env.storm && s.workers.length >= 3) {
       const iy = Math.max(3, Math.min(s.height - 4, s.center.y));
       let ix = 1.6;
       for (let x = 0; x < s.width; x++) if (s.tiles[iy * s.width + x]?.terrain === 'water') ix = x + 0.5;
+      const hasKids = (s.children?.length ?? 0) > 0;
       out.push({
         y: iy + 0.65,
         draw: (ctx, e) => {
@@ -77,7 +80,7 @@ export class Seasonal {
             const sx = ix + Math.sin(ang) * 0.42;
             const sy = iy + Math.sin(ang * 2) * 0.18;
             const dir = Math.cos(ang) >= 0 ? 1 : -1;
-            drawTownsfolk(ctx, sx, sy, dir, true, e, 810 + i, { child: i === 1 });
+            drawTownsfolk(ctx, sx, sy, dir, true, e, 810 + i, { child: i === 1 && hasKids });
             if (i === 1 && (e.clock * 0.4) % 1 < 0.3) {
               bubble(ctx, sx * TILE + TILE / 2, sy * TILE + TILE / 2 - 16, '♪', 0.85, '#4088c8');
             }

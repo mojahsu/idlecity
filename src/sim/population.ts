@@ -105,6 +105,7 @@ function updateLives(s: GameState, dt: number): void {
     enlistFather(s, fname);
     const usedNames = new Set([...s.workers.map((w) => w.name), ...s.children.map((x) => x.name), ...s.adventurers.map((a) => a.name)]);
     fatherWorker.father = false;
+    fatherWorker.spouse = undefined;
     fatherWorker.name = WORKER_NAMES.find((n) => !usedNames.has(n)) ?? fatherWorker.name;
   }
 

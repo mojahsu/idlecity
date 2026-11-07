@@ -166,20 +166,27 @@ export function chooseRest(s: GameState, w: Worker): RestTask | null {
   if (sea === 'winter') options.push('snowman', 'snowball', 'snowball');
   if (sea !== 'winter' && !wet && !evening && w.spouse !== undefined) options.push('picnic');
   switch (pick(s, options)) {
-    case 'chess': return chessSpot(s, w);
-    case 'listen': { const ring = around(s, bardSpot(s), 2).filter((p) => p.y >= s.center.y - 1); if (!ring.length) return null; const p = pick(s, ring); return { kind: 'rest', activity: 'listen', x: p.x, y: p.y, dir: facing(p, bardSpot(s)), phase: 'go' }; }
-    case 'archery': { const t = archeryTarget(s); if (!t) return null; const lane = pick(s, [2, 3].filter((d) => isPassable(s, t.x - d, t.y) && isReachable(s, t.x - d, t.y))); return lane ? { kind: 'rest', activity: 'archery', x: t.x - lane, y: t.y, dir: 1, phase: 'go' } : null; }
+    case 'chess': return wet ? null : chessSpot(s, w);
+    case 'listen': { if (wet) return null; const ring = around(s, bardSpot(s), 2).filter((p) => p.y >= s.center.y - 1); if (!ring.length) return null; const p = pick(s, ring); return { kind: 'rest', activity: 'listen', x: p.x, y: p.y, dir: facing(p, bardSpot(s)), phase: 'go' }; }
+    case 'archery': { if (wet) return null; const t = archeryTarget(s); if (!t) return null; const lane = pick(s, [2, 3].filter((d) => isPassable(s, t.x - d, t.y) && isReachable(s, t.x - d, t.y))); return lane ? { kind: 'rest', activity: 'archery', x: t.x - lane, y: t.y, dir: 1, phase: 'go' } : null; }
     case 'visit': { const homes = neighbourHomes(s, w); if (!homes.length) return null; const h = pick(s, homes); return { kind: 'rest', activity: 'visit', x: h.x, y: h.y + 1, dir: (w.id % 2) ? 1 : -1, phase: 'go', buildingId: h.id }; }
     case 'sunset': return bankSpotFor(s, w, 'sunset', 22);
-    case 'picnic': return meadowSpot(s, 'picnic', 1, 3, 6);
+    case 'picnic': {
+      if (!s.workers.some((o) => o.id === w.spouse && o.task?.kind !== 'douse' && o.task?.kind !== 'sleep')) return null;
+      return meadowSpot(s, 'picnic', 1, 3, 6);
+    }
     case 'swim': return bankSpotFor(s, w, 'swim', 14);
     case 'snowman': return meadowSpot(s, 'snowman', 1, 2, 5);
     case 'snowball': return s.workers.length < 2 ? meadowSpot(s, 'snowman', 1, 2, 5) : meadowSpot(s, 'snowball', chance(s, 0.5) ? 1 : -1, 1, 3);
     case 'chat': { const b = building(s, 'well') ?? building(s, 'campfire'); return b ? spotNear(s, b, s.workers.length < 2 ? 'stroll' : 'chat', b.id) : null; }
     case 'drink': { const b = building(s, 'tavern'); return b ? spotNear(s, b, 'drink', b.id) : null; }
     case 'fish': return fishingSpot(s, w);
-    case 'nap': return napSpot(s, w);
-    case 'feed': { const b = building(s, 'farm'); return b ? spotNear(s, b, 'feed', b.id) : null; }
+    case 'nap': return wet || sea === 'winter' ? null : napSpot(s, w);
+    case 'feed': {
+      const farms = s.buildings.filter((b) => b.built && b.type === 'farm').slice(0, 3);
+      const b = farms.length ? pick(s, farms) : null;
+      return b ? spotNear(s, b, 'feed', b.id) : null;
+    }
     case 'pray': { const b = building(s, 'chapel'); return b ? spotNear(s, b, 'pray', b.id) : null; }
     case 'watch': { const c = s.caravan!; const ring = around(s, { x: Math.round(c.x), y: Math.round(c.y) }, 2); if (!ring.length) return null; const p = pick(s, ring); return { kind: 'rest', activity: 'watch', x: p.x, y: p.y, dir: facing(p, c), phase: 'go' }; }
     case 'stroll': { const ring = around(s, s.center, randInt(s, 2, 4)); if (!ring.length) return null; const p = pick(s, ring); return { kind: 'rest', activity: 'stroll', x: p.x, y: p.y, dir: chance(s, 0.5) ? 1 : -1, phase: 'go' }; }
@@ -217,10 +224,52 @@ export function maybeRest(s: GameState, w: Worker): boolean {
   w.task = task;
   w.path = path;
   w.timer = duration;
-  // A picnic is for two: the spouse comes along if they are free.
+  // A picnic is for two: the spouse comes along across the blanket; if unavailable, stroll instead.
   if (task.activity === 'picnic') {
-    const sp = s.workers.find((o) => o.id === w.spouse && !o.task);
-    if (sp) { const t2: RestTask = { ...task, x: task.x, y: task.y, dir: -1 }; sp.task = t2; sp.path = findPath(s, sp, t2); sp.timer = duration; }
+    const sp = s.workers.find((o) => o.id === w.spouse && (!o.task || (o.task.kind === 'rest' && o.task.activity !== 'picnic')));
+    if (sp) {
+      const px2 = isPassable(s, task.x + 1, task.y) && isReachable(s, task.x + 1, task.y) ? task.x + 1 : task.x;
+      const t2: RestTask = { ...task, x: px2, y: task.y, dir: -1 };
+      sp.task = t2;
+      sp.path = findPath(s, sp, t2);
+      sp.timer = duration;
+    } else {
+      task.activity = 'stroll';
+    }
+  }
+  // Chess is for two: invite an idle colleague to the opposite seat if open.
+  if (task.activity === 'chess') {
+    const seats = chessSeats(s);
+    if (seats) {
+      const otherSeat = task.x === seats[0].x && task.y === seats[0].y ? seats[1] : seats[0];
+      const otherDir = otherSeat === seats[0] ? 1 : -1;
+      const occupied = s.workers.some((o) => o !== w && o.task?.kind === 'rest' && o.task.activity === 'chess');
+      if (!occupied) {
+        const opp = s.workers.find((o) => o !== w && !o.task);
+        if (opp) {
+          const t2: RestTask = { kind: 'rest', activity: 'chess', x: otherSeat.x, y: otherSeat.y, dir: otherDir, phase: 'go' };
+          opp.task = t2;
+          opp.path = findPath(s, opp, t2);
+          opp.timer = duration;
+        }
+      }
+    }
+  }
+  // Snowball fight requires at least two throwers; invite an idle colleague or roll a snowman instead.
+  if (task.activity === 'snowball') {
+    const hasPartner = s.workers.some((o) => o !== w && o.task?.kind === 'rest' && o.task.activity === 'snowball');
+    if (!hasPartner) {
+      const partner = s.workers.find((o) => o !== w && !o.task);
+      const sx2 = isPassable(s, task.x + 1, task.y) && isReachable(s, task.x + 1, task.y) ? task.x + 1 : task.x;
+      if (partner) {
+        const t2: RestTask = { kind: 'rest', activity: 'snowball', x: sx2, y: task.y, dir: -task.dir, phase: 'go' };
+        partner.task = t2;
+        partner.path = findPath(s, partner, t2);
+        partner.timer = duration;
+      } else {
+        task.activity = 'snowman';
+      }
+    }
   }
   return true;
 }
@@ -233,6 +282,7 @@ export function updateRest(s: GameState, w: Worker, t: RestTask, dt: number, mov
   }
   w.timer -= dt;
   if (t.activity === 'lunch' && !isLunch(s)) w.timer = 0;
+  if (isRaining(s) && (t.activity === 'nap' || t.activity === 'picnic' || t.activity === 'swim' || t.activity === 'chess')) w.timer = 0;
   if (w.timer > 0) return;
   if (t.activity === 'fish' && chance(s, FISH_CATCH_CHANCE)) { s.resources.food += 1; s.fx.push({ kind: 'float', x: w.x, y: w.y, text: '+1', color: '#7ad07a' }); }
   if (t.activity === 'drink') w.tipsy = 12;

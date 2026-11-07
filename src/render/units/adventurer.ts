@@ -7,6 +7,25 @@ import { drawSprite } from '../sprites';
 import { ANIMAL } from '../spriteMap';
 import type { Adventurer, GameState, Party } from '../../sim/types';
 import { classArt } from './classes';
+import { drawFatherFigure } from './worker';
+
+function drawFatherWarrior(ctx: CanvasRenderingContext2D, p: ReturnType<typeof pose>, env: Env, id: number, sitting: boolean): void {
+  drawFatherFigure(ctx, p, env, id, sitting, true);
+  // Royal Sapphire & Gold kite shield on left arm.
+  poly(ctx, [-5.6, -9.2, -2.4, -9.2, -2.6, -4.6, -4.0, -2.8, -5.4, -4.6], '#ffd858');
+  poly(ctx, [-5.2, -8.8, -2.8, -8.8, -3.0, -4.8, -4.0, -3.4, -5.0, -4.8], '#1e4e98');
+  circle(ctx, -4.0, -6.4, 0.9, '#78d8ff');
+  // Drawn Pioneer's Broadsword gleaming in right hand.
+  ctx.save();
+  ctx.translate(4.2, -6.5);
+  ctx.rotate(p.walk * 0.25 + p.swing * 0.85 - 0.45);
+  rect(ctx, -0.7, -11.5, 1.4, 11.5, '#d8ecff');
+  poly(ctx, [-0.7, -11.5, 0, -13.6, 0.7, -11.5], '#ffffff');
+  rect(ctx, -0.25, -11.0, 0.5, 10.0, '#78c8ff');
+  rect(ctx, -2.3, -0.6, 4.6, 1.1, '#ffd858');
+  circle(ctx, 0, 1.2, 0.9, '#58c8ff');
+  ctx.restore();
+}
 
 export function drawAdventurer(ctx: CanvasRenderingContext2D, a: Adventurer, env: Env, gear = 0, x = a.x, y = a.y, moving = a.path.length > 0, raid?: { x: number; y: number } | null): void {
   const training = a.status === 'resting' && a.pastime === 'train' && !moving;
@@ -23,7 +42,8 @@ export function drawAdventurer(ctx: CanvasRenderingContext2D, a: Adventurer, env
   const lx = x + dir * lunge * 0.35;
   if (sitting) p.bob = 3;
   withUnit(ctx, lx, y, dir, p.bob, () => {
-    classArt(ctx, a.cls, p, moving, env, a.level, gear);
+    if (a.father) drawFatherWarrior(ctx, p, env, a.id, sitting);
+    else classArt(ctx, a.cls, p, moving, env, a.level, gear);
     if (drinking) {
       const lift = Math.max(0, Math.sin(env.clock * 2.2 + a.id)) * 2.5;
       rect(ctx, 3.8, -7.5 - lift, 2.8, 3.2, '#e0a838');
@@ -124,9 +144,15 @@ export function drawParty(ctx: CanvasRenderingContext2D, s: GameState, p: Party,
         rect(ctx, -3.5, -8.5, 7, 2.4, '#c89838');
         ctx.restore();
       }
-      withUnit(ctx, p.x + ox, p.y + oy, dir, pz.bob - 4.5, () => classArt(ctx, a.cls, pz, false, env, a.level, s.equipment), HERO_SCALE);
+      withUnit(ctx, p.x + ox, p.y + oy, dir, pz.bob - 4.5, () => {
+        if (a.father) drawFatherWarrior(ctx, pz, env, a.id, false);
+        else classArt(ctx, a.cls, pz, false, env, a.level, s.equipment);
+      }, HERO_SCALE);
     } else {
-      withUnit(ctx, p.x + ox, p.y + oy, dir, pz.bob, () => classArt(ctx, a.cls, pz, true, env, a.level, s.equipment), HERO_SCALE);
+      withUnit(ctx, p.x + ox, p.y + oy, dir, pz.bob, () => {
+        if (a.father) drawFatherWarrior(ctx, pz, env, a.id, false);
+        else classArt(ctx, a.cls, pz, true, env, a.level, s.equipment);
+      }, HERO_SCALE);
     }
   });
   if (departing) bubble(ctx, px + dir * 6, py - 22, '!', 0.9, '#c85030');

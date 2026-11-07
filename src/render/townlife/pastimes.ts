@@ -71,11 +71,23 @@ export class Pastimes {
       if (!h) continue;
       out.push({ y: h.y + 0.97, draw: (ctx, e) => drawTownsfolk(ctx, h.x, h.y + 0.35, w.x > h.x ? 1 : -1, false, e, h.id * 5) });
     }
-    // The chess table waits even when nobody is playing.
+    // The chess table waits even when nobody is playing; if one villager sits down, a companion sits across.
     const seats = chessSeats(s);
+    const chessPlayers = resting(s, 'chess');
     if (seats && s.buildings.some((b) => b.built && b.type === 'tavern')) {
       const sx = seats[0].x * TILE + TILE / 2 + 12, sy = seats[0].y * TILE + TILE / 2 + 1;
-      if (!resting(s, 'chess').length) out.push({ y: seats[0].y + 0.7, draw: (ctx) => { rect(ctx, sx - 6, sy + 2, 12, 3, '#6b4a2b'); for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) rect(ctx, sx - 6 + c * 3, sy - 5 + r * 1.8, 3, 1.8, (r + c) % 2 ? '#e8dcc0' : '#4a3a2a'); } });
+      if (!chessPlayers.length) {
+        out.push({ y: seats[0].y + 0.7, draw: (ctx) => { rect(ctx, sx - 6, sy + 2, 12, 3, '#6b4a2b'); for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) rect(ctx, sx - 6 + c * 3, sy - 5 + r * 1.8, 3, 1.8, (r + c) % 2 ? '#e8dcc0' : '#4a3a2a'); } });
+      }
+    }
+    if (seats && chessPlayers.length === 1 && s.workers.length >= 2 && !s.raid) {
+      const p0 = chessPlayers[0];
+      const oppSeat = Math.round(p0.x) === seats[0].x ? seats[1] : seats[0];
+      const oppDir = oppSeat === seats[0] ? 1 : -1;
+      out.push({
+        y: oppSeat.y + 0.8,
+        draw: (ctx, e) => drawTownsfolk(ctx, oppSeat.x, oppSeat.y, oppDir, false, e, p0.id * 11 + 3),
+      });
     }
     for (const m of this.snowmen) out.push({ y: m.y + 0.8, draw: (ctx, e) => drawSnowman(ctx, m, e) });
     // Snowballs between pairs of throwers.

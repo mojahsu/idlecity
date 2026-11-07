@@ -61,6 +61,7 @@ export class Cheers {
     this.victorySeen = s.victory;
     this.returning = nowRet;
     this.travelling = nowTrav;
+    if (s.raid) { this.cheers = []; return; }
     this.cheers = this.cheers.filter((c) => (c.ttl -= dt) > 0);
     void env;
   }

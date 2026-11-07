@@ -25,6 +25,9 @@ export function updateEvents(s: GameState, dt: number): void {
 function updateSeasonal(s: GameState): void {
   const ev = seasonalEvent(s);
   if (!ev) return;
+  if (ev === 'sowing' && !hasBuilding(s, 'farm')) return;
+  if (ev === 'fishing' && s.workers.length < 2) return;
+  if (ev === 'solstice' && !hasBuilding(s, 'hut') && !hasBuilding(s, 'house')) return;
   const day = currentDay(s), f = dayFraction(s);
   if (s.timers.eventDay !== day && f > 0.18) {
     s.timers.eventDay = day;
